@@ -115,13 +115,29 @@ export function FileUpload({ onFileUploaded }: FileUploadProps) {
         </div>
 
         {uploadedFile && !isUploading && (
-          <div className="mt-4">
-            <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
-              <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-              <span className="text-sm text-green-800">{uploadedFile.name}</span>
-              <span className="text-xs text-green-600 ml-2">
-                ({(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)
-              </span>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+              <div className="flex items-center">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                <span className="text-sm text-green-800">{uploadedFile.name}</span>
+                <span className="text-xs text-green-600 ml-2">
+                  ({(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadedFile(null);
+                  // Reset the file input
+                  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                  if (fileInput) fileInput.value = '';
+                }}
+                className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+              >
+                Replace Document
+              </Button>
             </div>
           </div>
         )}
