@@ -126,27 +126,36 @@ export default function Home() {
           <ProcessingStepper currentStep={getCurrentStep()} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* File Upload and Data Preview */}
-          <div className="lg:col-span-2 space-y-6">
-            <FileUpload onFileUploaded={handleFileUploaded} onReset={handleFileReset} />
-            
-            {uploadResponse && (
-              <DataPreview sheets={uploadResponse.preview.sheets} />
-            )}
-          </div>
+        {/* Step 1: Document Upload */}
+        <div className="space-y-6">
+          <FileUpload onFileUploaded={handleFileUploaded} onReset={handleFileReset} />
+        </div>
 
-          {/* Processing Panel */}
-          <div className="lg:col-span-1 space-y-6">
-            <ProcessingStatus job={currentJob} isProcessing={isProcessing} />
+        {/* Step 2: Data Preview */}
+        {uploadResponse && (
+          <div className="mt-8 space-y-6">
+            <DataPreview sheets={uploadResponse.preview.sheets} />
+          </div>
+        )}
+
+        {/* Step 3: Template Selection */}
+        {uploadResponse && (
+          <div className="mt-8 space-y-6">
             <TemplateSelector 
               selectedTemplate={selectedTemplate} 
               onTemplateChange={setSelectedTemplate}
               disabled={isProcessing}
             />
+          </div>
+        )}
+
+        {/* Processing Status and Export Settings */}
+        {uploadResponse && (
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ProcessingStatus job={currentJob} isProcessing={isProcessing} />
             <ExportSettings />
           </div>
-        </div>
+        )}
 
         {/* Processing Actions */}
         {uploadResponse && (
