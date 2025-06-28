@@ -20,6 +20,11 @@ const templates = [
     description: "Quick overview and statistics",
   },
   {
+    value: "customer-participation",
+    title: "Guest Participation Report",
+    description: "Excursion attendance and guest management",
+  },
+  {
     value: "custom",
     title: "Custom Template",
     description: "Upload your own template",
