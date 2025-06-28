@@ -8,7 +8,7 @@ const steps = [
   { icon: Upload, label: "Document Upload", description: "Upload Excel file" },
   { icon: Eye, label: "Data Preview", description: "Preview data" },
   { icon: FileCheck, label: "Template Selection", description: "Choose template" },
-  { icon: FileText, label: "Document Generation", description: "Generate report" },
+  { icon: FileText, label: "Report Generation", description: "Generate report" },
   { icon: Package, label: "Export", description: "Export to Dropbox" },
 ];
 

@@ -93,7 +93,7 @@ export default function Home() {
     // Step 2: Template Selection (template selected, job created but not started)
     if (currentJob && currentJob.status === "pending") return 2;
     
-    // Step 3: Document Generation (processing)
+    // Step 3: Report Generation (processing)
     if (currentJob && currentJob.status === "processing") return 3;
     
     // Step 4: Export (completed)
