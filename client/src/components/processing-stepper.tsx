@@ -1,15 +1,15 @@
-import { Upload, Code, Database, FileText, Package } from "lucide-react";
+import { Upload, Eye, FileCheck, FileText, Package } from "lucide-react";
 
 interface ProcessingStepperProps {
   currentStep: number;
 }
 
 const steps = [
-  { icon: Upload, label: "Upload", description: "File upload" },
-  { icon: Code, label: "Parse JSON", description: "Data parsing" },
-  { icon: Database, label: "Store Data", description: "Database storage" },
-  { icon: FileText, label: "Generate", description: "Template processing" },
-  { icon: Package, label: "Export", description: "Dropbox export" },
+  { icon: Upload, label: "Document Upload", description: "Upload Excel file" },
+  { icon: Eye, label: "Data Preview", description: "Preview data" },
+  { icon: FileCheck, label: "Template Selection", description: "Choose template" },
+  { icon: FileText, label: "Document Generation", description: "Generate report" },
+  { icon: Package, label: "Export", description: "Export to Dropbox" },
 ];
 
 export function ProcessingStepper({ currentStep }: ProcessingStepperProps) {

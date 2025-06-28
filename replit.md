@@ -95,7 +95,9 @@ This is a full-stack web application for uploading, processing, and exporting Ex
 - Push-based deployment with `npm run db:push`
 
 ## Changelog
-- June 28, 2025. Initial setup
+- June 28, 2025: Initial setup with Excel processing pipeline
+- June 28, 2025: Updated progress bar steps to better reflect user workflow (Document Upload → Data Preview → Template Selection → Document Generation → Export)
+- June 28, 2025: Fixed "Replace Document" functionality to properly reset both file and data preview states
 
 ## User Preferences
 

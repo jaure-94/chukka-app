@@ -84,12 +84,22 @@ export default function Home() {
   };
 
   const getCurrentStep = () => {
+    // Step 0: Document Upload
     if (!uploadResponse) return 0;
-    if (!currentJob || currentJob.status === "pending") return 1;
-    if (currentJob.status === "processing" && currentJob.progress < 40) return 2;
-    if (currentJob.status === "processing" && currentJob.progress < 80) return 3;
-    if (currentJob.status === "processing" || currentJob.status === "completed") return 4;
-    return 1;
+    
+    // Step 1: Data Preview (file uploaded, showing preview)
+    if (uploadResponse && !currentJob) return 1;
+    
+    // Step 2: Template Selection (template selected, job created but not started)
+    if (currentJob && currentJob.status === "pending") return 2;
+    
+    // Step 3: Document Generation (processing)
+    if (currentJob && currentJob.status === "processing") return 3;
+    
+    // Step 4: Export (completed)
+    if (currentJob && currentJob.status === "completed") return 4;
+    
+    return 0;
   };
 
   return (
