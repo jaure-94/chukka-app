@@ -8,9 +8,10 @@ import type { UploadResponse } from "@/lib/types";
 
 interface FileUploadProps {
   onFileUploaded: (response: UploadResponse) => void;
+  onReset?: () => void;
 }
 
-export function FileUpload({ onFileUploaded }: FileUploadProps) {
+export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -133,6 +134,8 @@ export function FileUpload({ onFileUploaded }: FileUploadProps) {
                   // Reset the file input
                   const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
                   if (fileInput) fileInput.value = '';
+                  // Notify parent to reset data preview
+                  if (onReset) onReset();
                 }}
                 className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
               >
