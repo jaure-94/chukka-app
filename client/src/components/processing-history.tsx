@@ -4,10 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { FileSpreadsheet, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ProcessingHistoryItem } from "@/lib/types";
+import type { ProcessingJob, UploadedFile } from "@/lib/types";
+
+type HistoryItem = ProcessingJob & { file: UploadedFile };
 
 export function ProcessingHistory() {
-  const { data: history, isLoading } = useQuery<ProcessingHistoryItem[]>({
+  const { data: history, isLoading } = useQuery<HistoryItem[]>({
     queryKey: ["/api/history"],
   });
 
@@ -68,25 +70,25 @@ export function ProcessingHistory() {
         ) : history && history.length > 0 ? (
           <div className="space-y-3">
             {history.map((item) => (
-              <div key={item.processingJobs.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+              <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                 <div className="flex items-center space-x-3">
                   <FileSpreadsheet className="h-6 w-6 text-green-600" />
                   <div>
                     <div className="font-medium text-sm text-gray-900">
-                      {item.uploadedFiles.originalName}
+                      {item.file?.originalName || 'Unknown file'}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {formatTimeAgo(item.processingJobs.createdAt)} • Template: {item.processingJobs.templateType}
+                      {formatTimeAgo(item.createdAt)} • Template: {item.templateType}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {getStatusBadge(item.processingJobs.status)}
-                  {item.processingJobs.status === "completed" && (
+                  {getStatusBadge(item.status)}
+                  {item.status === "completed" && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDownload(item.processingJobs.id)}
+                      onClick={() => handleDownload(item.id)}
                       className="text-gray-400 hover:text-gray-600"
                     >
                       <Download className="h-4 w-4" />

@@ -51,12 +51,12 @@ export function ResultsSection({ job }: ResultsSectionProps) {
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Processing Complete</h3>
-            <p className="text-sm text-gray-500">Your files have been processed and are ready for download.</p>
+            <h3 className="text-lg font-semibold text-gray-900">Report Generated</h3>
+            <p className="text-sm text-gray-500">Your report has been generated and is ready for download.</p>
           </div>
           <div className="flex items-center text-green-600">
             <CheckCircle className="w-6 h-6 mr-2" />
-            <span className="font-medium">Success</span>
+            <span className="font-medium">Ready</span>
           </div>
         </div>
 
@@ -64,10 +64,10 @@ export function ResultsSection({ job }: ResultsSectionProps) {
           <div className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-gray-900">Generated Report</h4>
-              <span className="text-xs text-gray-500">HTML</span>
+              <span className="text-xs text-gray-500">DOCX</span>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Report generated from your data with processed records.
+              Word document report generated from your Excel data.
             </p>
             <div className="flex space-x-2">
               <Button onClick={handleDownload} className="flex-1 bg-blue-600 hover:bg-blue-700">

@@ -165,12 +165,12 @@ export default function Home() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {currentJob?.status === "completed" ? "Processing Complete" : "Ready to Process"}
+                      {currentJob?.status === "completed" ? "Report Generated" : "Ready to Generate"}
                     </h3>
                     <p className="text-sm text-gray-500">
                       {currentJob?.status === "completed" 
-                        ? "Your file has been processed successfully." 
-                        : "File uploaded and validated. Click start to begin processing."}
+                        ? "Your report has been generated successfully." 
+                        : "File uploaded and validated. Click generate to create your report."}
                     </p>
                   </div>
                   <div className="flex space-x-3">
@@ -183,7 +183,7 @@ export default function Home() {
                         disabled={isProcessing || !uploadResponse}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
-                        {isProcessing ? "Processing..." : "Start Processing"}
+                        {isProcessing ? "Generating..." : "Generate Report"}
                       </Button>
                     )}
                   </div>

@@ -45,6 +45,11 @@ export class TemplateProcessor {
     Handlebars.registerHelper("count", (array: any[]) => {
       return array ? array.length : 0;
     });
+
+    Handlebars.registerHelper("contains", (array: any[], value: any) => {
+      if (!Array.isArray(array)) return false;
+      return array.includes(value);
+    });
   }
 
   async processTemplate(
