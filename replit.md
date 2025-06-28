@@ -1,0 +1,102 @@
+# Excel Data Processing Application
+
+## Overview
+
+This is a full-stack web application for uploading, processing, and exporting Excel files with template-based document generation. The system allows users to upload Excel files, preview the data, select processing templates, and export results to Dropbox.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React with TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui component library
+- **State Management**: TanStack Query for server state management
+- **Routing**: Wouter for client-side routing
+- **Build Tool**: Vite for development and production builds
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript with ES modules
+- **File Upload**: Multer middleware for handling multipart/form-data
+- **Excel Processing**: xlsx library for parsing Excel files
+- **Template Engine**: Handlebars for document generation
+
+### Database Layer
+- **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Database**: PostgreSQL (configured for Neon serverless)
+- **Schema**: Three main tables for file management and processing tracking
+
+## Key Components
+
+### File Upload System
+- Drag-and-drop interface using react-dropzone
+- File validation for Excel formats (.xlsx, .xls)
+- 10MB file size limit
+- Multer-based server-side processing
+
+### Data Processing Pipeline
+1. **File Upload**: Stores uploaded files with metadata
+2. **Excel Parsing**: Extracts data from all sheets using xlsx library
+3. **Database Storage**: Stores parsed data with sheet and row organization
+4. **Template Processing**: Applies Handlebars templates to generate documents
+5. **Export**: Uploads results to Dropbox using REST API
+
+### Template System
+- Handlebars-based template engine
+- Built-in helpers for currency formatting, date formatting, and calculations
+- Support for multiple template types (employee reports, summary reports, custom)
+- Template files stored in server/templates directory
+
+### External Integrations
+- **Dropbox API**: File upload and storage using OAuth access tokens
+- **Neon Database**: Serverless PostgreSQL with connection pooling
+
+## Data Flow
+
+1. User uploads Excel file via drag-and-drop interface
+2. Server validates file type and size, stores to filesystem
+3. Excel parser extracts data from all sheets
+4. Parsed data stored in database with file association
+5. User selects template type for processing
+6. Template processor generates documents using parsed data
+7. Results optionally exported to Dropbox
+8. Processing history maintained for user reference
+
+## External Dependencies
+
+### Production Dependencies
+- **Database**: @neondatabase/serverless, drizzle-orm
+- **UI Components**: @radix-ui/* components, lucide-react icons
+- **File Processing**: multer, xlsx
+- **Template Engine**: handlebars
+- **State Management**: @tanstack/react-query
+- **Styling**: tailwindcss, class-variance-authority
+
+### Development Dependencies
+- **Build Tools**: vite, esbuild
+- **TypeScript**: Full TypeScript setup with strict mode
+- **Database Tools**: drizzle-kit for migrations
+
+## Deployment Strategy
+
+### Development
+- Vite dev server with HMR for frontend
+- tsx for TypeScript execution in development
+- Concurrent frontend/backend development setup
+
+### Production
+- Vite builds frontend to dist/public
+- esbuild bundles server code to dist/index.js
+- Single deployment artifact with static file serving
+- Environment variables for database and Dropbox configuration
+
+### Database Management
+- Drizzle migrations in migrations/ directory
+- Schema defined in shared/schema.ts
+- Push-based deployment with `npm run db:push`
+
+## Changelog
+- June 28, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.

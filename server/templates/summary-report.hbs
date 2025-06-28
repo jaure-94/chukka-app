@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary Report - Generated {{formatDate generatedAt}}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1976D2;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #1976D2;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .overview {
+            background: linear-gradient(135deg, #1976D2, #42A5F5);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .overview h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.5em;
+        }
+        .overview-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .sheet-summary {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .sheet-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .sheet-content {
+            padding: 20px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .metric {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Summary Report</h1>
+            <p>Quick overview and key insights</p>
+        </div>
+
+        <div class="overview">
+            <h2>Data Overview</h2>
+            <p>File processed successfully with comprehensive data analysis</p>
+            
+            <div class="overview-stats">
+                <div class="stat">
+                    <span class="stat-value">{{totalRecords}}</span>
+                    <span class="stat-label">Total Records</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{count sheets}}</span>
+                    <span class="stat-label">Data Sheets</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{formatDate generatedAt}}</span>
+                    <span class="stat-label">Generated</span>
+                </div>
+            </div>
+        </div>
+
+        {{#if sheets}}
+            {{#each sheets}}
+                <div class="sheet-summary">
+                    <div class="sheet-header">
+                        <h3 style="margin: 0; color: #1976D2;">{{name}}</h3>
+                        <p style="margin: 5px 0 0 0; color: #666;">{{count data}} records analyzed</p>
+                    </div>
+                    
+                    <div class="sheet-content">
+                        {{#if summary}}
+                            <div class="metrics-grid">
+                                <div class="metric">
+                                    <div class="metric-value">{{summary.recordCount}}</div>
+                                    <div class="metric-label">Records</div>
+                                </div>
+                                
+                                {{#if summary.Salary_avg}}
+                                    <div class="metric">
+                                        <div class="metric-value">{{formatCurrency summary.Salary_avg}}</div>
+                                        <div class="metric-label">Avg Salary</div>
+                                    </div>
+                                {{/if}}
+                                
+                                {{#if summary.Salary_sum}}
+                                    <div class="metric">
+                                        <div class="metric-value">{{formatCurrency summary.Salary_sum}}</div>
+                                        <div class="metric-label">Total Payroll</div>
+                                    </div>
+                                {{/if}}
+                                
+                                {{#if summary.Salary_min}}
+                                    <div class="metric">
+                                        <div class="metric-value">{{formatCurrency summary.Salary_min}}</div>
+                                        <div class="metric-label">Min Salary</div>
+                                    </div>
+                                {{/if}}
+                                
+                                {{#if summary.Salary_max}}
+                                    <div class="metric">
+                                        <div class="metric-value">{{formatCurrency summary.Salary_max}}</div>
+                                        <div class="metric-label">Max Salary</div>
+                                    </div>
+                                {{/if}}
+                            </div>
+                        {{else}}
+                            <p>No summary statistics available for this sheet.</p>
+                        {{/if}}
+                    </div>
+                </div>
+            {{/each}}
+        {{else}}
+            <p>No data sheets found in the uploaded file.</p>
+        {{/if}}
+
+        <div class="footer">
+            <p>Summary generated by Excel Data Processor | {{formatDate generatedAt}}</p>
+            <p style="font-size: 0.8em; margin-top: 10px;">File ID: {{fileId}}</p>
+        </div>
+    </div>
+</body>
+</html>
