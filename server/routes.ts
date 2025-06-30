@@ -7,7 +7,7 @@ import fs from "fs";
 import { ExcelParser } from "./services/excel-parser";
 import { TemplateProcessor } from "./services/template-processor";
 import { DropboxService } from "./services/dropbox-service";
-import { EODProcessor } from "./services/eod-processor-fixed";
+import { EODProcessor } from "./services/eod-processor-exceljs";
 import { insertUploadedFileSchema, insertProcessingJobSchema } from "@shared/schema";
 
 const upload = multer({ 

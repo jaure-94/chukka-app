@@ -139,6 +139,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented complete row-by-row copying approach for Excel formatting
   - Enhanced cell style preservation using direct xlsx-populate operations
   - Added comprehensive template section duplication with all visual properties intact
+- June 30, 2025: Switched to ExcelJS library for reliable Excel formatting preservation
+  - Replaced xlsx-populate with ExcelJS due to style copying failures
+  - Implemented comprehensive formatting storage and replication system
+  - Added deep copying of font, fill, border, alignment, and number format properties
+  - Enhanced template section duplication with complete visual formatting integrity
 
 ## User Preferences
 
