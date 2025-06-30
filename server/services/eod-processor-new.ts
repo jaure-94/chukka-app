@@ -153,28 +153,47 @@ export class EODProcessor {
       const templateRowCount = templateEndRow - templateStartRow + 1;
 
       // Store the original template section with full formatting
+      console.log(`Storing template section from rows ${templateStartRow} to ${templateEndRow}`);
       const templateSection: any[] = [];
+      
       for (let row = templateStartRow; row <= templateEndRow; row++) {
         const rowData: any = {};
         // Store cells from columns A to I (1-9)
         for (let col = 1; col <= 9; col++) {
           const cell = sheet.cell(row, col);
+          const cellValue = cell.value();
+          
           try {
             const cellStyle = cell.style();
             rowData[col] = {
-              value: cell.value(),
-              style: cellStyle && typeof cellStyle === 'object' ? cellStyle : null
+              value: cellValue,
+              hasValue: cellValue !== undefined && cellValue !== null && cellValue !== '',
+              style: cellStyle && typeof cellStyle === 'object' ? cellStyle : null,
+              isEmpty: cellValue === undefined || cellValue === null || cellValue === ''
             };
           } catch (error) {
             // If style reading fails, just store the value
             rowData[col] = {
-              value: cell.value(),
-              style: null
+              value: cellValue,
+              hasValue: cellValue !== undefined && cellValue !== null && cellValue !== '',
+              style: null,
+              isEmpty: cellValue === undefined || cellValue === null || cellValue === ''
             };
           }
         }
         templateSection.push(rowData);
       }
+      
+      console.log(`Template section stored with ${templateSection.length} rows`);
+      
+      // Log template structure for debugging
+      templateSection.forEach((rowData, index) => {
+        const actualRow = templateStartRow + index;
+        const cellsWithValues = Object.keys(rowData).filter(col => 
+          rowData[col] && rowData[col].hasValue
+        ).length;
+        console.log(`Template row ${actualRow}: ${cellsWithValues} cells with values`);
+      });
 
       // Clear existing content below template section - simplified approach
       for (let row = templateEndRow + 1; row <= 100; row++) {
@@ -200,13 +219,15 @@ export class EODProcessor {
           const templateRowData = templateSection[templateRowIndex];
           
           for (let col = 1; col <= 9; col++) {
-            if (templateRowData[col]) {
-              const targetCell = sheet.cell(targetRow, col);
-              
+            const targetCell = sheet.cell(targetRow, col);
+            
+            const templateCellData = templateRowData[col];
+            
+            if (templateCellData) {
               // Get original value and replace placeholders
-              let cellValue = templateRowData[col].value;
+              let cellValue = templateCellData.value;
               
-              // Replace placeholders with actual data
+              // Only replace if the value is actually a placeholder
               if (cellValue === '{{tour_name}}') {
                 cellValue = tour.tour_name;
                 console.log(`Replaced {{tour_name}} with "${tour.tour_name}" at row ${targetRow}, col ${col}`);
@@ -218,19 +239,39 @@ export class EODProcessor {
                 console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRow}, col ${col}`);
               }
               
-              // Set the value (xlsx-populate should preserve existing formatting automatically)
-              targetCell.value(cellValue);
-              console.log(`Set value "${cellValue}" for cell at row ${targetRow}, col ${col}`);
+              // Set the value only if the template cell had a value or we're replacing a placeholder
+              if (templateCellData.hasValue || (cellValue !== templateCellData.value)) {
+                targetCell.value(cellValue || '');
+                if (cellValue !== templateCellData.value) {
+                  console.log(`Updated placeholder: "${templateCellData.value}" -> "${cellValue}" at row ${targetRow}, col ${col}`);
+                } else if (templateCellData.hasValue) {
+                  console.log(`Copied value "${cellValue}" to row ${targetRow}, col ${col}`);
+                }
+              }
               
-              // Try to apply style if available
+              // Apply style to maintain exact formatting from template
               try {
-                if (templateRowData[col].style && typeof templateRowData[col].style === 'object') {
-                  targetCell.style(templateRowData[col].style);
-                  console.log(`Applied formatting to cell at row ${targetRow}, col ${col}`);
+                if (templateCellData.style && typeof templateCellData.style === 'object') {
+                  targetCell.style(templateCellData.style);
+                  console.log(`Applied template formatting to row ${targetRow}, col ${col}`);
                 }
               } catch (styleError) {
                 const errorMessage = styleError instanceof Error ? styleError.message : String(styleError);
-                console.log(`Could not apply style to cell at row ${targetRow}, col ${col}:`, errorMessage);
+                console.log(`Style application failed for row ${targetRow}, col ${col}:`, errorMessage);
+              }
+            } else {
+              // For cells not in template data, copy formatting from original template
+              const originalTemplateRow = templateStartRow + templateRowIndex;
+              const originalTemplateCell = sheet.cell(originalTemplateRow, col);
+              
+              try {
+                const originalStyle = originalTemplateCell.style();
+                if (originalStyle && typeof originalStyle === 'object') {
+                  targetCell.style(originalStyle);
+                  console.log(`Copied empty cell formatting from template row ${originalTemplateRow} to row ${targetRow}, col ${col}`);
+                }
+              } catch (styleError) {
+                // Ignore style copy errors for empty cells
               }
             }
           }
