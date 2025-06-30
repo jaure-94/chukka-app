@@ -120,26 +120,39 @@ export class EODProcessor {
       // Extract data from dispatch file
       const templateData = this.extractDispatchData(dispatchData);
 
-      // Read EOD template file with full formatting support
-      const workbook = XLSX.readFile(eodTemplatePath, {
-        cellHTML: false,
-        cellNF: false,
-        cellStyles: true,
-        sheetStubs: true,
-        bookDeps: true,
-        bookFiles: true,
-        bookProps: true,
-        bookSheets: true,
-        bookVBA: true
-      });
+      // Read EOD template file
+      console.log('Reading EOD template file from:', eodTemplatePath);
+      
+      if (!fs.existsSync(eodTemplatePath)) {
+        throw new Error(`EOD template file not found: ${eodTemplatePath}`);
+      }
+      
+      const workbook = XLSX.readFile(eodTemplatePath);
       
       // Log workbook structure for debugging
-      console.log('Workbook has styles:', !!(workbook as any).SSF);
-      console.log('Workbook props:', workbook.Props ? 'YES' : 'NO');
+      console.log('Workbook structure:', {
+        SheetNames: workbook.SheetNames,
+        hasSheets: !!workbook.Sheets,
+        sheetsKeys: workbook.Sheets ? Object.keys(workbook.Sheets) : 'undefined'
+      });
+      
+      if (!workbook.Sheets) {
+        throw new Error('No sheets found in workbook');
+      }
+      
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error('No sheet names found in workbook');
+      }
       
       // Process each sheet in the template
       for (const sheetName of workbook.SheetNames) {
+        console.log(`Processing sheet: ${sheetName}`);
         const worksheet = workbook.Sheets[sheetName];
+        
+        if (!worksheet) {
+          console.log(`Warning: Sheet ${sheetName} is undefined, skipping`);
+          continue;
+        }
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
         
         // Find template row (row 17, 0-indexed = 16) that contains placeholders
@@ -352,14 +365,9 @@ export class EODProcessor {
         }
       }
 
-      // Save the processed file with full formatting support
+      // Save the processed file
       const outputPath = path.join(this.outputDir, outputFileName);
-      XLSX.writeFile(workbook, outputPath, {
-        cellStyles: true,
-        bookSST: true,
-        bookType: 'xlsx',
-        compression: true
-      });
+      XLSX.writeFile(workbook, outputPath);
 
       console.log(`Saved processed file to: ${outputPath}`);
       return outputPath;
