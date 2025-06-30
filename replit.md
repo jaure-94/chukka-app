@@ -133,6 +133,8 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced template copying system to maintain exact formatting from rows 17-25 for each tour section
   - Eliminated "undefined" value entries and improved placeholder replacement logic
   - Confirmed formatting preservation working correctly with colors, borders, fonts, and structure maintained
+- June 30, 2025: Updated processing history display to show only 3 results initially with expandable "View More" option
+- June 30, 2025: Removed template selection step from Processing Status section to match streamlined 4-step workflow
 
 ## User Preferences
 

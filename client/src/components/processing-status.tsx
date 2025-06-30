@@ -12,7 +12,6 @@ interface ProcessingStatusProps {
 const statusSteps = [
   "Document Upload",
   "Data Preview", 
-  "Template Selection",
   "Report Generation",
   "Export",
 ];
@@ -25,11 +24,8 @@ export function ProcessingStatus({ job, isProcessing, uploadResponse }: Processi
     // Step 1: Data Preview - completed if we have upload response (file uploaded and previewed)
     if (stepIndex === 1) return uploadResponse ? "completed" : "pending";
     
-    // Step 2: Template Selection - completed if job was created (template selected)
-    if (stepIndex === 2) return job ? "completed" : "pending";
-    
-    // Step 3: Report Generation - based on job status
-    if (stepIndex === 3) {
+    // Step 2: Report Generation - based on job status
+    if (stepIndex === 2) {
       if (!job) return "pending";
       if (job.status === "failed") return "failed";
       if (job.status === "processing") return "processing";
@@ -37,8 +33,8 @@ export function ProcessingStatus({ job, isProcessing, uploadResponse }: Processi
       return "pending";
     }
     
-    // Step 4: Export - completed only if job is completed and exported
-    if (stepIndex === 4) {
+    // Step 3: Export - completed only if job is completed and exported
+    if (stepIndex === 3) {
       if (!job) return "pending";
       if (job.status === "completed" && job.dropboxExported) return "completed";
       if (job.status === "completed") return "pending";
