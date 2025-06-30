@@ -167,38 +167,25 @@ export class EODProcessor {
             
             console.log(`Copying complete formatting: row ${sourceRow} → row ${targetRow}`);
             
-            // Copy all cells in the row with comprehensive formatting preservation
+            // Copy all cells in the row with complete formatting
             for (let col = 1; col <= 20; col++) {
               const sourceCell = sheet.cell(sourceRow, col);
               const targetCell = sheet.cell(targetRow, col);
               
-              // Copy the value first
+              // Copy the value
               const sourceValue = sourceCell.value();
               if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
                 targetCell.value(sourceValue);
               }
               
-              // Direct formatting preservation using xlsx-populate
+              // Copy all formatting properties
               try {
-                // Get all style properties from source cell
                 const sourceStyle = sourceCell.style();
-                
                 if (sourceStyle && typeof sourceStyle === 'object') {
-                  // Apply the complete style object to target cell
                   targetCell.style(sourceStyle);
-                  
-                  // Log formatting success for first row to track progress
-                  if (rowOffset === 0 && col <= 5) {
-                    console.log(`Applied formatting to row ${targetRow}, col ${col}:`, 
-                      Object.keys(sourceStyle).join(', '));
-                  }
                 }
-                
               } catch (styleError) {
-                // Continue processing even if formatting fails for individual cells
-                if (rowOffset === 0 && col <= 3) {
-                  console.log(`Formatting failed for row ${targetRow}, col ${col}`);
-                }
+                // Continue if style copy fails for individual cells
               }
             }
           }
