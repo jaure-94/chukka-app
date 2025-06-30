@@ -126,111 +126,131 @@ export class EODProcessor {
       // Process each sheet in the template
       for (const sheetName of workbook.SheetNames) {
         const worksheet = workbook.Sheets[sheetName];
-        
-        // Find where to insert tour data (look for {{tour_name}} placeholder)
-        let insertStartRow = -1;
-        let tourNameCol = -1;
-        let adultCol = -1;
-        let childCol = -1;
-        let totalAdultRow = -1;
-        let totalChildRow = -1;
-        
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
         
-        // First pass: find placeholder locations and total cells
-        for (let row = range.s.r; row <= range.e.r; row++) {
-          for (let col = range.s.c; col <= range.e.c; col++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-            const cell = worksheet[cellAddress];
-            
-            if (cell && cell.v && typeof cell.v === 'string') {
-              if (cell.v.includes('{{tour_name}}')) {
-                insertStartRow = row;
-                tourNameCol = col;
-                console.log(`Found tour_name placeholder at ${cellAddress}`);
-              }
-              if (cell.v.includes('{{num_adult}}')) {
-                adultCol = col;
-                if (insertStartRow === -1) insertStartRow = row;
-                console.log(`Found num_adult placeholder at ${cellAddress}`);
-              }
-              if (cell.v.includes('{{num_chd}}')) {
-                childCol = col;
-                if (insertStartRow === -1) insertStartRow = row;
-                console.log(`Found num_chd placeholder at ${cellAddress}`);
-              }
-            }
-            
-            // Look for total cells (D24, E24 based on user description)
-            if (row === 23 && col === 3) { // D24 (0-indexed: row 23, col 3)
-              totalAdultRow = row;
-            }
-            if (row === 23 && col === 4) { // E24 (0-indexed: row 23, col 4)
-              totalChildRow = row;
+        // Find template row (row 17, 0-indexed = 16) that contains placeholders
+        const templateRowIndex = 16; // Row 17 in 0-indexed
+        const templateEndRowIndex = 24; // Row 25 in 0-indexed
+        let hasPlaceholders = false;
+        
+        // Check if row 17 has placeholders
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: templateRowIndex, c: col });
+          const cell = worksheet[cellAddress];
+          if (cell && cell.v && typeof cell.v === 'string') {
+            if (cell.v.includes('{{tour_name}}') || cell.v.includes('{{num_adult}}') || cell.v.includes('{{num_chd}}')) {
+              hasPlaceholders = true;
+              break;
             }
           }
         }
         
-        if (insertStartRow >= 0 && templateData.tours.length > 0) {
-          console.log(`Inserting ${templateData.tours.length} tours starting at row ${insertStartRow}`);
+        if (hasPlaceholders && templateData.tours.length > 0) {
+          console.log(`Found template row with placeholders, duplicating for ${templateData.tours.length} tours`);
           
-          // Clear existing placeholder rows
-          for (let i = 0; i < templateData.tours.length; i++) {
-            const currentRow = insertStartRow + i;
-            
-            // Add tour name
-            if (tourNameCol >= 0) {
-              const tourCellAddress = XLSX.utils.encode_cell({ r: currentRow, c: tourNameCol });
-              if (!worksheet[tourCellAddress]) worksheet[tourCellAddress] = {};
-              worksheet[tourCellAddress].v = templateData.tours[i].tour_name;
-              worksheet[tourCellAddress].t = 's'; // string type
-              console.log(`Set ${tourCellAddress} = ${templateData.tours[i].tour_name}`);
+          // Store the original template rows (17-25)
+          const templateRows: any[] = [];
+          for (let row = templateRowIndex; row <= templateEndRowIndex; row++) {
+            const rowData: any = {};
+            for (let col = range.s.c; col <= range.e.c; col++) {
+              const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+              if (worksheet[cellAddress]) {
+                rowData[col] = { ...worksheet[cellAddress] };
+              }
             }
-            
-            // Add adult count
-            if (adultCol >= 0) {
-              const adultCellAddress = XLSX.utils.encode_cell({ r: currentRow, c: adultCol });
-              if (!worksheet[adultCellAddress]) worksheet[adultCellAddress] = {};
-              worksheet[adultCellAddress].v = templateData.tours[i].num_adult;
-              worksheet[adultCellAddress].t = 'n'; // number type
-              console.log(`Set ${adultCellAddress} = ${templateData.tours[i].num_adult}`);
-            }
-            
-            // Add child count
-            if (childCol >= 0) {
-              const childCellAddress = XLSX.utils.encode_cell({ r: currentRow, c: childCol });
-              if (!worksheet[childCellAddress]) worksheet[childCellAddress] = {};
-              worksheet[childCellAddress].v = templateData.tours[i].num_chd;
-              worksheet[childCellAddress].t = 'n'; // number type
-              console.log(`Set ${childCellAddress} = ${templateData.tours[i].num_chd}`);
+            templateRows.push(rowData);
+          }
+          
+          // Clear original template area
+          for (let row = templateRowIndex; row <= templateEndRowIndex; row++) {
+            for (let col = range.s.c; col <= range.e.c; col++) {
+              const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+              delete worksheet[cellAddress];
             }
           }
           
-          // Update totals in D24 and E24
-          if (totalAdultRow >= 0) {
-            const totalAdultAddress = XLSX.utils.encode_cell({ r: totalAdultRow, c: 3 });
-            if (!worksheet[totalAdultAddress]) worksheet[totalAdultAddress] = {};
-            worksheet[totalAdultAddress].v = templateData.total_adult;
-            worksheet[totalAdultAddress].t = 'n';
-            console.log(`Set total adults ${totalAdultAddress} = ${templateData.total_adult}`);
+          // Create rows for each tour
+          let currentInsertRow = templateRowIndex;
+          
+          for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
+            const tour = templateData.tours[tourIndex];
+            console.log(`Creating rows for tour ${tourIndex + 1}: ${tour.tour_name}`);
+            
+            // Duplicate the template rows for this tour
+            for (let templateRowOffset = 0; templateRowOffset < templateRows.length; templateRowOffset++) {
+              const targetRow = currentInsertRow + templateRowOffset;
+              const sourceRowData = templateRows[templateRowOffset];
+              
+              for (let col = range.s.c; col <= range.e.c; col++) {
+                if (sourceRowData[col]) {
+                  const cellAddress = XLSX.utils.encode_cell({ r: targetRow, c: col });
+                  worksheet[cellAddress] = { ...sourceRowData[col] };
+                  
+                  // Replace placeholders in the cell value
+                  if (worksheet[cellAddress].v && typeof worksheet[cellAddress].v === 'string') {
+                    let cellValue = worksheet[cellAddress].v;
+                    const originalValue = cellValue;
+                    
+                    if (cellValue.includes('{{tour_name}}')) {
+                      cellValue = cellValue.replace(/\{\{tour_name\}\}/g, tour.tour_name);
+                    }
+                    if (cellValue.includes('{{num_adult}}')) {
+                      cellValue = cellValue.replace(/\{\{num_adult\}\}/g, tour.num_adult.toString());
+                    }
+                    if (cellValue.includes('{{num_chd}}')) {
+                      cellValue = cellValue.replace(/\{\{num_chd\}\}/g, tour.num_chd.toString());
+                    }
+                    
+                    if (cellValue !== originalValue) {
+                      console.log(`Cell ${cellAddress} updated: "${originalValue}" -> "${cellValue}"`);
+                      worksheet[cellAddress].v = cellValue;
+                      worksheet[cellAddress].w = cellValue;
+                    }
+                  }
+                }
+              }
+            }
+            
+            currentInsertRow += templateRows.length;
           }
           
-          if (totalChildRow >= 0) {
-            const totalChildAddress = XLSX.utils.encode_cell({ r: totalChildRow, c: 4 });
-            if (!worksheet[totalChildAddress]) worksheet[totalChildAddress] = {};
-            worksheet[totalChildAddress].v = templateData.total_chd;
-            worksheet[totalChildAddress].t = 'n';
-            console.log(`Set total children ${totalChildAddress} = ${templateData.total_chd}`);
+          // Update totals at the end (assuming they're in the last section)
+          // Find cells with {{num_adult}} and {{num_chd}} that aren't part of individual tour rows
+          for (let row = currentInsertRow; row <= range.e.r + (templateData.tours.length * templateRows.length); row++) {
+            for (let col = range.s.c; col <= range.e.c; col++) {
+              const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+              const cell = worksheet[cellAddress];
+              
+              if (cell && cell.v && typeof cell.v === 'string') {
+                let cellValue = cell.v;
+                const originalValue = cellValue;
+                
+                if (cellValue.includes('{{num_adult}}')) {
+                  cellValue = cellValue.replace(/\{\{num_adult\}\}/g, templateData.total_adult.toString());
+                }
+                if (cellValue.includes('{{num_chd}}')) {
+                  cellValue = cellValue.replace(/\{\{num_chd\}\}/g, templateData.total_chd.toString());
+                }
+                
+                if (cellValue !== originalValue) {
+                  console.log(`Total cell ${cellAddress} updated: "${originalValue}" -> "${cellValue}"`);
+                  cell.v = cellValue;
+                  cell.w = cellValue;
+                }
+              }
+            }
           }
           
-          // Update worksheet range to include new data
+          // Update worksheet range
+          const newEndRow = Math.max(range.e.r, currentInsertRow - 1);
           const newRange = XLSX.utils.encode_range({
             s: { r: range.s.r, c: range.s.c },
-            e: { r: Math.max(range.e.r, insertStartRow + templateData.tours.length - 1), c: range.e.c }
+            e: { r: newEndRow, c: range.e.c }
           });
           worksheet['!ref'] = newRange;
+          
         } else {
-          console.log('No placeholders found or no tours to insert');
+          console.log('No template placeholders found or no tours to process');
         }
       }
 
