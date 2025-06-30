@@ -96,8 +96,10 @@ This is a full-stack web application for uploading, processing, and exporting Ex
 
 ## Changelog
 - June 28, 2025: Initial setup with Excel processing pipeline
-- June 28, 2025: Updated progress bar steps to better reflect user workflow (Document Upload → Data Preview → Template Selection → Document Generation → Export)
+- June 28, 2025: Updated progress bar steps to better reflect user workflow (Document Upload → Data Preview → Template Selection → Report Generation → Export)
 - June 28, 2025: Fixed "Replace Document" functionality to properly reset both file and data preview states
+- June 29, 2025: Aligned processing status section with progress bar workflow
+- June 29, 2025: Updated file upload heading to "Upload Dispatch Excel File"
 
 ## User Preferences
 

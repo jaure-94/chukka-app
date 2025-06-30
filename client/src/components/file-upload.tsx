@@ -72,7 +72,7 @@ export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Excel File</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Dispatch Excel File</h2>
         
         <div
           {...getRootProps()}
