@@ -159,19 +159,31 @@ export class EODProcessor {
         // Store cells from columns A to I (1-9)
         for (let col = 1; col <= 9; col++) {
           const cell = sheet.cell(row, col);
-          rowData[col] = {
-            value: cell.value(),
-            style: cell.style() // This preserves ALL formatting including colors, borders, fonts
-          };
+          try {
+            const cellStyle = cell.style();
+            rowData[col] = {
+              value: cell.value(),
+              style: cellStyle && typeof cellStyle === 'object' ? cellStyle : null
+            };
+          } catch (error) {
+            // If style reading fails, just store the value
+            rowData[col] = {
+              value: cell.value(),
+              style: null
+            };
+          }
         }
         templateSection.push(rowData);
       }
 
-      // Clear existing content below template section
-      const maxRow = sheet.usedRange() ? sheet.usedRange().endCell().rowNumber() : 100;
-      for (let row = templateEndRow + 1; row <= maxRow; row++) {
+      // Clear existing content below template section - simplified approach
+      for (let row = templateEndRow + 1; row <= 100; row++) {
         for (let col = 1; col <= 9; col++) {
-          sheet.cell(row, col).clear();
+          try {
+            sheet.cell(row, col).clear();
+          } catch (error) {
+            // Ignore errors for empty cells
+          }
         }
       }
 
@@ -206,11 +218,19 @@ export class EODProcessor {
                 console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRow}, col ${col}`);
               }
               
-              // Set the value and preserve ALL formatting
+              // Set the value (xlsx-populate should preserve existing formatting automatically)
               targetCell.value(cellValue);
-              if (templateRowData[col].style) {
-                targetCell.style(templateRowData[col].style);
-                console.log(`Preserved complete formatting for cell at row ${targetRow}, col ${col}`);
+              console.log(`Set value "${cellValue}" for cell at row ${targetRow}, col ${col}`);
+              
+              // Try to apply style if available
+              try {
+                if (templateRowData[col].style && typeof templateRowData[col].style === 'object') {
+                  targetCell.style(templateRowData[col].style);
+                  console.log(`Applied formatting to cell at row ${targetRow}, col ${col}`);
+                }
+              } catch (styleError) {
+                const errorMessage = styleError instanceof Error ? styleError.message : String(styleError);
+                console.log(`Could not apply style to cell at row ${targetRow}, col ${col}:`, errorMessage);
               }
             }
           }

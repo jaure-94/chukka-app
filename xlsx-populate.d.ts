@@ -9,7 +9,7 @@ declare module 'xlsx-populate' {
 
   interface Range {
     startCell(): Cell;
-    endCell(): Cell;
+    endCell(): Cell & { rowNumber(): number };
   }
 
   interface Sheet {
