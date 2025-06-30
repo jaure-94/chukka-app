@@ -191,7 +191,7 @@ export class EODProcessor {
               const templateFormat = templateRowFormats[col - 1];
               
               if (templateFormat) {
-                // Apply value if template had content
+                // Apply value if template had content (preserve placeholders for replacement)
                 if (templateFormat.hasContent) {
                   targetCell.value(templateFormat.value);
                 }
@@ -209,7 +209,9 @@ export class EODProcessor {
           }
         }
         
-        // Replace placeholders in current section
+        // Replace placeholders in current section with enhanced debugging
+        console.log(`  Searching for placeholders in section rows ${sectionStartRow} to ${sectionStartRow + templateRowCount - 1}`);
+        
         for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
           const currentRow = sectionStartRow + rowOffset;
           
@@ -217,15 +219,20 @@ export class EODProcessor {
             const cell = sheet.cell(currentRow, col);
             const cellValue = cell.value();
             
+            // Debug: log all cell values to see what we're working with
+            if (cellValue && typeof cellValue === 'string' && cellValue.includes('{{')) {
+              console.log(`  Found potential placeholder "${cellValue}" at row ${currentRow}, col ${col}`);
+            }
+            
             if (cellValue === '{{tour_name}}') {
               cell.value(tour.tour_name);
-              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRow}`);
+              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRow}, col ${col}`);
             } else if (cellValue === '{{num_adult}}') {
               cell.value(tour.num_adult);
-              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRow}`);
+              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRow}, col ${col}`);
             } else if (cellValue === '{{num_chd}}') {
               cell.value(tour.num_chd);
-              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRow}`);
+              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRow}, col ${col}`);
             }
           }
         }
