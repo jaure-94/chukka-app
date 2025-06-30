@@ -108,6 +108,10 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added support for {{tour_name}}, {{num_adult}}, {{num_chd}} placeholders in EOD templates
   - Updated processing pipeline to handle both dispatch and EOD template files together
   - Added "EOD Template Processing" option to template selector
+- June 30, 2025: Removed template selection step to streamline workflow
+  - Workflow now: Document Upload → Data Preview → Report Generation → Export
+  - Automatically uses EOD template processing when both files are uploaded
+  - Uses customer participation template for single dispatch file processing
 
 ## User Preferences
 

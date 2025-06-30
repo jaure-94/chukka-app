@@ -39,7 +39,7 @@ export default function Home() {
         credentials: "include",
         body: JSON.stringify({
           fileId: (dispatchUpload || eodUpload)?.file.id,
-          templateType: selectedTemplate,
+          templateType: (dispatchUpload && eodUpload) ? "eod-template" : "customer-participation",
           dispatchFileId: dispatchUpload?.file.id,
           eodTemplateFileId: eodUpload?.file.id,
         }),
@@ -104,16 +104,13 @@ export default function Home() {
     // Step 1: Data Preview (file uploaded, showing preview)
     if (hasAnyUpload && !currentJob) return 1;
     
-    // Step 2: Template Selection (template selected, job created but not started)
-    if (currentJob && currentJob.status === "pending") return 2;
+    // Step 2: Report Generation (processing)
+    if (currentJob && currentJob.status === "processing") return 2;
     
-    // Step 3: Report Generation (processing)
-    if (currentJob && currentJob.status === "processing") return 3;
+    // Step 3: Export (completed)
+    if (currentJob && currentJob.status === "completed") return 3;
     
-    // Step 4: Export (completed)
-    if (currentJob && currentJob.status === "completed") return 4;
-    
-    return 0;
+    return 1;
   };
 
   return (
@@ -166,16 +163,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 3: Template Selection */}
-        {(dispatchUpload || eodUpload) && (
-          <div className="mt-8 space-y-6">
-            <TemplateSelector 
-              selectedTemplate={selectedTemplate} 
-              onTemplateChange={setSelectedTemplate}
-              disabled={isProcessing}
-            />
-          </div>
-        )}
+
 
         {/* Processing Status and Export Settings */}
         {(dispatchUpload || eodUpload) && (

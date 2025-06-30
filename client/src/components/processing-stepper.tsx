@@ -5,9 +5,8 @@ interface ProcessingStepperProps {
 }
 
 const steps = [
-  { icon: Upload, label: "Document Upload", description: "Upload Excel file" },
-  { icon: Eye, label: "Data Preview", description: "Preview data" },
-  { icon: FileCheck, label: "Template Selection", description: "Choose template" },
+  { icon: Upload, label: "Document Upload", description: "Upload Excel files" },
+  { icon: Eye, label: "Data Preview", description: "Preview dispatch data" },
   { icon: FileText, label: "Report Generation", description: "Generate report" },
   { icon: Package, label: "Export", description: "Export to Dropbox" },
 ];
