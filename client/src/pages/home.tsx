@@ -147,7 +147,7 @@ export default function Home() {
             onReset={() => handleFileReset('dispatch')} 
           />
           <SingleFileUpload 
-            title="Upload EOD Report Excel File"
+            title="Upload EOD Report Excel Template File"
             fileType="eod"
             onFileUploaded={handleFileUploaded} 
             onReset={() => handleFileReset('eod')} 
