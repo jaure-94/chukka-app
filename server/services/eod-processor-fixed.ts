@@ -178,14 +178,27 @@ export class EODProcessor {
                 targetCell.value(sourceValue);
               }
               
-              // Copy all formatting properties
+              // Copy all formatting properties with enhanced preservation
               try {
                 const sourceStyle = sourceCell.style();
                 if (sourceStyle && typeof sourceStyle === 'object') {
-                  targetCell.style(sourceStyle);
+                  // Deep copy all style properties to ensure complete formatting preservation
+                  const completeStyle = {
+                    ...sourceStyle,
+                    // Ensure critical formatting properties are preserved
+                    font: sourceStyle.font ? { ...sourceStyle.font } : undefined,
+                    fill: sourceStyle.fill ? { ...sourceStyle.fill } : undefined,
+                    border: sourceStyle.border ? { ...sourceStyle.border } : undefined,
+                    alignment: sourceStyle.alignment ? { ...sourceStyle.alignment } : undefined,
+                    numberFormat: sourceStyle.numberFormat
+                  };
+                  
+                  targetCell.style(completeStyle);
+                  console.log(`    Applied complete formatting to cell ${targetRow},${col} (borders, fonts, fills)`);
                 }
               } catch (styleError) {
                 // Continue if style copy fails for individual cells
+                console.log(`    Style copy failed for cell ${targetRow},${col} - continuing with basic copy`);
               }
             }
           }
