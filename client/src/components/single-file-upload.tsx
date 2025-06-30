@@ -6,12 +6,14 @@ import { CloudUpload, FileSpreadsheet, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { UploadResponse } from "@/lib/types";
 
-interface FileUploadProps {
+interface SingleFileUploadProps {
+  title: string;
+  fileType: 'dispatch' | 'eod';
   onFileUploaded: (response: UploadResponse, fileType: 'dispatch' | 'eod') => void;
   onReset?: () => void;
 }
 
-export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
+export function SingleFileUpload({ title, fileType, onFileUploaded, onReset }: SingleFileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -25,54 +27,51 @@ export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
+      const response = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
-        credentials: "include",
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Upload failed");
+        throw new Error('Upload failed');
       }
 
       const data: UploadResponse = await response.json();
-      onFileUploaded(data);
-      
+      onFileUploaded(data, fileType);
+
       toast({
         title: "File uploaded successfully",
-        description: `${file.name} has been processed and is ready for template generation.`,
+        description: `${file.name} has been processed and is ready for report generation.`,
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error('Upload error:', error);
+      setUploadedFile(null);
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description: "Please try again with a valid Excel file.",
         variant: "destructive",
       });
-      setUploadedFile(null);
     } finally {
       setIsUploading(false);
     }
-  }, [onFileUploaded, toast]);
+  }, [onFileUploaded, fileType, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-      "application/vnd.ms-excel": [".xls"],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
     },
     maxFiles: 1,
     maxSize: 10 * 1024 * 1024, // 10MB
-    disabled: isUploading,
   });
 
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Dispatch Excel File</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
         
         <div
           {...getRootProps()}
@@ -99,6 +98,28 @@ export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
               <p className="text-xs text-gray-400">
                 ({(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)
               </p>
+              <div className="flex items-center justify-center space-x-2">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <FileSpreadsheet className="w-3 h-3 mr-1" />
+                  Excel File
+                </span>
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadedFile(null);
+                    // Reset the file input
+                    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                    if (fileInput) fileInput.value = '';
+                    // Notify parent to reset data preview
+                    if (onReset) onReset();
+                  }}
+                  className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                >
+                  Replace Document
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -114,36 +135,6 @@ export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
             </div>
           )}
         </div>
-
-        {uploadedFile && !isUploading && (
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                <span className="text-sm text-green-800">{uploadedFile.name}</span>
-                <span className="text-xs text-green-600 ml-2">
-                  ({(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)
-                </span>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setUploadedFile(null);
-                  // Reset the file input
-                  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-                  if (fileInput) fileInput.value = '';
-                  // Notify parent to reset data preview
-                  if (onReset) onReset();
-                }}
-                className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
-              >
-                Replace Document
-              </Button>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

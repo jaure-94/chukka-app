@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileUpload } from "@/components/file-upload";
+import { SingleFileUpload } from "@/components/single-file-upload";
 import { DataPreview } from "@/components/data-preview";
 import { ProcessingStepper } from "@/components/processing-stepper";
 import { ProcessingStatus } from "@/components/processing-status";
@@ -13,18 +13,23 @@ import { FileSpreadsheet, Database } from "lucide-react";
 import type { UploadResponse, ProcessingJob } from "@/lib/types";
 
 export default function Home() {
-  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
+  const [dispatchUpload, setDispatchUpload] = useState<UploadResponse | null>(null);
+  const [eodUpload, setEodUpload] = useState<UploadResponse | null>(null);
   const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("employee-report");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileUploaded = (response: UploadResponse) => {
-    setUploadResponse(response);
+  const handleFileUploaded = (response: UploadResponse, fileType: 'dispatch' | 'eod') => {
+    if (fileType === 'dispatch') {
+      setDispatchUpload(response);
+    } else {
+      setEodUpload(response);
+    }
     setCurrentJob(null);
   };
 
   const handleStartProcessing = async () => {
-    if (!uploadResponse) return;
+    if (!dispatchUpload && !eodUpload) return;
 
     setIsProcessing(true);
     try {
@@ -33,7 +38,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          fileId: uploadResponse.file.id,
+          fileId: (dispatchUpload || eodUpload)?.file.id,
           templateType: selectedTemplate,
         }),
       });
@@ -72,23 +77,30 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    setUploadResponse(null);
+    setDispatchUpload(null);
+    setEodUpload(null);
     setCurrentJob(null);
     setIsProcessing(false);
   };
 
-  const handleFileReset = () => {
-    setUploadResponse(null);
+  const handleFileReset = (fileType: 'dispatch' | 'eod') => {
+    if (fileType === 'dispatch') {
+      setDispatchUpload(null);
+    } else {
+      setEodUpload(null);
+    }
     setCurrentJob(null);
     setIsProcessing(false);
   };
 
   const getCurrentStep = () => {
+    const hasAnyUpload = dispatchUpload || eodUpload;
+    
     // Step 0: Document Upload
-    if (!uploadResponse) return 0;
+    if (!hasAnyUpload) return 0;
     
     // Step 1: Data Preview (file uploaded, showing preview)
-    if (uploadResponse && !currentJob) return 1;
+    if (hasAnyUpload && !currentJob) return 1;
     
     // Step 2: Template Selection (template selected, job created but not started)
     if (currentJob && currentJob.status === "pending") return 2;
@@ -127,19 +139,41 @@ export default function Home() {
         </div>
 
         {/* Step 1: Document Upload */}
-        <div className="space-y-6">
-          <FileUpload onFileUploaded={handleFileUploaded} onReset={handleFileReset} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <SingleFileUpload 
+            title="Upload Dispatch Excel File"
+            fileType="dispatch"
+            onFileUploaded={handleFileUploaded} 
+            onReset={() => handleFileReset('dispatch')} 
+          />
+          <SingleFileUpload 
+            title="Upload EOD Report Excel File"
+            fileType="eod"
+            onFileUploaded={handleFileUploaded} 
+            onReset={() => handleFileReset('eod')} 
+          />
         </div>
 
         {/* Step 2: Data Preview */}
-        {uploadResponse && (
+        {(dispatchUpload || eodUpload) && (
           <div className="mt-8 space-y-6">
-            <DataPreview sheets={uploadResponse.preview.sheets} />
+            {dispatchUpload && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
+                <DataPreview sheets={dispatchUpload.preview.sheets} />
+              </div>
+            )}
+            {eodUpload && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">EOD Report Preview</h3>
+                <DataPreview sheets={eodUpload.preview.sheets} />
+              </div>
+            )}
           </div>
         )}
 
         {/* Step 3: Template Selection */}
-        {uploadResponse && (
+        {(dispatchUpload || eodUpload) && (
           <div className="mt-8 space-y-6">
             <TemplateSelector 
               selectedTemplate={selectedTemplate} 
@@ -150,15 +184,19 @@ export default function Home() {
         )}
 
         {/* Processing Status and Export Settings */}
-        {uploadResponse && (
+        {(dispatchUpload || eodUpload) && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ProcessingStatus job={currentJob} isProcessing={isProcessing} uploadResponse={uploadResponse} />
+            <ProcessingStatus 
+              job={currentJob} 
+              isProcessing={isProcessing} 
+              uploadResponse={dispatchUpload || eodUpload} 
+            />
             <ExportSettings />
           </div>
         )}
 
         {/* Processing Actions */}
-        {uploadResponse && (
+        {(dispatchUpload || eodUpload) && (
           <div className="mt-8">
             <Card>
               <CardContent className="p-6">
@@ -180,7 +218,7 @@ export default function Home() {
                     {currentJob?.status !== "completed" && (
                       <Button 
                         onClick={handleStartProcessing}
-                        disabled={isProcessing || !uploadResponse}
+                        disabled={isProcessing || (!dispatchUpload && !eodUpload)}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         {isProcessing ? "Generating..." : "Generate Report"}
