@@ -120,8 +120,22 @@ export class EODProcessor {
       // Extract data from dispatch file
       const templateData = this.extractDispatchData(dispatchData);
 
-      // Read EOD template file
-      const workbook = XLSX.readFile(eodTemplatePath);
+      // Read EOD template file with full formatting support
+      const workbook = XLSX.readFile(eodTemplatePath, {
+        cellHTML: false,
+        cellNF: false,
+        cellStyles: true,
+        sheetStubs: true,
+        bookDeps: true,
+        bookFiles: true,
+        bookProps: true,
+        bookSheets: true,
+        bookVBA: true
+      });
+      
+      // Log workbook structure for debugging
+      console.log('Workbook has styles:', !!(workbook as any).SSF);
+      console.log('Workbook props:', workbook.Props ? 'YES' : 'NO');
       
       // Process each sheet in the template
       for (const sheetName of workbook.SheetNames) {
@@ -160,8 +174,20 @@ export class EODProcessor {
             for (let col = range.s.c; col <= range.e.c; col++) {
               const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
               if (worksheet[cellAddress]) {
-                // Deep copy to preserve all formatting properties
-                rowData[col] = JSON.parse(JSON.stringify(worksheet[cellAddress]));
+                // Deep copy to preserve all formatting properties including styles
+                const cell = worksheet[cellAddress];
+                rowData[col] = {
+                  v: cell.v,      // value
+                  t: cell.t,      // type
+                  f: cell.f,      // formula
+                  w: cell.w,      // formatted text
+                  s: cell.s ? JSON.parse(JSON.stringify(cell.s)) : undefined, // style object
+                  z: cell.z,      // number format
+                  l: cell.l,      // hyperlink
+                  c: cell.c,      // comments
+                  h: cell.h,      // rich text
+                };
+                console.log(`Storing cell ${cellAddress} with style:`, cell.s ? 'YES' : 'NO');
               }
             }
             templateRows.push(rowData);
@@ -190,8 +216,27 @@ export class EODProcessor {
               for (let col = range.s.c; col <= range.e.c; col++) {
                 if (sourceRowData[col]) {
                   const cellAddress = XLSX.utils.encode_cell({ r: targetRow, c: col });
-                  // Deep copy all cell properties including formatting
-                  worksheet[cellAddress] = JSON.parse(JSON.stringify(sourceRowData[col]));
+                  const sourceCell = sourceRowData[col];
+                  
+                  // Create new cell with all properties preserved
+                  worksheet[cellAddress] = {
+                    v: sourceCell.v,
+                    t: sourceCell.t,
+                    f: sourceCell.f,
+                    w: sourceCell.w,
+                    s: sourceCell.s,
+                    z: sourceCell.z,
+                    l: sourceCell.l,
+                    c: sourceCell.c,
+                    h: sourceCell.h,
+                  };
+                  
+                  // Remove undefined properties to keep clean structure
+                  Object.keys(worksheet[cellAddress]).forEach(key => {
+                    if (worksheet[cellAddress][key] === undefined) {
+                      delete worksheet[cellAddress][key];
+                    }
+                  });
                   
                   // Replace placeholders in the cell value
                   if (worksheet[cellAddress].v && typeof worksheet[cellAddress].v === 'string') {
@@ -214,6 +259,8 @@ export class EODProcessor {
                       worksheet[cellAddress].w = cellValue;
                     }
                   }
+                  
+                  console.log(`Copied cell ${cellAddress} with formatting:`, worksheet[cellAddress].s ? 'YES' : 'NO');
                 }
               }
             }
@@ -305,10 +352,16 @@ export class EODProcessor {
         }
       }
 
-      // Save the processed file
+      // Save the processed file with full formatting support
       const outputPath = path.join(this.outputDir, outputFileName);
-      XLSX.writeFile(workbook, outputPath);
+      XLSX.writeFile(workbook, outputPath, {
+        cellStyles: true,
+        bookSST: true,
+        bookType: 'xlsx',
+        compression: true
+      });
 
+      console.log(`Saved processed file to: ${outputPath}`);
       return outputPath;
     } catch (error) {
       throw new Error(`Failed to process EOD template: ${error instanceof Error ? error.message : 'Unknown error'}`);
