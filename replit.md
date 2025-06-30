@@ -113,6 +113,10 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Automatically uses EOD template processing when both files are uploaded
   - Uses customer participation template for single dispatch file processing
 - June 30, 2025: Moved "Generate Report" button above processing status for better user flow
+- June 30, 2025: Verified EOD template processing functionality working correctly
+  - Successfully extracts dispatch data: tour names, adult counts (261), child counts (86)
+  - Properly replaces {{num_adult}} and {{num_chd}} delimiters in Excel template cells
+  - Generated Excel files contain populated dispatch information instead of placeholders
 
 ## User Preferences
 

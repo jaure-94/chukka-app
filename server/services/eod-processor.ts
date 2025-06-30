@@ -25,41 +25,63 @@ export class EODProcessor {
     let tour_name = "";
     let num_adult = 0;
     let num_chd = 0;
+    const tourNames = new Set<string>();
+
+    console.log('Extracting dispatch data from sheets:', dispatchData.sheets.map(s => s.name));
 
     // Search through all sheets for the required data
     for (const sheet of dispatchData.sheets) {
+      console.log(`Processing sheet: ${sheet.name} with ${sheet.data.length} rows`);
+      console.log('Available columns:', sheet.columns);
+
       for (const row of sheet.data) {
-        // Look for tour name (common field names)
+        // Look for tour name (exact match first, then variations)
         const tourFields = ['Tour Name', 'tour_name', 'Tour', 'TourName', 'Product', 'Activity'];
         for (const field of tourFields) {
-          if (row[field] && !tour_name) {
-            tour_name = String(row[field]).trim();
-            break;
+          if (row[field] && String(row[field]).trim()) {
+            const tourValue = String(row[field]).trim();
+            tourNames.add(tourValue);
+            if (!tour_name) {
+              tour_name = tourValue;
+            }
           }
         }
 
-        // Look for adult count
+        // Look for adult count (exact match)
         const adultFields = ['Adults', 'Adult', 'num_adult', 'Adult Count', 'AdultCount', 'Pax Adult'];
         for (const field of adultFields) {
           if (row[field] !== undefined && row[field] !== '') {
             const value = parseInt(String(row[field])) || 0;
-            num_adult += value;
+            if (value > 0) {
+              num_adult += value;
+              console.log(`Found adults: ${value} from field: ${field}`);
+            }
           }
         }
 
-        // Look for children count
+        // Look for children count (exact match)
         const childFields = ['Children', 'Child', 'num_chd', 'Children Count', 'ChildCount', 'Pax Child', 'Kids'];
         for (const field of childFields) {
           if (row[field] !== undefined && row[field] !== '') {
             const value = parseInt(String(row[field])) || 0;
-            num_chd += value;
+            if (value > 0) {
+              num_chd += value;
+              console.log(`Found children: ${value} from field: ${field}`);
+            }
           }
         }
       }
     }
 
+    // If multiple tour names, combine them
+    if (tourNames.size > 1) {
+      tour_name = Array.from(tourNames).join(', ');
+    }
+
+    console.log('Extracted data:', { tour_name, num_adult, num_chd });
+
     return {
-      tour_name,
+      tour_name: tour_name || "Unknown Tour",
       num_adult,
       num_chd
     };
@@ -95,14 +117,25 @@ export class EODProcessor {
             
             if (cell && cell.v && typeof cell.v === 'string') {
               let cellValue = cell.v;
+              const originalValue = cellValue;
               
               // Replace placeholders
-              cellValue = cellValue.replace(/\{\{tour_name\}\}/g, templateData.tour_name);
-              cellValue = cellValue.replace(/\{\{num_adult\}\}/g, templateData.num_adult.toString());
-              cellValue = cellValue.replace(/\{\{num_chd\}\}/g, templateData.num_chd.toString());
+              if (cellValue.includes('{{tour_name}}')) {
+                console.log(`Found {{tour_name}} in cell ${cellAddress}, replacing with: ${templateData.tour_name}`);
+                cellValue = cellValue.replace(/\{\{tour_name\}\}/g, templateData.tour_name);
+              }
+              if (cellValue.includes('{{num_adult}}')) {
+                console.log(`Found {{num_adult}} in cell ${cellAddress}, replacing with: ${templateData.num_adult}`);
+                cellValue = cellValue.replace(/\{\{num_adult\}\}/g, templateData.num_adult.toString());
+              }
+              if (cellValue.includes('{{num_chd}}')) {
+                console.log(`Found {{num_chd}} in cell ${cellAddress}, replacing with: ${templateData.num_chd}`);
+                cellValue = cellValue.replace(/\{\{num_chd\}\}/g, templateData.num_chd.toString());
+              }
               
               // Update cell if changes were made
-              if (cellValue !== cell.v) {
+              if (cellValue !== originalValue) {
+                console.log(`Cell ${cellAddress} updated: "${originalValue}" -> "${cellValue}"`);
                 cell.v = cellValue;
                 cell.w = cellValue; // Also update the formatted value
               }
