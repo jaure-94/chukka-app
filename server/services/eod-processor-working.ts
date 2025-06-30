@@ -116,8 +116,7 @@ export class EODProcessor {
   ): Promise<string> {
     try {
       const templateData = this.extractDispatchData(dispatchData);
-
-      console.log('Loading EOD template with xlsx-populate for formatting preservation');
+      console.log('Loading EOD template for formatting preservation');
       
       if (!fs.existsSync(eodTemplatePath)) {
         throw new Error(`EOD template file not found: ${eodTemplatePath}`);
@@ -126,26 +125,48 @@ export class EODProcessor {
       const workbook = await XlsxPopulate.fromFileAsync(eodTemplatePath);
       const sheet = workbook.sheet(0);
       
-      console.log(`Processing ${templateData.tours.length} tours with enhanced formatting preservation`);
+      console.log(`Processing ${templateData.tours.length} tours with xlsx-populate formatting`);
 
-      // Template section definition (rows 17-25)
+      // Define template section (rows 17-25)
       const templateStartRow = 17;
       const templateEndRow = 25;
-      const templateRowCount = templateEndRow - templateStartRow + 1; // 9 rows
+      const templateRowCount = templateEndRow - templateStartRow + 1;
 
-      // Clear content below template section
-      console.log('Clearing content below template section');
+      // Store template formatting before making changes
+      const templateFormats: any[][] = [];
+      console.log('Capturing template formatting from rows 17-25');
+      
+      for (let row = templateStartRow; row <= templateEndRow; row++) {
+        const rowFormats: any[] = [];
+        for (let col = 1; col <= 15; col++) {
+          const cell = sheet.cell(row, col);
+          try {
+            const cellStyle = cell.style();
+            const cellValue = cell.value();
+            rowFormats.push({
+              style: cellStyle,
+              value: cellValue,
+              hasContent: cellValue !== undefined && cellValue !== null && cellValue !== ''
+            });
+          } catch (error) {
+            rowFormats.push({ style: null, value: null, hasContent: false });
+          }
+        }
+        templateFormats.push(rowFormats);
+      }
+
+      // Clear existing content below template
       for (let row = templateEndRow + 1; row <= 200; row++) {
-        for (let col = 1; col <= 20; col++) {
+        for (let col = 1; col <= 15; col++) {
           try {
             sheet.cell(row, col).clear();
           } catch (error) {
-            // Ignore clear errors
+            // Continue
           }
         }
       }
 
-      // Process each tour with complete formatting preservation
+      // Process each tour
       for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
         const tour = templateData.tours[tourIndex];
         console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name}`);
@@ -153,89 +174,73 @@ export class EODProcessor {
         let sectionStartRow: number;
         
         if (tourIndex === 0) {
-          // First tour uses the existing template section
+          // First tour modifies existing template
           sectionStartRow = templateStartRow;
         } else {
-          // Subsequent tours: create new sections by copying the original template
+          // Create new section by copying template formatting
           sectionStartRow = templateEndRow + 1 + (tourIndex - 1) * templateRowCount;
-          console.log(`Creating new section starting at row ${sectionStartRow}`);
+          console.log(`Creating new section at row ${sectionStartRow}`);
           
-          // Copy the entire template section (rows 17-25) with complete formatting
+          // Apply stored template formatting to new section
           for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
-            const sourceRow = templateStartRow + rowOffset;
             const targetRow = sectionStartRow + rowOffset;
+            const templateRowFormats = templateFormats[rowOffset];
             
-            console.log(`Copying complete formatting: row ${sourceRow} → row ${targetRow}`);
-            
-            // Copy all cells in the row with comprehensive formatting preservation
-            for (let col = 1; col <= 20; col++) {
-              const sourceCell = sheet.cell(sourceRow, col);
+            for (let col = 1; col <= 15; col++) {
               const targetCell = sheet.cell(targetRow, col);
+              const templateFormat = templateRowFormats[col - 1];
               
-              // Copy the value first
-              const sourceValue = sourceCell.value();
-              if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
-                targetCell.value(sourceValue);
-              }
-              
-              // Direct formatting preservation using xlsx-populate
-              try {
-                // Get all style properties from source cell
-                const sourceStyle = sourceCell.style();
-                
-                if (sourceStyle && typeof sourceStyle === 'object') {
-                  // Apply the complete style object to target cell
-                  targetCell.style(sourceStyle);
-                  
-                  // Log formatting success for first row to track progress
-                  if (rowOffset === 0 && col <= 5) {
-                    console.log(`Applied formatting to row ${targetRow}, col ${col}:`, 
-                      Object.keys(sourceStyle).join(', '));
-                  }
+              if (templateFormat) {
+                // Apply value if template had content
+                if (templateFormat.hasContent) {
+                  targetCell.value(templateFormat.value);
                 }
                 
-              } catch (styleError) {
-                // Continue processing even if formatting fails for individual cells
-                if (rowOffset === 0 && col <= 3) {
-                  console.log(`Formatting failed for row ${targetRow}, col ${col}`);
+                // Apply formatting
+                if (templateFormat.style && typeof templateFormat.style === 'object') {
+                  try {
+                    targetCell.style(templateFormat.style);
+                  } catch (styleError) {
+                    // Continue if individual style fails
+                  }
                 }
               }
             }
           }
         }
         
-        // Replace placeholders in the current section
+        // Replace placeholders in current section
         for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
-          const currentRowNum = sectionStartRow + rowOffset;
+          const currentRow = sectionStartRow + rowOffset;
           
           for (let col = 1; col <= 15; col++) {
-            const cell = sheet.cell(currentRowNum, col);
+            const cell = sheet.cell(currentRow, col);
             const cellValue = cell.value();
             
             if (cellValue === '{{tour_name}}') {
               cell.value(tour.tour_name);
-              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRowNum}`);
+              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRow}`);
             } else if (cellValue === '{{num_adult}}') {
               cell.value(tour.num_adult);
-              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
+              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRow}`);
             } else if (cellValue === '{{num_chd}}') {
               cell.value(tour.num_chd);
-              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
+              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRow}`);
             }
           }
         }
       }
 
-      // Update total calculations in the original template position
+      // Update totals
       console.log(`\nUpdating totals: Adults=${templateData.total_adult}, Children=${templateData.total_chd}`);
-      sheet.cell(24, 4).value(templateData.total_adult); // D24
-      sheet.cell(24, 5).value(templateData.total_chd);   // E24
+      sheet.cell(24, 4).value(templateData.total_adult);
+      sheet.cell(24, 5).value(templateData.total_chd);
 
-      // Save the workbook with all formatting preserved
-      console.log(`Saving formatted file to: ${outputPath}`);
+      // Save with formatting preserved
+      console.log(`Saving file with preserved formatting to: ${outputPath}`);
       await workbook.toFileAsync(outputPath);
       
-      console.log('Formatting preservation completed successfully');
+      console.log('EOD processing completed with formatting preservation');
       return outputPath;
       
     } catch (error) {
