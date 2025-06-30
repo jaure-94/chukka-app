@@ -152,133 +152,83 @@ export class EODProcessor {
       const templateEndRow = 25;
       const templateRowCount = templateEndRow - templateStartRow + 1;
 
-      // Store the original template section with full formatting
-      console.log(`Storing template section from rows ${templateStartRow} to ${templateEndRow}`);
-      const templateSection: any[] = [];
-      
-      for (let row = templateStartRow; row <= templateEndRow; row++) {
-        const rowData: any = {};
-        // Store cells from columns A to I (1-9)
-        for (let col = 1; col <= 9; col++) {
-          const cell = sheet.cell(row, col);
-          const cellValue = cell.value();
-          
-          try {
-            const cellStyle = cell.style();
-            rowData[col] = {
-              value: cellValue,
-              hasValue: cellValue !== undefined && cellValue !== null && cellValue !== '',
-              style: cellStyle && typeof cellStyle === 'object' ? cellStyle : null,
-              isEmpty: cellValue === undefined || cellValue === null || cellValue === ''
-            };
-          } catch (error) {
-            // If style reading fails, just store the value
-            rowData[col] = {
-              value: cellValue,
-              hasValue: cellValue !== undefined && cellValue !== null && cellValue !== '',
-              style: null,
-              isEmpty: cellValue === undefined || cellValue === null || cellValue === ''
-            };
-          }
-        }
-        templateSection.push(rowData);
-      }
-      
-      console.log(`Template section stored with ${templateSection.length} rows`);
-      
-      // Log template structure for debugging
-      templateSection.forEach((rowData, index) => {
-        const actualRow = templateStartRow + index;
-        const cellsWithValues = Object.keys(rowData).filter(col => 
-          rowData[col] && rowData[col].hasValue
-        ).length;
-        console.log(`Template row ${actualRow}: ${cellsWithValues} cells with values`);
-      });
-
-      // Clear existing content below template section - simplified approach
-      for (let row = templateEndRow + 1; row <= 100; row++) {
-        for (let col = 1; col <= 9; col++) {
+      // Clear all existing content beyond the template section
+      console.log('Clearing content below template section for fresh formatting');
+      for (let row = templateEndRow + 1; row <= 200; row++) {
+        for (let col = 1; col <= 20; col++) {
           try {
             sheet.cell(row, col).clear();
           } catch (error) {
-            // Ignore errors for empty cells
+            // Ignore clear errors
           }
         }
       }
 
-      // Create sections for each tour with preserved formatting
+      // Process each tour by directly copying template rows with complete formatting
       let currentRow = templateStartRow;
       
       for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
         const tour = templateData.tours[tourIndex];
-        console.log(`Creating formatted section for tour ${tourIndex + 1}: ${tour.tour_name}`);
+        console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name}`);
         
-        // Copy template section with all formatting preserved
-        for (let templateRowIndex = 0; templateRowIndex < templateRowCount; templateRowIndex++) {
-          const targetRow = currentRow + templateRowIndex;
-          const templateRowData = templateSection[templateRowIndex];
+        // For first tour, modify template in place. For others, copy template section
+        if (tourIndex > 0) {
+          currentRow = templateEndRow + 1 + (tourIndex - 1) * templateRowCount;
+          console.log(`Creating new section at row ${currentRow}`);
           
-          for (let col = 1; col <= 9; col++) {
-            const targetCell = sheet.cell(targetRow, col);
+          // Copy complete template section with all formatting
+          for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
+            const sourceRow = templateStartRow + rowOffset;
+            const targetRow = currentRow + rowOffset;
             
-            const templateCellData = templateRowData[col];
+            console.log(`Copying row ${sourceRow} → ${targetRow} with complete formatting`);
             
-            if (templateCellData) {
-              // Get original value and replace placeholders
-              let cellValue = templateCellData.value;
+            // Copy all cells with formatting (extended range to capture all formatting)
+            for (let col = 1; col <= 20; col++) {
+              const sourceCell = sheet.cell(sourceRow, col);
+              const targetCell = sheet.cell(targetRow, col);
               
-              // Only replace if the value is actually a placeholder
-              if (cellValue === '{{tour_name}}') {
-                cellValue = tour.tour_name;
-                console.log(`Replaced {{tour_name}} with "${tour.tour_name}" at row ${targetRow}, col ${col}`);
-              } else if (cellValue === '{{num_adult}}') {
-                cellValue = tour.num_adult;
-                console.log(`Replaced {{num_adult}} with "${tour.num_adult}" at row ${targetRow}, col ${col}`);
-              } else if (cellValue === '{{num_chd}}') {
-                cellValue = tour.num_chd;
-                console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRow}, col ${col}`);
+              // Copy value
+              const sourceValue = sourceCell.value();
+              if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
+                targetCell.value(sourceValue);
               }
               
-              // Set the value only if the template cell had a value or we're replacing a placeholder
-              if (templateCellData.hasValue || (cellValue !== templateCellData.value)) {
-                targetCell.value(cellValue || '');
-                if (cellValue !== templateCellData.value) {
-                  console.log(`Updated placeholder: "${templateCellData.value}" -> "${cellValue}" at row ${targetRow}, col ${col}`);
-                } else if (templateCellData.hasValue) {
-                  console.log(`Copied value "${cellValue}" to row ${targetRow}, col ${col}`);
-                }
-              }
-              
-              // Apply style to maintain exact formatting from template
+              // Copy complete formatting
               try {
-                if (templateCellData.style && typeof templateCellData.style === 'object') {
-                  targetCell.style(templateCellData.style);
-                  console.log(`Applied template formatting to row ${targetRow}, col ${col}`);
+                const sourceStyle = sourceCell.style();
+                if (sourceStyle && typeof sourceStyle === 'object') {
+                  targetCell.style(sourceStyle);
                 }
               } catch (styleError) {
-                const errorMessage = styleError instanceof Error ? styleError.message : String(styleError);
-                console.log(`Style application failed for row ${targetRow}, col ${col}:`, errorMessage);
-              }
-            } else {
-              // For cells not in template data, copy formatting from original template
-              const originalTemplateRow = templateStartRow + templateRowIndex;
-              const originalTemplateCell = sheet.cell(originalTemplateRow, col);
-              
-              try {
-                const originalStyle = originalTemplateCell.style();
-                if (originalStyle && typeof originalStyle === 'object') {
-                  targetCell.style(originalStyle);
-                  console.log(`Copied empty cell formatting from template row ${originalTemplateRow} to row ${targetRow}, col ${col}`);
-                }
-              } catch (styleError) {
-                // Ignore style copy errors for empty cells
+                // Continue if style copy fails
               }
             }
           }
         }
         
-        // Move to next tour section
-        currentRow += templateRowCount;
+        // Replace placeholders in current section
+        const sectionStart = tourIndex === 0 ? templateStartRow : currentRow;
+        
+        for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
+          const targetRow = sectionStart + rowOffset;
+          
+          for (let col = 1; col <= 15; col++) {
+            const cell = sheet.cell(targetRow, col);
+            const cellValue = cell.value();
+            
+            if (cellValue === '{{tour_name}}') {
+              cell.value(tour.tour_name);
+              console.log(`  → {{tour_name}} = "${tour.tour_name}" at row ${targetRow}`);
+            } else if (cellValue === '{{num_adult}}') {
+              cell.value(tour.num_adult);
+              console.log(`  → {{num_adult}} = ${tour.num_adult} at row ${targetRow}`);
+            } else if (cellValue === '{{num_chd}}') {
+              cell.value(tour.num_chd);
+              console.log(`  → {{num_chd}} = ${tour.num_chd} at row ${targetRow}`);
+            }
+          }
+        }
       }
 
       // Update total calculations in cells D24 and E24 with preserved formatting
