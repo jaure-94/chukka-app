@@ -165,18 +165,6 @@ export default function Home() {
 
 
 
-        {/* Processing Status and Export Settings */}
-        {(dispatchUpload || eodUpload) && (
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ProcessingStatus 
-              job={currentJob} 
-              isProcessing={isProcessing} 
-              uploadResponse={dispatchUpload || eodUpload} 
-            />
-            <ExportSettings />
-          </div>
-        )}
-
         {/* Processing Actions */}
         {(dispatchUpload || eodUpload) && (
           <div className="mt-8">
@@ -210,6 +198,18 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Processing Status and Export Settings */}
+        {(dispatchUpload || eodUpload) && (
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ProcessingStatus 
+              job={currentJob} 
+              isProcessing={isProcessing} 
+              uploadResponse={dispatchUpload || eodUpload} 
+            />
+            <ExportSettings />
           </div>
         )}
 

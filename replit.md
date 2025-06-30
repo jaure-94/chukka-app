@@ -112,6 +112,7 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Workflow now: Document Upload → Data Preview → Report Generation → Export
   - Automatically uses EOD template processing when both files are uploaded
   - Uses customer participation template for single dispatch file processing
+- June 30, 2025: Moved "Generate Report" button above processing status for better user flow
 
 ## User Preferences
 
