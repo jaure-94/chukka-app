@@ -63,11 +63,11 @@ export function ResultsSection({ job }: ResultsSectionProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="border rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">Generated Report</h4>
-              <span className="text-xs text-gray-500">DOCX</span>
+              <h4 className="font-medium text-gray-900">Excel Document Generated</h4>
+              <span className="text-xs text-gray-500">XLSX</span>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Word document report generated from your Excel data.
+              Excel document generated from your data with individual tour rows.
             </p>
             <div className="flex space-x-2">
               <Button onClick={handleDownload} className="flex-1 bg-blue-600 hover:bg-blue-700">
