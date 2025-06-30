@@ -103,6 +103,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
 - June 30, 2025: Implemented dual file upload system with separate fields for dispatch and EOD template files
 - June 30, 2025: Updated EOD upload heading to "Upload EOD Report Excel Template File"
 - June 30, 2025: Removed data preview for EOD template file (only dispatch file shows preview)
+- June 30, 2025: Implemented EOD template processing functionality with dispatch data mapping
+  - Created EODProcessor service to extract tour_name, num_adult, num_chd from dispatch files
+  - Added support for {{tour_name}}, {{num_adult}}, {{num_chd}} placeholders in EOD templates
+  - Updated processing pipeline to handle both dispatch and EOD template files together
+  - Added "EOD Template Processing" option to template selector
 
 ## User Preferences
 

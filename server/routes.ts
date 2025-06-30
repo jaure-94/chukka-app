@@ -7,6 +7,7 @@ import fs from "fs";
 import { ExcelParser } from "./services/excel-parser";
 import { TemplateProcessor } from "./services/template-processor";
 import { DropboxService } from "./services/dropbox-service";
+import { EODProcessor } from "./services/eod-processor";
 import { insertUploadedFileSchema, insertProcessingJobSchema } from "@shared/schema";
 
 const upload = multer({ 
@@ -29,6 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const excelParser = new ExcelParser();
   const templateProcessor = new TemplateProcessor();
   const dropboxService = new DropboxService();
+  const eodProcessor = new EODProcessor();
 
   // File upload endpoint
   app.post("/api/upload", upload.single("file"), async (req, res) => {
@@ -81,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start processing endpoint
   app.post("/api/process", async (req, res) => {
     try {
-      const { fileId, templateType } = req.body;
+      const { fileId, templateType, dispatchFileId, eodTemplateFileId } = req.body;
 
       if (!fileId || !templateType) {
         return res.status(400).json({ message: "fileId and templateType are required" });
@@ -96,8 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const job = await storage.createProcessingJob(jobData);
 
-      // Start background processing
-      processFileAsync(job.id, excelParser, templateProcessor, dropboxService);
+      // Start background processing with optional EOD template processing
+      processFileAsync(job.id, excelParser, templateProcessor, dropboxService, eodProcessor, dispatchFileId, eodTemplateFileId).catch(console.error);
 
       res.json({ jobId: job.id });
     } catch (error) {
@@ -195,7 +197,10 @@ async function processFileAsync(
   jobId: number,
   excelParser: ExcelParser,
   templateProcessor: TemplateProcessor,
-  dropboxService: DropboxService
+  dropboxService: DropboxService,
+  eodProcessor?: EODProcessor,
+  dispatchFileId?: number,
+  eodTemplateFileId?: number
 ) {
   try {
     await storage.updateProcessingJob(jobId, { status: "processing", progress: 20 });
@@ -203,17 +208,45 @@ async function processFileAsync(
     const job = await storage.getProcessingJob(jobId);
     if (!job) return;
 
-    // Get Excel data
-    const excelData = await storage.getExcelDataByFileId(job.fileId);
-    await storage.updateProcessingJob(jobId, { progress: 40 });
+    let outputPath: string;
 
-    // Process template
-    const outputPath = await templateProcessor.processTemplate(
-      job.templateType,
-      excelData,
-      job.fileId
-    );
-    await storage.updateProcessingJob(jobId, { progress: 80 });
+    // Check if we have both dispatch and EOD template files for EOD processing
+    if (eodProcessor && dispatchFileId && eodTemplateFileId) {
+      // Process EOD template with dispatch data
+      const dispatchFile = await storage.getUploadedFile(dispatchFileId);
+      const eodTemplateFile = await storage.getUploadedFile(eodTemplateFileId);
+      
+      if (!dispatchFile || !eodTemplateFile) {
+        throw new Error("Required files not found");
+      }
+
+      // Parse dispatch file to extract data
+      const dispatchFilePath = path.join("uploads", dispatchFile.filename);
+      const dispatchData = await excelParser.parseFile(dispatchFilePath);
+      await storage.updateProcessingJob(jobId, { progress: 40 });
+
+      // Process EOD template with dispatch data
+      const eodTemplateFilePath = path.join("uploads", eodTemplateFile.filename);
+      const outputFileName = `eod_report_${Date.now()}.xlsx`;
+      outputPath = await eodProcessor.processEODTemplate(
+        eodTemplateFilePath,
+        dispatchData,
+        outputFileName
+      );
+      await storage.updateProcessingJob(jobId, { progress: 80 });
+
+    } else {
+      // Standard template processing
+      const excelData = await storage.getExcelDataByFileId(job.fileId);
+      await storage.updateProcessingJob(jobId, { progress: 40 });
+
+      outputPath = await templateProcessor.processTemplate(
+        job.templateType,
+        excelData,
+        job.fileId
+      );
+      await storage.updateProcessingJob(jobId, { progress: 80 });
+    }
 
     // Complete job
     await storage.updateProcessingJob(jobId, {
@@ -224,7 +257,6 @@ async function processFileAsync(
     });
 
     // Auto-export to Dropbox if configured
-    // This would be configurable in a real app
     try {
       await dropboxService.uploadFile(outputPath, `/Reports/${path.basename(outputPath)}`);
       await storage.updateProcessingJob(jobId, { dropboxExported: true });

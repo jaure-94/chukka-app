@@ -25,6 +25,11 @@ const templates = [
     description: "Excursion attendance and guest management",
   },
   {
+    value: "eod-template",
+    title: "EOD Template Processing",
+    description: "Fill EOD template with dispatch data (tour name, adult/child counts)",
+  },
+  {
     value: "custom",
     title: "Custom Template",
     description: "Upload your own template",

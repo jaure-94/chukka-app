@@ -40,6 +40,8 @@ export default function Home() {
         body: JSON.stringify({
           fileId: (dispatchUpload || eodUpload)?.file.id,
           templateType: selectedTemplate,
+          dispatchFileId: dispatchUpload?.file.id,
+          eodTemplateFileId: eodUpload?.file.id,
         }),
       });
 
