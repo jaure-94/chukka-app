@@ -206,73 +206,62 @@ export class EODProcessor {
         }
       }
 
-      // Create sections for each tour with preserved formatting
+      // Create sections for each tour by directly copying and modifying the original template
       let currentRow = templateStartRow;
       
       for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
         const tour = templateData.tours[tourIndex];
         console.log(`Creating formatted section for tour ${tourIndex + 1}: ${tour.tour_name}`);
         
-        // Copy template section with all formatting preserved
+        // If this is not the first tour, we need to copy the entire template section to a new location
+        if (tourIndex > 0) {
+          // Copy the entire template section (rows 17-25) to the new location with all formatting
+          for (let templateRowIndex = 0; templateRowIndex < templateRowCount; templateRowIndex++) {
+            const sourceRow = templateStartRow + templateRowIndex;
+            const targetRow = currentRow + templateRowIndex;
+            
+            console.log(`Copying template row ${sourceRow} to row ${targetRow} for tour ${tour.tour_name}`);
+            
+            // Copy the entire row with formatting
+            for (let col = 1; col <= 9; col++) {
+              const sourceCell = sheet.cell(sourceRow, col);
+              const targetCell = sheet.cell(targetRow, col);
+              
+              // Copy value and style from source to target
+              const sourceValue = sourceCell.value();
+              targetCell.value(sourceValue || '');
+              
+              try {
+                const sourceStyle = sourceCell.style();
+                if (sourceStyle && typeof sourceStyle === 'object') {
+                  targetCell.style(sourceStyle);
+                  console.log(`Copied formatting from ${sourceRow},${col} to ${targetRow},${col}`);
+                }
+              } catch (styleError) {
+                console.log(`Failed to copy style from ${sourceRow},${col} to ${targetRow},${col}`);
+              }
+            }
+          }
+        }
+        
+        // Now update placeholders in the current tour section
         for (let templateRowIndex = 0; templateRowIndex < templateRowCount; templateRowIndex++) {
           const targetRow = currentRow + templateRowIndex;
-          const templateRowData = templateSection[templateRowIndex];
           
           for (let col = 1; col <= 9; col++) {
             const targetCell = sheet.cell(targetRow, col);
+            const cellValue = targetCell.value();
             
-            const templateCellData = templateRowData[col];
-            
-            if (templateCellData) {
-              // Get original value and replace placeholders
-              let cellValue = templateCellData.value;
-              
-              // Only replace if the value is actually a placeholder
-              if (cellValue === '{{tour_name}}') {
-                cellValue = tour.tour_name;
-                console.log(`Replaced {{tour_name}} with "${tour.tour_name}" at row ${targetRow}, col ${col}`);
-              } else if (cellValue === '{{num_adult}}') {
-                cellValue = tour.num_adult;
-                console.log(`Replaced {{num_adult}} with "${tour.num_adult}" at row ${targetRow}, col ${col}`);
-              } else if (cellValue === '{{num_chd}}') {
-                cellValue = tour.num_chd;
-                console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRow}, col ${col}`);
-              }
-              
-              // Set the value only if the template cell had a value or we're replacing a placeholder
-              if (templateCellData.hasValue || (cellValue !== templateCellData.value)) {
-                targetCell.value(cellValue || '');
-                if (cellValue !== templateCellData.value) {
-                  console.log(`Updated placeholder: "${templateCellData.value}" -> "${cellValue}" at row ${targetRow}, col ${col}`);
-                } else if (templateCellData.hasValue) {
-                  console.log(`Copied value "${cellValue}" to row ${targetRow}, col ${col}`);
-                }
-              }
-              
-              // Apply style to maintain exact formatting from template
-              try {
-                if (templateCellData.style && typeof templateCellData.style === 'object') {
-                  targetCell.style(templateCellData.style);
-                  console.log(`Applied template formatting to row ${targetRow}, col ${col}`);
-                }
-              } catch (styleError) {
-                const errorMessage = styleError instanceof Error ? styleError.message : String(styleError);
-                console.log(`Style application failed for row ${targetRow}, col ${col}:`, errorMessage);
-              }
-            } else {
-              // For cells not in template data, copy formatting from original template
-              const originalTemplateRow = templateStartRow + templateRowIndex;
-              const originalTemplateCell = sheet.cell(originalTemplateRow, col);
-              
-              try {
-                const originalStyle = originalTemplateCell.style();
-                if (originalStyle && typeof originalStyle === 'object') {
-                  targetCell.style(originalStyle);
-                  console.log(`Copied empty cell formatting from template row ${originalTemplateRow} to row ${targetRow}, col ${col}`);
-                }
-              } catch (styleError) {
-                // Ignore style copy errors for empty cells
-              }
+            // Replace placeholders with actual data
+            if (cellValue === '{{tour_name}}') {
+              targetCell.value(tour.tour_name);
+              console.log(`Replaced {{tour_name}} with "${tour.tour_name}" at row ${targetRow}, col ${col}`);
+            } else if (cellValue === '{{num_adult}}') {
+              targetCell.value(tour.num_adult);
+              console.log(`Replaced {{num_adult}} with "${tour.num_adult}" at row ${targetRow}, col ${col}`);
+            } else if (cellValue === '{{num_chd}}') {
+              targetCell.value(tour.num_chd);
+              console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRow}, col ${col}`);
             }
           }
         }
