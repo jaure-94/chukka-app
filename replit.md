@@ -118,6 +118,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Properly replaces {{num_adult}} and {{num_chd}} delimiters in Excel template cells
   - Generated Excel files contain populated dispatch information instead of placeholders
 - June 30, 2025: Moved "Report Generated" section to appear directly below generate button for better UX flow
+- June 30, 2025: Restructured EOD template processing to create individual tour rows instead of combining all tours into single cells
+  - Modified EODTemplateData interface to support array of tours with individual tour data
+  - Updated data extraction logic to create separate TourData entries for each unique tour
+  - Rewrote template processing to insert each tour on its own row with corresponding adult/child counts
+  - Maintained total calculations in cells D24 and E24 as requested
 
 ## User Preferences
 
