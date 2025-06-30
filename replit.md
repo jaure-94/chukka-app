@@ -123,6 +123,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Updated data extraction logic to create separate TourData entries for each unique tour
   - Rewrote template processing to insert each tour on its own row with corresponding adult/child counts
   - Maintained total calculations in cells D24 and E24 as requested
+- June 30, 2025: Enhanced EOD processor to preserve all Excel formatting properties
+  - Implemented deep copying of cell properties including background colors, borders, bold fonts, and checkboxes
+  - Added preservation of merged cells with automatic duplication for each tour section
+  - Maintained row height and column width formatting across duplicated template sections
+  - Ensured complete formatting integrity from template to generated output file
 
 ## User Preferences
 

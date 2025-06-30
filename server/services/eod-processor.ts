@@ -148,14 +148,20 @@ export class EODProcessor {
         if (hasPlaceholders && templateData.tours.length > 0) {
           console.log(`Found template row with placeholders, duplicating for ${templateData.tours.length} tours`);
           
-          // Store the original template rows (17-25)
+          // Store worksheet formatting properties
+          const originalMerges = worksheet['!merges'] ? [...worksheet['!merges']] : [];
+          const originalRowInfo = worksheet['!rows'] ? [...worksheet['!rows']] : [];
+          const originalColInfo = worksheet['!cols'] ? [...worksheet['!cols']] : [];
+          
+          // Store the original template rows (17-25) with all formatting
           const templateRows: any[] = [];
           for (let row = templateRowIndex; row <= templateEndRowIndex; row++) {
             const rowData: any = {};
             for (let col = range.s.c; col <= range.e.c; col++) {
               const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
               if (worksheet[cellAddress]) {
-                rowData[col] = { ...worksheet[cellAddress] };
+                // Deep copy to preserve all formatting properties
+                rowData[col] = JSON.parse(JSON.stringify(worksheet[cellAddress]));
               }
             }
             templateRows.push(rowData);
@@ -184,7 +190,8 @@ export class EODProcessor {
               for (let col = range.s.c; col <= range.e.c; col++) {
                 if (sourceRowData[col]) {
                   const cellAddress = XLSX.utils.encode_cell({ r: targetRow, c: col });
-                  worksheet[cellAddress] = { ...sourceRowData[col] };
+                  // Deep copy all cell properties including formatting
+                  worksheet[cellAddress] = JSON.parse(JSON.stringify(sourceRowData[col]));
                   
                   // Replace placeholders in the cell value
                   if (worksheet[cellAddress].v && typeof worksheet[cellAddress].v === 'string') {
@@ -239,6 +246,50 @@ export class EODProcessor {
                 }
               }
             }
+          }
+          
+          // Handle merged cells - duplicate merges for each tour section
+          if (originalMerges.length > 0) {
+            const newMerges = [...originalMerges];
+            
+            for (let tourIndex = 1; tourIndex < templateData.tours.length; tourIndex++) {
+              const rowOffset = tourIndex * templateRows.length;
+              
+              for (const merge of originalMerges) {
+                // Only duplicate merges that are within the template rows (17-25)
+                if (merge.s.r >= templateRowIndex && merge.e.r <= templateEndRowIndex) {
+                  const newMerge = {
+                    s: { r: merge.s.r + rowOffset, c: merge.s.c },
+                    e: { r: merge.e.r + rowOffset, c: merge.e.c }
+                  };
+                  newMerges.push(newMerge);
+                  console.log(`Duplicated merge from ${XLSX.utils.encode_range(merge)} to ${XLSX.utils.encode_range(newMerge)}`);
+                }
+              }
+            }
+            
+            worksheet['!merges'] = newMerges;
+          }
+          
+          // Extend row info for new rows
+          if (originalRowInfo.length > 0) {
+            const newRowInfo = [...originalRowInfo];
+            
+            for (let tourIndex = 1; tourIndex < templateData.tours.length; tourIndex++) {
+              const rowOffset = tourIndex * templateRows.length;
+              
+              for (let templateRowOffset = 0; templateRowOffset < templateRows.length; templateRowOffset++) {
+                const sourceRowIndex = templateRowIndex + templateRowOffset;
+                const targetRowIndex = sourceRowIndex + rowOffset;
+                
+                if (originalRowInfo[sourceRowIndex]) {
+                  newRowInfo[targetRowIndex] = JSON.parse(JSON.stringify(originalRowInfo[sourceRowIndex]));
+                  console.log(`Duplicated row formatting from row ${sourceRowIndex + 1} to row ${targetRowIndex + 1}`);
+                }
+              }
+            }
+            
+            worksheet['!rows'] = newRowInfo;
           }
           
           // Update worksheet range
