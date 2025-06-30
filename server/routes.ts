@@ -129,15 +129,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/download/:jobId", async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
+      console.log('Requested job ID:', jobId);
+      
       const job = await storage.getProcessingJob(jobId);
-
-      if (!job || !job.resultFilePath) {
+      console.log('Retrieved job:', job);
+      
+      if (!job) {
+        console.log('Job not found in database');
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      if (!job.resultFilePath) {
+        console.log('Job found but no result file path');
         return res.status(404).json({ message: "File not found" });
       }
 
-      const filePath = path.join(process.cwd(), job.resultFilePath);
+      // Handle both absolute and relative paths
+      let filePath = job.resultFilePath;
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.join(process.cwd(), filePath);
+      }
+      
+      console.log(`Attempting to download file: ${filePath}`);
       
       if (!fs.existsSync(filePath)) {
+        console.error(`File not found: ${filePath}`);
         return res.status(404).json({ message: "File not found on disk" });
       }
 
