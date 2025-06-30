@@ -102,6 +102,7 @@ This is a full-stack web application for uploading, processing, and exporting Ex
 - June 29, 2025: Updated file upload heading to "Upload Dispatch Excel File"
 - June 30, 2025: Implemented dual file upload system with separate fields for dispatch and EOD template files
 - June 30, 2025: Updated EOD upload heading to "Upload EOD Report Excel Template File"
+- June 30, 2025: Removed data preview for EOD template file (only dispatch file shows preview)
 
 ## User Preferences
 

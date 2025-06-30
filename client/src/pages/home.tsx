@@ -155,20 +155,12 @@ export default function Home() {
         </div>
 
         {/* Step 2: Data Preview */}
-        {(dispatchUpload || eodUpload) && (
+        {dispatchUpload && (
           <div className="mt-8 space-y-6">
-            {dispatchUpload && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
-                <DataPreview sheets={dispatchUpload.preview.sheets} />
-              </div>
-            )}
-            {eodUpload && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">EOD Report Preview</h3>
-                <DataPreview sheets={eodUpload.preview.sheets} />
-              </div>
-            )}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
+              <DataPreview sheets={dispatchUpload.preview.sheets} />
+            </div>
           </div>
         )}
 
