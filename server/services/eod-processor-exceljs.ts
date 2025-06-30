@@ -157,7 +157,7 @@ export class EODProcessor {
       const templateEndRow = 25;
       const templateRowCount = templateEndRow - templateStartRow + 1;
 
-      // Store the template section for cloning
+      // Store the template section for cloning with complete formatting
       const templateRows: any[] = [];
       for (let rowNum = templateStartRow; rowNum <= templateEndRow; rowNum++) {
         const row = worksheet.getRow(rowNum);
@@ -172,20 +172,69 @@ export class EODProcessor {
           cells: []
         });
         
-        // Store cell formatting for columns A-I (1-9)
+        // Store cell formatting for columns A-I (1-9) with complete style preservation
         for (let colNum = 1; colNum <= 9; colNum++) {
           const cell = row.getCell(colNum);
+          
+          // Deep copy all style properties to ensure complete formatting preservation
+          const cellStyle = cell.style ? {
+            numFmt: cell.style.numFmt,
+            font: cell.style.font ? { ...cell.style.font } : undefined,
+            alignment: cell.style.alignment ? { ...cell.style.alignment } : undefined,
+            protection: cell.style.protection ? { ...cell.style.protection } : undefined,
+            border: cell.style.border ? {
+              top: cell.style.border.top ? { ...cell.style.border.top } : undefined,
+              left: cell.style.border.left ? { ...cell.style.border.left } : undefined,
+              bottom: cell.style.border.bottom ? { ...cell.style.border.bottom } : undefined,
+              right: cell.style.border.right ? { ...cell.style.border.right } : undefined,
+              diagonal: cell.style.border.diagonal ? { ...cell.style.border.diagonal } : undefined
+            } : undefined,
+            fill: cell.style.fill ? { ...cell.style.fill } : undefined
+          } : {};
+          
           templateRows[templateRows.length - 1].cells.push({
             colNum,
             value: cell.value,
-            style: cell.style,
+            style: cellStyle,
             dataValidation: cell.dataValidation,
             note: cell.note
+          });
+          
+          console.log(`Stored template cell ${rowNum},${colNum} with style:`, {
+            hasFont: !!cellStyle.font,
+            hasFill: !!cellStyle.fill,
+            hasBorder: !!cellStyle.border,
+            hasAlignment: !!cellStyle.alignment
           });
         }
       }
 
       console.log(`Stored template section with ${templateRows.length} rows and complete formatting`);
+
+      // Store merged cells within the template section for replication
+      const templateMerges: any[] = [];
+      try {
+        const merges = worksheet.model?.merges || [];
+        for (const mergeAddress of merges) {
+          // Parse merge address string like "B17:I17"
+          const match = mergeAddress.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+          if (match) {
+            const startRow = parseInt(match[2]);
+            const endRow = parseInt(match[4]);
+            
+            if (startRow >= templateStartRow && endRow <= templateEndRow) {
+              templateMerges.push({
+                startRow: startRow - templateStartRow, // Relative to template start
+                endRow: endRow - templateStartRow,
+                mergeAddress: mergeAddress
+              });
+              console.log(`Stored merge range: ${mergeAddress} (relative rows ${startRow - templateStartRow}-${endRow - templateStartRow})`);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Could not process merged cells:', error);
+      }
 
       // Clear content below template section
       for (let rowNum = templateEndRow + 1; rowNum <= worksheet.rowCount; rowNum++) {
@@ -231,13 +280,46 @@ export class EODProcessor {
               console.log(`Replaced {{num_chd}} with "${tour.num_chd}" at row ${targetRowNum}, col ${cellData.colNum}`);
             }
             
-            // Set value and preserve all formatting
+            // Set value and preserve all formatting with exact property copying
             targetCell.value = cellValue;
-            targetCell.style = { ...cellData.style }; // Deep copy style
+            
+            // Apply each style property individually for exact preservation
+            if (cellData.style.numFmt) targetCell.numFmt = cellData.style.numFmt;
+            if (cellData.style.font) targetCell.font = cellData.style.font;
+            if (cellData.style.alignment) targetCell.alignment = cellData.style.alignment;
+            if (cellData.style.protection) targetCell.protection = cellData.style.protection;
+            if (cellData.style.border) targetCell.border = cellData.style.border;
+            if (cellData.style.fill) targetCell.fill = cellData.style.fill;
+            
             if (cellData.dataValidation) targetCell.dataValidation = cellData.dataValidation;
             if (cellData.note) targetCell.note = cellData.note;
             
-            console.log(`Applied complete formatting to cell ${targetRowNum},${cellData.colNum}`);
+            console.log(`Applied exact formatting to cell ${targetRowNum},${cellData.colNum}:`, {
+              font: !!cellData.style.font,
+              fill: !!cellData.style.fill,
+              border: !!cellData.style.border,
+              alignment: !!cellData.style.alignment
+            });
+          }
+        }
+        
+        // Apply merged cells for this tour section
+        for (const templateMerge of templateMerges) {
+          const newStartRow = currentRow + templateMerge.startRow;
+          const newEndRow = currentRow + templateMerge.endRow;
+          const originalMatch = templateMerge.mergeAddress.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+          
+          if (originalMatch) {
+            const startCol = originalMatch[1];
+            const endCol = originalMatch[3];
+            const newMergeAddress = `${startCol}${newStartRow}:${endCol}${newEndRow}`;
+            
+            try {
+              worksheet.mergeCells(newMergeAddress);
+              console.log(`Applied merge for tour ${tourIndex + 1}: ${newMergeAddress}`);
+            } catch (mergeError) {
+              console.log(`Could not apply merge ${newMergeAddress}:`, mergeError);
+            }
           }
         }
         
