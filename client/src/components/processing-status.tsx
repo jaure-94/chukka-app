@@ -1,38 +1,49 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, Loader2, XCircle } from "lucide-react";
-import type { ProcessingJob } from "@/lib/types";
+import type { ProcessingJob, UploadResponse } from "@/lib/types";
 
 interface ProcessingStatusProps {
   job: ProcessingJob | null;
   isProcessing: boolean;
+  uploadResponse: UploadResponse | null;
 }
 
 const statusSteps = [
-  "File Upload",
-  "JSON Parsing", 
-  "Database Storage",
-  "Template Processing",
-  "Dropbox Export",
+  "Document Upload",
+  "Data Preview", 
+  "Template Selection",
+  "Report Generation",
+  "Export",
 ];
 
-export function ProcessingStatus({ job, isProcessing }: ProcessingStatusProps) {
+export function ProcessingStatus({ job, isProcessing, uploadResponse }: ProcessingStatusProps) {
   const getStepStatus = (stepIndex: number) => {
-    if (!job && stepIndex === 0) return "completed";
-    if (!job) return "pending";
+    // Step 0: Document Upload - completed if we have upload response
+    if (stepIndex === 0) return uploadResponse ? "completed" : "pending";
     
-    if (job.status === "failed") {
-      return stepIndex === 0 ? "completed" : "failed";
+    // Step 1: Data Preview - completed if we have upload response (file uploaded and previewed)
+    if (stepIndex === 1) return uploadResponse ? "completed" : "pending";
+    
+    // Step 2: Template Selection - completed if job was created (template selected)
+    if (stepIndex === 2) return job ? "completed" : "pending";
+    
+    // Step 3: Report Generation - based on job status
+    if (stepIndex === 3) {
+      if (!job) return "pending";
+      if (job.status === "failed") return "failed";
+      if (job.status === "processing") return "processing";
+      if (job.status === "completed") return "completed";
+      return "pending";
     }
     
-    const progress = job.progress;
-    if (stepIndex === 0) return "completed";
-    if (stepIndex === 1 && progress >= 20) return "completed";
-    if (stepIndex === 2 && progress >= 40) return "completed";
-    if (stepIndex === 3 && progress >= 80) return "completed";
-    if (stepIndex === 4 && progress >= 100) return "completed";
-    
-    if (isProcessing && stepIndex === Math.floor(progress / 20)) return "processing";
+    // Step 4: Export - completed only if job is completed and exported
+    if (stepIndex === 4) {
+      if (!job) return "pending";
+      if (job.status === "completed" && job.dropboxExported) return "completed";
+      if (job.status === "completed") return "pending";
+      return "pending";
+    }
     
     return "pending";
   };

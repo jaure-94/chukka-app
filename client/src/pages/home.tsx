@@ -152,7 +152,7 @@ export default function Home() {
         {/* Processing Status and Export Settings */}
         {uploadResponse && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ProcessingStatus job={currentJob} isProcessing={isProcessing} />
+            <ProcessingStatus job={currentJob} isProcessing={isProcessing} uploadResponse={uploadResponse} />
             <ExportSettings />
           </div>
         )}
