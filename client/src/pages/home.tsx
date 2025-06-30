@@ -173,12 +173,10 @@ export default function Home() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {currentJob?.status === "completed" ? "Report Generated" : "Ready to Generate"}
+                      Ready to Generate
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {currentJob?.status === "completed" 
-                        ? "Your report has been generated successfully." 
-                        : "File uploaded and validated. Click generate to create your report."}
+                      File uploaded and validated. Click generate to create your report.
                     </p>
                   </div>
                   <div className="flex space-x-3">
@@ -201,6 +199,13 @@ export default function Home() {
           </div>
         )}
 
+        {/* Report Generated Section */}
+        {currentJob?.status === "completed" && (
+          <div className="mt-8">
+            <ResultsSection job={currentJob} />
+          </div>
+        )}
+
         {/* Processing Status and Export Settings */}
         {(dispatchUpload || eodUpload) && (
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -210,13 +215,6 @@ export default function Home() {
               uploadResponse={dispatchUpload || eodUpload} 
             />
             <ExportSettings />
-          </div>
-        )}
-
-        {/* Results Section */}
-        {currentJob?.status === "completed" && (
-          <div className="mt-8">
-            <ResultsSection job={currentJob} />
           </div>
         )}
 

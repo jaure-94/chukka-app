@@ -117,6 +117,7 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Successfully extracts dispatch data: tour names, adult counts (261), child counts (86)
   - Properly replaces {{num_adult}} and {{num_chd}} delimiters in Excel template cells
   - Generated Excel files contain populated dispatch information instead of placeholders
+- June 30, 2025: Moved "Report Generated" section to appear directly below generate button for better UX flow
 
 ## User Preferences
 
