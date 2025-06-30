@@ -1,17 +1,22 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Download } from "lucide-react";
+import { FileSpreadsheet, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
 import type { ProcessingJob, UploadedFile } from "@/lib/types";
 
 type HistoryItem = ProcessingJob & { file: UploadedFile };
 
 export function ProcessingHistory() {
+  const [showAll, setShowAll] = useState(false);
   const { data: history, isLoading } = useQuery<HistoryItem[]>({
     queryKey: ["/api/history"],
   });
+
+  const INITIAL_ITEMS_COUNT = 3;
+  const displayedItems = showAll ? history : history?.slice(0, INITIAL_ITEMS_COUNT);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -69,7 +74,7 @@ export function ProcessingHistory() {
           </div>
         ) : history && history.length > 0 ? (
           <div className="space-y-3">
-            {history.map((item) => (
+            {displayedItems?.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                 <div className="flex items-center space-x-3">
                   <FileSpreadsheet className="h-6 w-6 text-green-600" />
@@ -102,10 +107,24 @@ export function ProcessingHistory() {
           <p className="text-gray-500 text-center py-4">No processing history available.</p>
         )}
         
-        {history && history.length > 0 && (
+        {history && history.length > INITIAL_ITEMS_COUNT && (
           <div className="mt-4 text-center">
-            <Button variant="ghost" className="text-blue-600 hover:text-blue-700">
-              View all history
+            <Button 
+              variant="ghost" 
+              className="text-blue-600 hover:text-blue-700"
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                  View Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  View More ({history.length - INITIAL_ITEMS_COUNT} more)
+                </>
+              )}
             </Button>
           </div>
         )}
