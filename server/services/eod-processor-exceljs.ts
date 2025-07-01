@@ -138,36 +138,13 @@ export class EODProcessor {
       const templateEndRow = 25;
       const templateRowCount = templateEndRow - templateStartRow + 1; // 9 rows
 
-      // Store original template formatting and merged cell information
+      // Store original template formatting
       const templateFormatting: any[] = [];
-      const mergedCells: any[] = [];
-      
-      // Capture existing merged cells in template section
-      if (worksheet.model && worksheet.model.merges) {
-        worksheet.model.merges.forEach((merge: any) => {
-          const mergeObj = {
-            top: merge.top,
-            left: merge.left,
-            bottom: merge.bottom,
-            right: merge.right
-          };
-          
-          // Only include merges within our template section
-          if (mergeObj.top >= templateStartRow && mergeObj.bottom <= templateEndRow) {
-            mergedCells.push(mergeObj);
-            console.log(`Found merged cells in template: rows ${mergeObj.top}-${mergeObj.bottom}, cols ${mergeObj.left}-${mergeObj.right}`);
-          }
-        });
-      } else {
-        console.log('No merged cells found in template or worksheet.model.merges not available');
-      }
-      
       for (let rowNum = templateStartRow; rowNum <= templateEndRow; rowNum++) {
         const row = worksheet.getRow(rowNum);
         const rowData: any = {
           height: row.height,
-          cells: {},
-          rowNumber: rowNum
+          cells: {}
         };
         
         // Store formatting for each cell in the row
@@ -255,24 +232,9 @@ export class EODProcessor {
             
             console.log(`Applied complete formatting to row ${targetRowNum}`);
           }
-          
-          // Apply merged cells for this new section
-          mergedCells.forEach(merge => {
-            const rowOffset = sectionStartRow - templateStartRow;
-            const newTop = merge.top + rowOffset;
-            const newBottom = merge.bottom + rowOffset;
-            
-            try {
-              // Merge the cells in the new section
-              worksheet.mergeCells(newTop, merge.left, newBottom, merge.right);
-              console.log(`Applied merged cells to new section: rows ${newTop}-${newBottom}, cols ${merge.left}-${merge.right}`);
-            } catch (mergeError) {
-              console.log(`Failed to merge cells in new section: ${mergeError}`);
-            }
-          });
         }
         
-        // Replace placeholders in the current section (improved logic for merged cells)
+        // Replace placeholders in the current section
         for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
           const currentRowNum = sectionStartRow + rowOffset;
           const currentRow = worksheet.getRow(currentRowNum);
@@ -281,52 +243,15 @@ export class EODProcessor {
             const cell = currentRow.getCell(colNum);
             const cellValue = cell.value;
             
-            // Check if this cell is part of a merged range
-            const mergeInfo = mergedCells.find(merge => {
-              const mergeTop = sectionStartRow + (merge.top - templateStartRow);
-              const mergeBottom = sectionStartRow + (merge.bottom - templateStartRow);
-              const rowInRange = currentRowNum >= mergeTop && currentRowNum <= mergeBottom;
-              const colInRange = colNum >= merge.left && colNum <= merge.right;
-              return rowInRange && colInRange;
-            });
-            
-            if (mergeInfo) {
-              // This cell is part of a merged range
-              const mergeTop = sectionStartRow + (mergeInfo.top - templateStartRow);
-              const mergeLeft = mergeInfo.left;
-              const isTopLeftOfMerge = currentRowNum === mergeTop && colNum === mergeLeft;
-              
-              if (isTopLeftOfMerge) {
-                // Only replace placeholders in the top-left cell of merged ranges
-                if (cellValue === '{{tour_name}}') {
-                  cell.value = tour.tour_name;
-                  console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at merged cell top-left ${currentRowNum},${colNum}`);
-                } else if (cellValue === '{{notes}}') {
-                  cell.value = ''; // Keep notes empty or add tour-specific notes
-                  console.log(`  → Cleared {{notes}} placeholder at merged cell top-left ${currentRowNum},${colNum}`);
-                }
-              } else {
-                // Clear any placeholders from non-top-left cells in merged range
-                if (cellValue && typeof cellValue === 'string' && cellValue.includes('{{')) {
-                  cell.value = '';
-                  console.log(`  → Cleared duplicate placeholder from merged cell ${currentRowNum},${colNum}`);
-                }
-              }
-            } else {
-              // This cell is not merged, replace placeholders normally
-              if (cellValue === '{{tour_name}}') {
-                cell.value = tour.tour_name;
-                console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRowNum}`);
-              } else if (cellValue === '{{num_adult}}') {
-                cell.value = tour.num_adult;
-                console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
-              } else if (cellValue === '{{num_chd}}') {
-                cell.value = tour.num_chd;
-                console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
-              } else if (cellValue === '{{notes}}') {
-                cell.value = '';
-                console.log(`  → Cleared {{notes}} placeholder at row ${currentRowNum}`);
-              }
+            if (cellValue === '{{tour_name}}') {
+              cell.value = tour.tour_name;
+              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRowNum}`);
+            } else if (cellValue === '{{num_adult}}') {
+              cell.value = tour.num_adult;
+              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
+            } else if (cellValue === '{{num_chd}}') {
+              cell.value = tour.num_chd;
+              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
             }
           }
         }
