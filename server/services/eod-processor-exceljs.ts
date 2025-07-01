@@ -138,8 +138,13 @@ export class EODProcessor {
       const templateEndRow = 25;
       const templateRowCount = templateEndRow - templateStartRow + 1; // 9 rows
 
-      // Store original template formatting
+      // Store original template formatting and merged cells
       const templateFormatting: any[] = [];
+      const templateMergedCells: any[] = [];
+      
+      // Store template merged cells information for later replication
+      console.log('Analyzing template merged cells for replication');
+      
       for (let rowNum = templateStartRow; rowNum <= templateEndRow; rowNum++) {
         const row = worksheet.getRow(rowNum);
         const rowData: any = {
@@ -234,7 +239,7 @@ export class EODProcessor {
           }
         }
         
-        // Replace placeholders in the current section
+        // Replace placeholders and handle merged cells in the current section
         for (let rowOffset = 0; rowOffset < templateRowCount; rowOffset++) {
           const currentRowNum = sectionStartRow + rowOffset;
           const currentRow = worksheet.getRow(currentRowNum);
@@ -245,13 +250,51 @@ export class EODProcessor {
             
             if (cellValue === '{{tour_name}}') {
               cell.value = tour.tour_name;
-              console.log(`  → Replaced {{tour_name}} with "${tour.tour_name}" at row ${currentRowNum}`);
+              
+              // Merge cells B through I for tour name display
+              try {
+                worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
+                const mergedCell = worksheet.getCell(currentRowNum, 2);
+                mergedCell.value = tour.tour_name;
+                mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                console.log(`  → Merged and set tour name "${tour.tour_name}" across B-I at row ${currentRowNum}`);
+              } catch (mergeError) {
+                console.log(`  → Tour name merge failed at row ${currentRowNum}, using single cell`);
+                cell.value = tour.tour_name;
+              }
+              
             } else if (cellValue === '{{num_adult}}') {
               cell.value = tour.num_adult;
               console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
             } else if (cellValue === '{{num_chd}}') {
               cell.value = tour.num_chd;
               console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
+            } else if (cellValue === '{{notes}}') {
+              // Handle notes placeholder with merged cells
+              const notesText = `Notes for ${tour.tour_name}`;
+              try {
+                worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
+                const mergedCell = worksheet.getCell(currentRowNum, 2);
+                mergedCell.value = notesText;
+                mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
+                console.log(`  → Merged and set notes "${notesText}" across B-I at row ${currentRowNum}`);
+              } catch (mergeError) {
+                console.log(`  → Notes merge failed at row ${currentRowNum}, using single cell`);
+                cell.value = notesText;
+              }
+              
+            } else if (typeof cellValue === 'string' && cellValue.toLowerCase().includes('comments') && cellValue.toLowerCase().includes('notes')) {
+              // Handle comments/notes subheading with merged cells
+              try {
+                worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
+                const mergedCell = worksheet.getCell(currentRowNum, 2);
+                mergedCell.value = cellValue;
+                mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                mergedCell.font = { bold: true };
+                console.log(`  → Merged comments/notes subheading across B-I at row ${currentRowNum}`);
+              } catch (mergeError) {
+                console.log(`  → Comments/notes merge failed at row ${currentRowNum}, using single cell`);
+              }
             }
           }
         }
