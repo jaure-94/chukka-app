@@ -138,13 +138,32 @@ export class EODProcessor {
       const templateEndRow = 25;
       const templateRowCount = templateEndRow - templateStartRow + 1; // 9 rows
 
-      // Store original template formatting
+      // Store original template formatting and merged cell information
       const templateFormatting: any[] = [];
+      const mergedCells: any[] = [];
+      
+      // Capture existing merged cells in template section
+      worksheet.model.merges.forEach((merge: any) => {
+        const mergeObj = {
+          top: merge.top,
+          left: merge.left,
+          bottom: merge.bottom,
+          right: merge.right
+        };
+        
+        // Only include merges within our template section
+        if (mergeObj.top >= templateStartRow && mergeObj.bottom <= templateEndRow) {
+          mergedCells.push(mergeObj);
+          console.log(`Found merged cells in template: rows ${mergeObj.top}-${mergeObj.bottom}, cols ${mergeObj.left}-${mergeObj.right}`);
+        }
+      });
+      
       for (let rowNum = templateStartRow; rowNum <= templateEndRow; rowNum++) {
         const row = worksheet.getRow(rowNum);
         const rowData: any = {
           height: row.height,
-          cells: {}
+          cells: {},
+          rowNumber: rowNum
         };
         
         // Store formatting for each cell in the row
@@ -232,6 +251,21 @@ export class EODProcessor {
             
             console.log(`Applied complete formatting to row ${targetRowNum}`);
           }
+          
+          // Apply merged cells for this new section
+          mergedCells.forEach(merge => {
+            const rowOffset = sectionStartRow - templateStartRow;
+            const newTop = merge.top + rowOffset;
+            const newBottom = merge.bottom + rowOffset;
+            
+            try {
+              // Merge the cells in the new section
+              worksheet.mergeCells(newTop, merge.left, newBottom, merge.right);
+              console.log(`Applied merged cells to new section: rows ${newTop}-${newBottom}, cols ${merge.left}-${merge.right}`);
+            } catch (mergeError) {
+              console.log(`Failed to merge cells in new section: ${mergeError}`);
+            }
+          });
         }
         
         // Replace placeholders in the current section
@@ -252,6 +286,33 @@ export class EODProcessor {
             } else if (cellValue === '{{num_chd}}') {
               cell.value = tour.num_chd;
               console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
+            } else if (cellValue === '{{notes}}') {
+              // For notes, we can leave empty or add tour-specific notes if needed
+              cell.value = '';
+              console.log(`  → Cleared {{notes}} placeholder at row ${currentRowNum}`);
+            }
+            
+            // Handle merged cell values - only set value in top-left cell of merged range
+            const isMergedCell = mergedCells.some(merge => {
+              const rowInRange = currentRowNum >= (sectionStartRow + (merge.top - templateStartRow)) && 
+                               currentRowNum <= (sectionStartRow + (merge.bottom - templateStartRow));
+              const colInRange = colNum >= merge.left && colNum <= merge.right;
+              return rowInRange && colInRange;
+            });
+            
+            if (isMergedCell) {
+              // Check if this is the top-left cell of the merge
+              const isTopLeftOfMerge = mergedCells.some(merge => {
+                const mergeTop = sectionStartRow + (merge.top - templateStartRow);
+                const mergeLeft = merge.left;
+                return currentRowNum === mergeTop && colNum === mergeLeft;
+              });
+              
+              // Only set values in the top-left cell of merged ranges
+              if (!isTopLeftOfMerge && cell.value && typeof cell.value === 'string' && cell.value.includes('{{')) {
+                cell.value = ''; // Clear placeholder values from non-top-left cells in merged range
+                console.log(`  → Cleared duplicate placeholder from merged cell at row ${currentRowNum}, col ${colNum}`);
+              }
             }
           }
         }

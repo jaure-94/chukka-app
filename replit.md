@@ -144,6 +144,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented comprehensive formatting storage and replication system
   - Added deep copying of font, fill, border, alignment, and number format properties
   - Enhanced template section duplication with complete visual formatting integrity
+- December 31, 2025: Enhanced merged cell handling for proper information display
+  - Implemented automatic detection and replication of merged cells from template section
+  - Added logic to prevent information duplication across merged cell ranges
+  - Enhanced placeholder replacement to handle {{notes}} column merging
+  - Ensured values only appear in top-left cell of merged ranges
 
 ## User Preferences
 
