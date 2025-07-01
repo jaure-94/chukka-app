@@ -149,6 +149,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Created merged cells for comments/notes subheadings across columns B through I with bold formatting
   - Implemented merged cells for {{notes}} delimiter across columns B through I with left alignment
   - Successfully tested merged cell generation and formatting preservation
+- July 1, 2025: Enhanced formatting and alignment improvements
+  - Changed Comments/Notes subheading alignment from center to left
+  - Implemented strike-through removal from rows 3-24 to clean up document formatting
+  - Added strike-through filtering in template formatting storage to prevent replication
+  - Enhanced visual consistency across all generated tour sections
 
 ## User Preferences
 

@@ -158,7 +158,14 @@ export class EODProcessor {
           rowData.cells[colNum] = {
             value: cell.value,
             style: {
-              font: cell.font ? { ...cell.font } : undefined,
+              font: cell.font ? (() => {
+                const cleanFont = { ...cell.font };
+                // Remove strike-through from template formatting
+                if (cleanFont.strike) {
+                  delete cleanFont.strike;
+                }
+                return cleanFont;
+              })() : undefined,
               fill: cell.fill ? { ...cell.fill } : undefined,
               border: cell.border ? { ...cell.border } : undefined,
               alignment: cell.alignment ? { ...cell.alignment } : undefined,
@@ -170,6 +177,21 @@ export class EODProcessor {
       }
 
       console.log('Stored complete template formatting for replication');
+
+      // Remove strike-through formatting from rows 3-24
+      console.log('Removing strike-through formatting from rows 3-24');
+      for (let rowNum = 3; rowNum <= 24; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        for (let colNum = 1; colNum <= 20; colNum++) {
+          const cell = row.getCell(colNum);
+          if (cell.font && cell.font.strike) {
+            const newFont = { ...cell.font };
+            delete newFont.strike;
+            cell.font = newFont;
+            console.log(`  → Removed strike-through from cell ${rowNum},${colNum}`);
+          }
+        }
+      }
 
       // Clear existing content below template section
       for (let rowNum = templateEndRow + 1; rowNum <= 200; rowNum++) {
@@ -288,9 +310,9 @@ export class EODProcessor {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
                 mergedCell.value = cellValue;
-                mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
                 mergedCell.font = { bold: true };
-                console.log(`  → Merged comments/notes subheading across B-I at row ${currentRowNum}`);
+                console.log(`  → Merged comments/notes subheading (left-aligned) across B-I at row ${currentRowNum}`);
               } catch (mergeError) {
                 console.log(`  → Comments/notes merge failed at row ${currentRowNum}, using single cell`);
               }
