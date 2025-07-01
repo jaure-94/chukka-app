@@ -7,6 +7,7 @@ export interface TourData {
   tour_name: string;
   num_adult: number;
   num_chd: number;
+  notes: string;
 }
 
 export interface EODTemplateData {
@@ -37,17 +38,25 @@ export class EODProcessor {
         if (tourName) {
           const adults = this.extractAdultCount(row);
           const children = this.extractChildCount(row);
+          const notes = this.extractNotes(row);
           
           if (adults > 0 || children > 0) {
             const existingTour = tours.find(t => t.tour_name === tourName);
             if (existingTour) {
               existingTour.num_adult += adults;
               existingTour.num_chd += children;
+              // Combine notes if both exist
+              if (notes && existingTour.notes) {
+                existingTour.notes = existingTour.notes + '; ' + notes;
+              } else if (notes) {
+                existingTour.notes = notes;
+              }
             } else {
               tours.push({
                 tour_name: tourName,
                 num_adult: adults,
-                num_chd: children
+                num_chd: children,
+                notes: notes
               });
             }
             
@@ -107,6 +116,18 @@ export class EODProcessor {
     }
     
     return 0;
+  }
+
+  private extractNotes(row: Record<string, any>): string {
+    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS'];
+    
+    for (const col of possibleColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        return row[col].trim();
+      }
+    }
+    
+    return '';
   }
 
   async processEODTemplate(
@@ -296,16 +317,16 @@ export class EODProcessor {
               cell.value = tour.num_chd;
               console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
             } else if (cellValue === '{{notes}}') {
-              // Handle notes placeholder with merged cells - keep the {{notes}} delimiter
+              // Handle notes placeholder with merged cells - replace with actual notes data
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
-                mergedCell.value = '{{notes}}';
+                mergedCell.value = tour.notes || '';
                 mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
-                console.log(`  → Merged {{notes}} delimiter across B-I at row ${currentRowNum}`);
+                console.log(`  → Merged and set notes "${tour.notes || '(no notes)'}" across B-I at row ${currentRowNum}`);
               } catch (mergeError) {
                 console.log(`  → Notes merge failed at row ${currentRowNum}, using single cell`);
-                cell.value = '{{notes}}';
+                cell.value = tour.notes || '';
               }
               
             } else if (typeof cellValue === 'string' && cellValue.toLowerCase().includes('comments') && cellValue.toLowerCase().includes('notes')) {
