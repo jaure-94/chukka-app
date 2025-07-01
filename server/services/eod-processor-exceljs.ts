@@ -133,21 +133,6 @@ export class EODProcessor {
 
       console.log(`Processing ${templateData.tours.length} tours with ExcelJS formatting preservation`);
 
-      // First, remove all strike-through formatting from the entire document
-      console.log('Removing strike-through formatting from entire document (rows 1-200)');
-      for (let rowNum = 1; rowNum <= 200; rowNum++) {
-        const row = worksheet.getRow(rowNum);
-        for (let colNum = 1; colNum <= 20; colNum++) {
-          const cell = row.getCell(colNum);
-          if (cell.font && cell.font.strike) {
-            const newFont = { ...cell.font };
-            delete newFont.strike;
-            cell.font = newFont;
-            console.log(`  → Removed strike-through from cell ${rowNum},${colNum}`);
-          }
-        }
-      }
-
       // Template section definition (rows 17-25)
       const templateStartRow = 17;
       const templateEndRow = 25;
@@ -192,6 +177,21 @@ export class EODProcessor {
       }
 
       console.log('Stored complete template formatting for replication');
+
+      // Remove strike-through formatting from rows 3-24
+      console.log('Removing strike-through formatting from rows 3-24');
+      for (let rowNum = 3; rowNum <= 24; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        for (let colNum = 1; colNum <= 20; colNum++) {
+          const cell = row.getCell(colNum);
+          if (cell.font && cell.font.strike) {
+            const newFont = { ...cell.font };
+            delete newFont.strike;
+            cell.font = newFont;
+            console.log(`  → Removed strike-through from cell ${rowNum},${colNum}`);
+          }
+        }
+      }
 
       // Clear existing content below template section
       for (let rowNum = templateEndRow + 1; rowNum <= 200; rowNum++) {
@@ -239,13 +239,9 @@ export class EODProcessor {
                 targetCell.value = templateCell.value;
               }
               
-              // Apply complete formatting (ensuring no strike-through)
+              // Apply complete formatting
               if (templateCell.style.font) {
-                const cleanFont = { ...templateCell.style.font };
-                if (cleanFont.strike) {
-                  delete cleanFont.strike;
-                }
-                targetCell.font = cleanFont;
+                targetCell.font = templateCell.style.font;
               }
               if (templateCell.style.fill) {
                 targetCell.fill = templateCell.style.fill;
