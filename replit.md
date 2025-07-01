@@ -161,6 +161,7 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented {{notes}} placeholder replacement with actual notes content from dispatch data
   - Added text wrapping (wrapText: true) and dynamic row height calculation for notes cells
   - Enhanced notes display with left-aligned, top-vertical positioning for optimal readability
+  - Applied dark blue text color (FF003366) and removed bold formatting for notes content
 
 ## User Preferences
 

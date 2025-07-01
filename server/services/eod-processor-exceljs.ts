@@ -332,6 +332,11 @@ export class EODProcessor {
                   vertical: 'top',
                   wrapText: true 
                 };
+                mergedCell.font = {
+                  color: { argb: 'FF003366' }, // Dark blue color
+                  bold: false,
+                  size: 11
+                };
                 
                 // Set row height to accommodate wrapped text
                 const notesRow = worksheet.getRow(currentRowNum);
@@ -345,6 +350,11 @@ export class EODProcessor {
                   horizontal: 'left', 
                   vertical: 'top',
                   wrapText: true 
+                };
+                cell.font = {
+                  color: { argb: 'FF003366' }, // Dark blue color
+                  bold: false,
+                  size: 11
                 };
                 
                 // Set row height for single cell too
