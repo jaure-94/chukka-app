@@ -206,7 +206,7 @@ export class EODProcessor {
       // Process each tour with complete formatting preservation
       for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
         const tour = templateData.tours[tourIndex];
-        console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name}`);
+        console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name} (Adults: ${tour.num_adult}, Children: ${tour.num_chd})`);
         
         let sectionStartRow: number;
         
@@ -279,7 +279,10 @@ export class EODProcessor {
             const cell = currentRow.getCell(colNum);
             const cellValue = cell.value;
             
-            if (cellValue === '{{tour_name}}') {
+            // Check for placeholder patterns with better string handling
+            const cellValueStr = cellValue ? cellValue.toString().trim() : '';
+            
+            if (cellValueStr === '{{tour_name}}') {
               cell.value = tour.tour_name;
               
               // Merge cells B through I for tour name display
@@ -303,13 +306,13 @@ export class EODProcessor {
                 cell.value = tour.tour_name;
               }
               
-            } else if (cellValue === '{{num_adult}}') {
+            } else if (cellValueStr === '{{num_adult}}') {
               cell.value = tour.num_adult;
-              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
-            } else if (cellValue === '{{num_chd}}') {
+              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}, col ${colNum}`);
+            } else if (cellValueStr === '{{num_chd}}') {
               cell.value = tour.num_chd;
-              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
-            } else if (cellValue === '{{notes}}') {
+              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}, col ${colNum}`);
+            } else if (cellValueStr === '{{notes}}') {
               // Handle notes placeholder with merged cells - keep the {{notes}} delimiter
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
@@ -331,7 +334,7 @@ export class EODProcessor {
                 cell.value = '{{notes}}';
               }
               
-            } else if (typeof cellValue === 'string' && cellValue.toLowerCase().includes('comments') && cellValue.toLowerCase().includes('notes')) {
+            } else if (cellValueStr.toLowerCase().includes('comments') && cellValueStr.toLowerCase().includes('notes')) {
               // Handle comments/notes subheading with merged cells
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
