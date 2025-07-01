@@ -149,6 +149,8 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added logic to prevent information duplication across merged cell ranges
   - Enhanced placeholder replacement to handle {{notes}} column merging
   - Ensured values only appear in top-left cell of merged ranges
+  - Fixed merged cell detection and placeholder replacement logic to prevent duplication
+  - Improved debugging output to track merged cell operations and placeholder handling
 
 ## User Preferences
 
