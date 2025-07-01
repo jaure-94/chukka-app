@@ -255,6 +255,15 @@ export class EODProcessor {
               if (templateCell.style.numFmt) {
                 targetCell.numFmt = templateCell.style.numFmt;
               }
+              
+              // Add solid border to right edge of column I for tour data sections
+              if (colNum === 9) { // Column I
+                const currentBorder = targetCell.border || {};
+                targetCell.border = {
+                  ...currentBorder,
+                  right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+              }
             }
             
             console.log(`Applied complete formatting to row ${targetRowNum}`);
@@ -279,7 +288,16 @@ export class EODProcessor {
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
                 mergedCell.value = tour.tour_name;
                 mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
-                console.log(`  → Merged and set tour name "${tour.tour_name}" across B-I at row ${currentRowNum}`);
+                
+                // Add solid border to right edge of merged cell (column I)
+                const columnICell = worksheet.getCell(currentRowNum, 9);
+                const currentBorder = columnICell.border || {};
+                columnICell.border = {
+                  ...currentBorder,
+                  right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+                
+                console.log(`  → Merged and set tour name "${tour.tour_name}" across B-I at row ${currentRowNum} with border`);
               } catch (mergeError) {
                 console.log(`  → Tour name merge failed at row ${currentRowNum}, using single cell`);
                 cell.value = tour.tour_name;
@@ -298,7 +316,16 @@ export class EODProcessor {
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
                 mergedCell.value = '{{notes}}';
                 mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
-                console.log(`  → Merged {{notes}} delimiter across B-I at row ${currentRowNum}`);
+                
+                // Add solid border to right edge of merged cell (column I)
+                const columnICell = worksheet.getCell(currentRowNum, 9);
+                const currentBorder = columnICell.border || {};
+                columnICell.border = {
+                  ...currentBorder,
+                  right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+                
+                console.log(`  → Merged {{notes}} delimiter across B-I at row ${currentRowNum} with border`);
               } catch (mergeError) {
                 console.log(`  → Notes merge failed at row ${currentRowNum}, using single cell`);
                 cell.value = '{{notes}}';
@@ -312,12 +339,29 @@ export class EODProcessor {
                 mergedCell.value = cellValue;
                 mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
                 mergedCell.font = { bold: true };
-                console.log(`  → Merged comments/notes subheading (left-aligned) across B-I at row ${currentRowNum}`);
+                
+                // Add solid border to right edge of merged cell (column I)
+                const columnICell = worksheet.getCell(currentRowNum, 9);
+                const currentBorder = columnICell.border || {};
+                columnICell.border = {
+                  ...currentBorder,
+                  right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+                
+                console.log(`  → Merged comments/notes subheading (left-aligned) across B-I at row ${currentRowNum} with border`);
               } catch (mergeError) {
                 console.log(`  → Comments/notes merge failed at row ${currentRowNum}, using single cell`);
               }
             }
           }
+          
+          // Ensure solid border on column I for all rows in this tour section
+          const columnICell = currentRow.getCell(9);
+          const currentBorder = columnICell.border || {};
+          columnICell.border = {
+            ...currentBorder,
+            right: { style: 'thin', color: { argb: 'FF000000' } }
+          };
         }
       }
 
