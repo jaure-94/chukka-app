@@ -154,6 +154,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented strike-through removal from rows 3-24 to clean up document formatting
   - Added strike-through filtering in template formatting storage to prevent replication
   - Enhanced visual consistency across all generated tour sections
+- July 1, 2025: Implemented notes data extraction and text wrapping functionality
+  - Added notes field to TourData interface for dispatch data extraction
+  - Created extractNotes method to find Notes/Comments/Remarks columns in dispatch files
+  - Enhanced data extraction to combine notes from multiple rows for same tour
+  - Implemented {{notes}} placeholder replacement with actual notes content from dispatch data
+  - Added text wrapping (wrapText: true) and dynamic row height calculation for notes cells
+  - Enhanced notes display with left-aligned, top-vertical positioning for optimal readability
 
 ## User Preferences
 

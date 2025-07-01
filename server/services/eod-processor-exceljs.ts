@@ -318,15 +318,38 @@ export class EODProcessor {
               console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
             } else if (cellValue === '{{notes}}') {
               // Handle notes placeholder with merged cells - replace with actual notes data
+              const notesText = tour.notes || '';
+              // Calculate row height based on text length (approximately 15 chars per line)
+              const estimatedLines = Math.max(1, Math.ceil(notesText.length / 80)); // 80 chars per line for merged cell
+              const rowHeight = Math.max(20, estimatedLines * 15); // Minimum 20, then 15 per line
+              
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
-                mergedCell.value = tour.notes || '';
-                mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
-                console.log(`  → Merged and set notes "${tour.notes || '(no notes)'}" across B-I at row ${currentRowNum}`);
+                mergedCell.value = notesText;
+                mergedCell.alignment = { 
+                  horizontal: 'left', 
+                  vertical: 'top',
+                  wrapText: true 
+                };
+                
+                // Set row height to accommodate wrapped text
+                const notesRow = worksheet.getRow(currentRowNum);
+                notesRow.height = rowHeight;
+                
+                console.log(`  → Merged and set notes "${tour.notes || '(no notes)'}" across B-I at row ${currentRowNum} with height ${rowHeight}`);
               } catch (mergeError) {
                 console.log(`  → Notes merge failed at row ${currentRowNum}, using single cell`);
-                cell.value = tour.notes || '';
+                cell.value = notesText;
+                cell.alignment = { 
+                  horizontal: 'left', 
+                  vertical: 'top',
+                  wrapText: true 
+                };
+                
+                // Set row height for single cell too
+                const notesRow = worksheet.getRow(currentRowNum);
+                notesRow.height = rowHeight;
               }
               
             } else if (typeof cellValue === 'string' && cellValue.toLowerCase().includes('comments') && cellValue.toLowerCase().includes('notes')) {
