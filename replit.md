@@ -154,11 +154,6 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented strike-through removal from rows 3-24 to clean up document formatting
   - Added strike-through filtering in template formatting storage to prevent replication
   - Enhanced visual consistency across all generated tour sections
-- July 1, 2025: Added solid border styling for column I in tour sections
-  - Implemented solid black border on right edge of column I for all tour data rows
-  - Added border enforcement for merged cells (tour names, comments/notes, {{notes}})
-  - Enhanced visual separation and structure for generated tour sections
-  - Applied consistent border styling across all replicated template sections
 
 ## User Preferences
 

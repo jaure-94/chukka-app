@@ -133,6 +133,21 @@ export class EODProcessor {
 
       console.log(`Processing ${templateData.tours.length} tours with ExcelJS formatting preservation`);
 
+      // First, remove all strike-through formatting from the entire document
+      console.log('Removing strike-through formatting from entire document (rows 1-200)');
+      for (let rowNum = 1; rowNum <= 200; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        for (let colNum = 1; colNum <= 20; colNum++) {
+          const cell = row.getCell(colNum);
+          if (cell.font && cell.font.strike) {
+            const newFont = { ...cell.font };
+            delete newFont.strike;
+            cell.font = newFont;
+            console.log(`  → Removed strike-through from cell ${rowNum},${colNum}`);
+          }
+        }
+      }
+
       // Template section definition (rows 17-25)
       const templateStartRow = 17;
       const templateEndRow = 25;
@@ -178,21 +193,6 @@ export class EODProcessor {
 
       console.log('Stored complete template formatting for replication');
 
-      // Remove strike-through formatting from rows 3-24
-      console.log('Removing strike-through formatting from rows 3-24');
-      for (let rowNum = 3; rowNum <= 24; rowNum++) {
-        const row = worksheet.getRow(rowNum);
-        for (let colNum = 1; colNum <= 20; colNum++) {
-          const cell = row.getCell(colNum);
-          if (cell.font && cell.font.strike) {
-            const newFont = { ...cell.font };
-            delete newFont.strike;
-            cell.font = newFont;
-            console.log(`  → Removed strike-through from cell ${rowNum},${colNum}`);
-          }
-        }
-      }
-
       // Clear existing content below template section
       for (let rowNum = templateEndRow + 1; rowNum <= 200; rowNum++) {
         const row = worksheet.getRow(rowNum);
@@ -206,7 +206,7 @@ export class EODProcessor {
       // Process each tour with complete formatting preservation
       for (let tourIndex = 0; tourIndex < templateData.tours.length; tourIndex++) {
         const tour = templateData.tours[tourIndex];
-        console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name} (Adults: ${tour.num_adult}, Children: ${tour.num_chd})`);
+        console.log(`\nProcessing tour ${tourIndex + 1}: ${tour.tour_name}`);
         
         let sectionStartRow: number;
         
@@ -239,9 +239,13 @@ export class EODProcessor {
                 targetCell.value = templateCell.value;
               }
               
-              // Apply complete formatting
+              // Apply complete formatting (ensuring no strike-through)
               if (templateCell.style.font) {
-                targetCell.font = templateCell.style.font;
+                const cleanFont = { ...templateCell.style.font };
+                if (cleanFont.strike) {
+                  delete cleanFont.strike;
+                }
+                targetCell.font = cleanFont;
               }
               if (templateCell.style.fill) {
                 targetCell.fill = templateCell.style.fill;
@@ -254,15 +258,6 @@ export class EODProcessor {
               }
               if (templateCell.style.numFmt) {
                 targetCell.numFmt = templateCell.style.numFmt;
-              }
-              
-              // Add solid border to right edge of column I for tour data sections
-              if (colNum === 9) { // Column I
-                const currentBorder = targetCell.border || {};
-                targetCell.border = {
-                  ...currentBorder,
-                  right: { style: 'thin', color: { argb: 'FF000000' } }
-                };
               }
             }
             
@@ -279,10 +274,7 @@ export class EODProcessor {
             const cell = currentRow.getCell(colNum);
             const cellValue = cell.value;
             
-            // Check for placeholder patterns with better string handling
-            const cellValueStr = cellValue ? cellValue.toString().trim() : '';
-            
-            if (cellValueStr === '{{tour_name}}') {
+            if (cellValue === '{{tour_name}}') {
               cell.value = tour.tour_name;
               
               // Merge cells B through I for tour name display
@@ -291,50 +283,32 @@ export class EODProcessor {
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
                 mergedCell.value = tour.tour_name;
                 mergedCell.alignment = { horizontal: 'center', vertical: 'middle' };
-                
-                // Add solid border to right edge of merged cell (column I)
-                const columnICell = worksheet.getCell(currentRowNum, 9);
-                const currentBorder = columnICell.border || {};
-                columnICell.border = {
-                  ...currentBorder,
-                  right: { style: 'thin', color: { argb: 'FF000000' } }
-                };
-                
-                console.log(`  → Merged and set tour name "${tour.tour_name}" across B-I at row ${currentRowNum} with border`);
+                console.log(`  → Merged and set tour name "${tour.tour_name}" across B-I at row ${currentRowNum}`);
               } catch (mergeError) {
                 console.log(`  → Tour name merge failed at row ${currentRowNum}, using single cell`);
                 cell.value = tour.tour_name;
               }
               
-            } else if (cellValueStr === '{{num_adult}}') {
+            } else if (cellValue === '{{num_adult}}') {
               cell.value = tour.num_adult;
-              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}, col ${colNum}`);
-            } else if (cellValueStr === '{{num_chd}}') {
+              console.log(`  → Replaced {{num_adult}} with ${tour.num_adult} at row ${currentRowNum}`);
+            } else if (cellValue === '{{num_chd}}') {
               cell.value = tour.num_chd;
-              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}, col ${colNum}`);
-            } else if (cellValueStr === '{{notes}}') {
+              console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
+            } else if (cellValue === '{{notes}}') {
               // Handle notes placeholder with merged cells - keep the {{notes}} delimiter
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
                 const mergedCell = worksheet.getCell(currentRowNum, 2);
                 mergedCell.value = '{{notes}}';
                 mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
-                
-                // Add solid border to right edge of merged cell (column I)
-                const columnICell = worksheet.getCell(currentRowNum, 9);
-                const currentBorder = columnICell.border || {};
-                columnICell.border = {
-                  ...currentBorder,
-                  right: { style: 'thin', color: { argb: 'FF000000' } }
-                };
-                
-                console.log(`  → Merged {{notes}} delimiter across B-I at row ${currentRowNum} with border`);
+                console.log(`  → Merged {{notes}} delimiter across B-I at row ${currentRowNum}`);
               } catch (mergeError) {
                 console.log(`  → Notes merge failed at row ${currentRowNum}, using single cell`);
                 cell.value = '{{notes}}';
               }
               
-            } else if (cellValueStr.toLowerCase().includes('comments') && cellValueStr.toLowerCase().includes('notes')) {
+            } else if (typeof cellValue === 'string' && cellValue.toLowerCase().includes('comments') && cellValue.toLowerCase().includes('notes')) {
               // Handle comments/notes subheading with merged cells
               try {
                 worksheet.mergeCells(currentRowNum, 2, currentRowNum, 9); // B to I
@@ -342,29 +316,12 @@ export class EODProcessor {
                 mergedCell.value = cellValue;
                 mergedCell.alignment = { horizontal: 'left', vertical: 'middle' };
                 mergedCell.font = { bold: true };
-                
-                // Add solid border to right edge of merged cell (column I)
-                const columnICell = worksheet.getCell(currentRowNum, 9);
-                const currentBorder = columnICell.border || {};
-                columnICell.border = {
-                  ...currentBorder,
-                  right: { style: 'thin', color: { argb: 'FF000000' } }
-                };
-                
-                console.log(`  → Merged comments/notes subheading (left-aligned) across B-I at row ${currentRowNum} with border`);
+                console.log(`  → Merged comments/notes subheading (left-aligned) across B-I at row ${currentRowNum}`);
               } catch (mergeError) {
                 console.log(`  → Comments/notes merge failed at row ${currentRowNum}, using single cell`);
               }
             }
           }
-          
-          // Ensure solid border on column I for all rows in this tour section
-          const columnICell = currentRow.getCell(9);
-          const currentBorder = columnICell.border || {};
-          columnICell.border = {
-            ...currentBorder,
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
         }
       }
 
