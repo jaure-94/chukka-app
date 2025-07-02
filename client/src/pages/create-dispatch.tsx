@@ -71,6 +71,17 @@ export default function CreateDispatch() {
     },
   });
 
+  // Watch form values for auto-calculation
+  const adults = form.watch("adults") || 0;
+  const children = form.watch("children") || 0;
+  const comp = form.watch("comp") || 0;
+
+  // Auto-calculate total guests whenever component values change
+  useEffect(() => {
+    const calculatedTotal = adults + children + comp;
+    form.setValue("totalGuests", calculatedTotal);
+  }, [adults, children, comp, form]);
+
   // Create dispatch record mutation
   const createDispatchMutation = useMutation({
     mutationFn: async (data: DispatchFormData) => {
@@ -301,15 +312,19 @@ export default function CreateDispatch() {
               <div className="space-y-2">
                 <Label htmlFor="totalGuests" className="text-sm font-medium text-gray-700">
                   Total Guests
+                  <span className="text-xs text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-calculated</span>
                 </Label>
                 <Input
                   id="totalGuests"
                   type="number"
                   min="0"
                   {...form.register("totalGuests", { valueAsNumber: true })}
-                  placeholder="Auto-calculated if empty"
-                  className="w-full max-w-xs rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  disabled
+                  className="w-full max-w-xs rounded-lg border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500">
+                  Automatically calculated: {adults} adults + {children} children + {comp} comp guests = {adults + children + comp} total
+                </p>
                 {form.formState.errors.totalGuests && (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.totalGuests.message}
