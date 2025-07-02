@@ -282,6 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dispatch-templates", async (req, res) => {
     try {
       const template = await storage.getActiveDispatchTemplate();
+      console.log("Dispatch template query result:", template);
       res.json(template || {});
     } catch (error) {
       console.error("Dispatch template fetch error:", error);
@@ -293,6 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/eod-templates", async (req, res) => {
     try {
       const template = await storage.getActiveEodTemplate();
+      console.log("EOD template query result:", template);
       res.json(template || {});
     } catch (error) {
       console.error("EOD template fetch error:", error);

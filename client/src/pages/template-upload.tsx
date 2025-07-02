@@ -7,6 +7,7 @@ import { DataPreview } from "@/components/data-preview";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { CheckCircle, X, Upload, FileSpreadsheet, Settings, Download } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useToast } from "@/hooks/use-toast";
 import type { UploadResponse } from "@/lib/types";
 
 export default function TemplateUpload() {
@@ -16,6 +17,7 @@ export default function TemplateUpload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const { isCollapsed } = useSidebar();
+  const { toast } = useToast();
 
   // Auto-hide success notification after 3 seconds
   useEffect(() => {
@@ -49,14 +51,48 @@ export default function TemplateUpload() {
     setIsSubmitting(true);
     
     try {
-      // Store the template data in sessionStorage for the next page
-      sessionStorage.setItem('templateData', JSON.stringify({
-        dispatch: dispatchUpload,
-        eod: eodUpload
-      }));
-      
+      // Create FormData for dispatch template
+      const dispatchFormData = new FormData();
+      if (dispatchUpload.file instanceof File) {
+        dispatchFormData.append('template', dispatchUpload.file);
+      } else {
+        throw new Error('Invalid dispatch file');
+      }
+
+      // Create FormData for EOD template  
+      const eodFormData = new FormData();
+      if (eodUpload.file instanceof File) {
+        eodFormData.append('template', eodUpload.file);
+      } else {
+        throw new Error('Invalid EOD file');
+      }
+
+      // Upload dispatch template to database
+      const dispatchResponse = await fetch('/api/templates/dispatch', {
+        method: 'POST',
+        body: dispatchFormData,
+      });
+
+      if (!dispatchResponse.ok) {
+        throw new Error('Failed to upload dispatch template');
+      }
+
+      // Upload EOD template to database
+      const eodResponse = await fetch('/api/templates/eod', {
+        method: 'POST',
+        body: eodFormData,
+      });
+
+      if (!eodResponse.ok) {
+        throw new Error('Failed to upload EOD template');
+      }
+
       // Show success notification
       setShowSuccessNotification(true);
+      toast({
+        title: "Templates Uploaded Successfully",
+        description: "Both dispatch and EOD templates have been stored and are now available across the system.",
+      });
       
       // Delay navigation to allow user to see the success notification
       setTimeout(() => {
@@ -64,6 +100,11 @@ export default function TemplateUpload() {
       }, 1500);
     } catch (error) {
       console.error('Error submitting templates:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your templates. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
