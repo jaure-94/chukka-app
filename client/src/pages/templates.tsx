@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { FileText, Upload, Calendar, User } from "lucide-react";
+import { FileText, Upload, Calendar, User, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
 
@@ -32,6 +32,10 @@ export default function Templates() {
 
   const handleEditTemplates = () => {
     setLocation("/");
+  };
+
+  const handleDownloadTemplate = (type: 'dispatch' | 'eod') => {
+    window.open(`/api/templates/${type}/download`, '_blank');
   };
 
   return (
@@ -103,10 +107,19 @@ export default function Templates() {
                       </span>
                     </div>
                     <div className="pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 mb-3">
                         This template contains placeholders for tour information including tour names, 
                         guest counts, departure times, and notes.
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadTemplate('dispatch')}
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Template
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -157,10 +170,19 @@ export default function Templates() {
                       </span>
                     </div>
                     <div className="pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 mb-3">
                         This template is populated with dispatch data to generate end-of-day reports 
                         with tour summaries and guest counts.
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadTemplate('eod')}
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Template
+                      </Button>
                     </div>
                   </div>
                 ) : (
