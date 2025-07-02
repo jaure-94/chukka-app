@@ -27,6 +27,14 @@ interface TemplateFile {
   createdAt: string;
 }
 
+interface GeneratedReport {
+  id: number;
+  dispatchFilePath: string;
+  eodFilePath?: string | null;
+  recordCount: number;
+  createdAt: string;
+}
+
 export default function Reports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,6 +44,11 @@ export default function Reports() {
   // Fetch recent generated reports
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
     queryKey: ["/api/processing-jobs"],
+  });
+
+  // Fetch generated reports (this includes single record reports)
+  const { data: generatedReports = [], isLoading: isLoadingReports } = useQuery<GeneratedReport[]>({
+    queryKey: ["/api/generated-reports"],
   });
 
   // Fetch template files
@@ -82,6 +95,10 @@ export default function Reports() {
 
   const handleDownloadTemplate = (type: 'dispatch' | 'eod') => {
     window.open(`/api/templates/${type}/download`, '_blank');
+  };
+
+  const handleDownloadReport = (reportId: number, type: 'dispatch' | 'eod') => {
+    window.open(`/api/download-report/${reportId}/${type}`, '_blank');
   };
 
   const getStatusBadge = (status: string) => {
@@ -248,60 +265,77 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          {/* Recent Reports Section */}
+          {/* Generated Reports Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-green-600" />
-                Recent Reports
+                Generated Reports
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoadingJobs ? (
+              {isLoadingReports ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
                   <p className="text-gray-500 mt-2">Loading reports...</p>
                 </div>
-              ) : recentJobs.length === 0 ? (
+              ) : generatedReports.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FileText className="w-8 h-8 text-gray-400" />
                   </div>
                   <p className="text-gray-500 mb-4">No reports generated yet</p>
                   <p className="text-sm text-gray-400">
-                    Generate your first report to see it listed here
+                    Create dispatch records to generate reports automatically
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {recentJobs.slice(0, 10).map((job) => (
+                  {generatedReports.slice(0, 10).map((report) => (
                     <div
-                      key={job.id}
+                      key={report.id}
                       className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
                           <h4 className="font-medium text-gray-900">
-                            {job.templateType || "EOD Report"}
+                            {report.recordCount === 1 ? "Single Record Report" : `Batch Report (${report.recordCount} records)`}
                           </h4>
                           <div className="flex items-center text-sm text-gray-500 mt-1">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(job.createdAt).toLocaleDateString()} at{" "}
-                            {new Date(job.createdAt).toLocaleTimeString()}
+                            {new Date(report.createdAt).toLocaleDateString()} at{" "}
+                            {new Date(report.createdAt).toLocaleTimeString()}
+                          </div>
+                          <div className="flex items-center text-xs text-gray-400 mt-1">
+                            <Users className="w-3 h-3 mr-1" />
+                            {report.recordCount} record{report.recordCount !== 1 ? 's' : ''}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-3">
-                        {getStatusBadge(job.status)}
+                      <div className="flex items-center space-x-2">
+                        <Badge className="bg-green-100 text-green-800">Ready</Badge>
                         
-                        {job.status === "completed" && (job.outputPath || job.dropboxUrl) && (
-                          <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownloadReport(report.id, 'dispatch')}
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Dispatch
+                        </Button>
+                        
+                        {report.eodFilePath && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDownloadReport(report.id, 'eod')}
+                          >
                             <Download className="w-3 h-3 mr-1" />
-                            Download
+                            EOD
                           </Button>
                         )}
                       </div>
@@ -322,7 +356,7 @@ export default function Reports() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                    <p className="text-2xl font-bold text-gray-900">{recentJobs.length}</p>
+                    <p className="text-2xl font-bold text-gray-900">{generatedReports.length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -335,9 +369,9 @@ export default function Reports() {
                     <TrendingUp className="w-4 h-4 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Completed</p>
+                    <p className="text-sm font-medium text-gray-600">Total Records</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {recentJobs.filter(job => job.status === "completed").length}
+                      {generatedReports.reduce((total, report) => total + report.recordCount, 0)}
                     </p>
                   </div>
                 </div>
