@@ -106,8 +106,8 @@ export default function TemplateUpload() {
                   <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
                     <span className="text-xl font-bold">4</span>
                   </div>
-                  <h3 className="font-medium mb-2">Download Reports</h3>
-                  <p className="text-blue-200 text-center">Download the complete template populated with all dispatch records</p>
+                  <h3 className="font-medium mb-2">Download Multiple Reports</h3>
+                  <p className="text-blue-200 text-center">Download up-to-date dispatch sheets and EOD reports</p>
                 </div>
               </div>
             </div>
