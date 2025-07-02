@@ -120,12 +120,17 @@ export default function CreateDispatch() {
     onSuccess: (result) => {
       toast({
         title: "Success",
-        description: `Dispatch record created successfully. Both dispatch and EOD reports have been generated automatically and are available for download in the Reports section.`,
+        description: `Dispatch record created successfully. Both dispatch and EOD reports have been generated automatically. Redirecting to Reports page...`,
       });
       form.reset();
       setTourDate("");
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-records"] });
       queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
+      
+      // Redirect to Reports page after a short delay to show the success message
+      setTimeout(() => {
+        setLocation("/reports");
+      }, 1500);
     },
     onError: (error) => {
       toast({

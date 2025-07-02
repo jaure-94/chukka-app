@@ -227,6 +227,7 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced report display with proper labeling (Single Record Report vs Batch Report based on record count)
   - Both dispatch and EOD reports are now automatically created whenever a new dispatch record is added
   - Reports page shows downloadable files immediately after record creation with proper cache invalidation
+  - Added automatic redirection to Reports page after successful dispatch record creation with 1.5 second delay
 
 ## User Preferences
 
