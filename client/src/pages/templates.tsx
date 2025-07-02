@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { FileText, Upload, Calendar, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 interface Template {
   id: number;
@@ -16,6 +17,7 @@ interface Template {
 
 export default function Templates() {
   const [, setLocation] = useLocation();
+  const { isCollapsed } = useSidebar();
 
   // Fetch current templates from storage
   const { data: dispatchTemplate } = useQuery<Template>({
@@ -40,7 +42,9 @@ export default function Templates() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+        isCollapsed ? 'md:ml-16' : 'md:ml-64'
+      }`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">

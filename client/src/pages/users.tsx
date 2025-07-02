@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 interface UserData {
   id: number;
@@ -167,6 +168,8 @@ const getInitials = (name: string) => {
 };
 
 export default function Users() {
+  const { isCollapsed } = useSidebar();
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
@@ -181,7 +184,9 @@ export default function Users() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className={`flex-1 p-6 transition-all duration-300 ${
+          isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+        }`}>
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">

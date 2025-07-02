@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourDatePicker, TimePicker } from "@/components/enhanced-date-picker";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 // Form validation schema
 const dispatchFormSchema = z.object({
@@ -45,6 +46,7 @@ export default function CreateDispatch() {
   const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [tourDate, setTourDate] = useState("");
+  const { isCollapsed } = useSidebar();
 
   // Load template data from sessionStorage
   useEffect(() => {
@@ -150,7 +152,9 @@ export default function CreateDispatch() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+        isCollapsed ? 'md:ml-16' : 'md:ml-64'
+      }`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">

@@ -7,6 +7,7 @@ import { BarChart3, Download, FileText, Calendar, Users, TrendingUp } from "luci
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 interface ProcessingJob {
   id: number;
@@ -21,6 +22,7 @@ export default function Reports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
+  const { isCollapsed } = useSidebar();
 
   // Fetch recent generated reports
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
@@ -81,7 +83,9 @@ export default function Reports() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+        isCollapsed ? 'md:ml-16' : 'md:ml-64'
+      }`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">

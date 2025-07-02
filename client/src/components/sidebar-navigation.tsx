@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/contexts/sidebar-context";
 
 interface NavigationItem {
   name: string;
@@ -52,7 +53,7 @@ interface SidebarNavigationProps {
 }
 
 export function SidebarNavigation({ className }: SidebarNavigationProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleCollapsed } = useSidebar();
   const [location] = useLocation();
 
   return (
@@ -69,7 +70,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapsed}
           className="p-2 hover:bg-gray-100"
         >
           {isCollapsed ? (
