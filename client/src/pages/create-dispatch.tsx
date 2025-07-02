@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { EnhancedDatePicker } from "@/components/enhanced-date-picker";
 
 // Form validation schema
 const dispatchFormSchema = z.object({
@@ -261,62 +262,49 @@ export default function CreateDispatch() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Date and Time Selection */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Departure Time */}
-                <div className="space-y-2">
-                  <Label htmlFor="departure" className="text-sm font-medium text-gray-700">
-                    Departure Time
-                  </Label>
-                  <Input
+                <div>
+                  <EnhancedDatePicker
+                    label="Departure Time"
+                    value={form.watch("departure") || ""}
+                    onChange={(value) => form.setValue("departure", value)}
                     id="departure"
-                    type="datetime-local"
-                    {...form.register("departure")}
-                    className="w-full"
+                    error={form.formState.errors.departure?.message}
                   />
-                  {form.formState.errors.departure && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.departure.message}
-                    </p>
-                  )}
                 </div>
 
                 {/* Return Time */}
-                <div className="space-y-2">
-                  <Label htmlFor="returnTime" className="text-sm font-medium text-gray-700">
-                    Return Time
-                  </Label>
-                  <Input
+                <div>
+                  <EnhancedDatePicker
+                    label="Return Time"
+                    value={form.watch("returnTime") || ""}
+                    onChange={(value) => form.setValue("returnTime", value)}
                     id="returnTime"
-                    type="datetime-local"
-                    {...form.register("returnTime")}
-                    className="w-full"
+                    error={form.formState.errors.returnTime?.message}
                   />
-                  {form.formState.errors.returnTime && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.returnTime.message}
-                    </p>
-                  )}
                 </div>
+              </div>
 
-                {/* Total Guests */}
-                <div className="space-y-2">
-                  <Label htmlFor="totalGuests" className="text-sm font-medium text-gray-700">
-                    Total Guests
-                  </Label>
-                  <Input
-                    id="totalGuests"
-                    type="number"
-                    min="0"
-                    {...form.register("totalGuests", { valueAsNumber: true })}
-                    placeholder="Auto-calculated if empty"
-                    className="w-full"
-                  />
-                  {form.formState.errors.totalGuests && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.totalGuests.message}
-                    </p>
-                  )}
-                </div>
+              {/* Total Guests */}
+              <div className="space-y-2">
+                <Label htmlFor="totalGuests" className="text-sm font-medium text-gray-700">
+                  Total Guests
+                </Label>
+                <Input
+                  id="totalGuests"
+                  type="number"
+                  min="0"
+                  {...form.register("totalGuests", { valueAsNumber: true })}
+                  placeholder="Auto-calculated if empty"
+                  className="w-full max-w-xs rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                {form.formState.errors.totalGuests && (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.totalGuests.message}
+                  </p>
+                )}
               </div>
 
               {/* Notes */}
