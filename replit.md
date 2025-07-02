@@ -178,6 +178,20 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Modified Excel parser to only process and display dispatch-relevant sheets in data preview
   - Enhanced sheet filtering logic to detect dispatch headers (Tour Name, Adults, Children, etc.)
   - Removed irrelevant template and summary sheets from data preview interface
+- July 2, 2025: Enhanced template upload page with welcoming design and clear workflow explanation
+  - Added modern gradient header with 4-step workflow visualization (Upload → Create → Update → Download Multiple Reports)
+  - Implemented interactive upload progress indicators with real-time status feedback
+  - Created celebration section with green gradient styling when both files are ready
+  - Enhanced visual hierarchy with better spacing, color-coded sections, and professional layout
+- July 2, 2025: Redesigned date picker system with separated date and time selection
+  - Created TourDatePicker component with dropdown selectors for year, month, and day
+  - Implemented TimePicker component with "Select Time" label for individual time selection
+  - Added shared Tour Date that applies to both departure and return times
+  - Enhanced styling with rounded borders, color-coded sections, and better spacing
+- July 2, 2025: Implemented auto-calculation for Total Guests field
+  - Added real-time calculation that sums Adults + Children + Comp Guests automatically
+  - Created visual indicators including "Auto-calculated" badge and calculation breakdown
+  - Disabled manual input with read-only styling to prevent calculation errors
 
 ## User Preferences
 
