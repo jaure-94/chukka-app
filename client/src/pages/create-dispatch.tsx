@@ -54,22 +54,20 @@ export default function CreateDispatch() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [templateData, setTemplateData] = useState<any>(null);
+
   const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [tourDate, setTourDate] = useState("");
   const { isCollapsed } = useSidebar();
 
-  // Load template data from sessionStorage
-  useEffect(() => {
-    const storedData = sessionStorage.getItem('templateData');
-    if (storedData) {
-      setTemplateData(JSON.parse(storedData));
-    } else {
-      // If no template data, redirect back to upload page
-      setLocation('/');
-    }
-  }, [setLocation]);
+  // Check if templates are available
+  const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
+    queryKey: ["/api/dispatch-templates"],
+  });
+  
+  const { data: eodTemplate, isLoading: isLoadingEod } = useQuery({
+    queryKey: ["/api/eod-templates"], 
+  });
 
   // Form setup
   const form = useForm<DispatchFormData>({
@@ -151,16 +149,33 @@ export default function CreateDispatch() {
 
 
   const handleBackToUpload = () => {
-    sessionStorage.removeItem('templateData');
     setLocation('/');
   };
 
-  if (!templateData) {
+  // Show loading state while templates are being fetched
+  if (isLoadingDispatch || isLoadingEod) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card>
-          <CardContent className="p-6">
-            <p className="text-gray-600">Loading template data...</p>
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading templates...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show message if templates are not available
+  if (!dispatchTemplate || !eodTemplate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-gray-600 mb-4">Templates not found. Please upload dispatch and EOD templates first.</p>
+            <Button onClick={() => setLocation('/templates')}>
+              Go to Templates
+            </Button>
           </CardContent>
         </Card>
       </div>
