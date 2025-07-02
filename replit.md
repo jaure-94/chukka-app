@@ -198,6 +198,8 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added stats overview cards showing active, pending, inactive, and total user counts
   - Integrated dropdown menus for user management actions (view, edit, reset password, deactivate)
   - Styled with proper spacing, icons, and responsive grid layout
+  - Redesigned user display from cards to table format with rows and columns for better data organization
+  - Added comprehensive table layout with avatar, user info, role, department, contact details, status, and actions
 
 ## User Preferences
 
