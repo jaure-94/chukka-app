@@ -162,6 +162,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added text wrapping (wrapText: true) and dynamic row height calculation for notes cells
   - Enhanced notes display with left-aligned, top-vertical positioning for optimal readability
   - Applied dark blue text color (FF003366) and removed bold formatting for notes content
+- July 2, 2025: Enhanced cell formatting cleanup for specific template cells
+  - Applied comprehensive formatting cleanup to cells E3-E6, F10, D18-D19, E18-E19, D23-D24, E23-E24, I22-I24
+  - Removed strikethrough, italic, and bold formatting from designated cells
+  - Applied consistent dark blue text color (FF003366) to all specified cells
+  - Maintained original font size while ensuring clean visual presentation
 
 ## User Preferences
 

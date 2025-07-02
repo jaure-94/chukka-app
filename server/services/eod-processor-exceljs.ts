@@ -169,6 +169,43 @@ export class EODProcessor {
         }
       }
 
+      // Apply specific formatting cleanup to designated cells
+      console.log('Applying specific formatting cleanup to designated cells');
+      const cellsToCleanup = [
+        { row: 3, col: 5 },   // E3
+        { row: 4, col: 5 },   // E4
+        { row: 5, col: 5 },   // E5
+        { row: 6, col: 5 },   // E6
+        { row: 10, col: 6 },  // F10
+        { row: 18, col: 4 },  // D18
+        { row: 19, col: 4 },  // D19
+        { row: 18, col: 5 },  // E18
+        { row: 19, col: 5 },  // E19
+        { row: 23, col: 4 },  // D23
+        { row: 24, col: 4 },  // D24
+        { row: 23, col: 5 },  // E23
+        { row: 24, col: 5 },  // E24
+        { row: 22, col: 9 },  // I22
+        { row: 23, col: 9 },  // I23
+        { row: 24, col: 9 },  // I24
+      ];
+
+      for (const cellInfo of cellsToCleanup) {
+        const cell = worksheet.getCell(cellInfo.row, cellInfo.col);
+        if (cell.font || cell.value) {
+          // Apply clean formatting: remove strikethrough, italics, bold, and set dark blue color
+          cell.font = {
+            ...cell.font,
+            color: { argb: 'FF003366' }, // Dark blue
+            bold: false,
+            italic: false,
+            strike: false,
+            size: cell.font?.size || 11
+          };
+          console.log(`  → Applied clean formatting to cell ${String.fromCharCode(64 + cellInfo.col)}${cellInfo.row}`);
+        }
+      }
+
       // Template section definition (rows 17-25)
       const templateStartRow = 17;
       const templateEndRow = 25;
