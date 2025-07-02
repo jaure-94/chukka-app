@@ -71,6 +71,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      console.log('Parsed data preview:', JSON.stringify({
+        sheets: parsedData.sheets.map(sheet => ({
+          name: sheet.name,
+          rowCount: sheet.data.length,
+          columns: sheet.columns,
+          sampleData: sheet.data.slice(0, 3)
+        }))
+      }, null, 2));
+
       res.json({
         file: uploadedFile,
         preview: {

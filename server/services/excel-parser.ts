@@ -32,6 +32,8 @@ export class ExcelParser {
             columns.push(String(cell.v).trim());
           }
         }
+        
+        console.log(`Sheet: ${sheetName}, Reading headers from row ${startRow + 1}:`, columns);
 
         // Expected dispatch column headers
         const expectedColumns = [
@@ -70,6 +72,9 @@ export class ExcelParser {
             jsonData.push(rowData);
           }
         }
+
+        console.log(`Sheet: ${sheetName}, Parsed ${jsonData.length} data rows starting from row ${startRow + 2}`);
+        console.log(`First few rows:`, jsonData.slice(0, 3));
 
         sheets.push({
           name: sheetName,
