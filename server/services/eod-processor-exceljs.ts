@@ -192,18 +192,22 @@ export class EODProcessor {
 
       for (const cellInfo of cellsToCleanup) {
         const cell = worksheet.getCell(cellInfo.row, cellInfo.col);
-        if (cell.font || cell.value) {
-          // Apply clean formatting: remove strikethrough, italics, bold, and set dark blue color
-          cell.font = {
-            ...cell.font,
-            color: { argb: 'FF003366' }, // Dark blue
-            bold: false,
-            italic: false,
-            strike: false,
-            size: cell.font?.size || 11
-          };
-          console.log(`  → Applied clean formatting to cell ${String.fromCharCode(64 + cellInfo.col)}${cellInfo.row}`);
-        }
+        const cellAddress = `${String.fromCharCode(64 + cellInfo.col)}${cellInfo.row}`;
+        
+        console.log(`  → Processing cell ${cellAddress}, current value: "${cell.value}", current font:`, cell.font);
+        
+        // Apply clean formatting: remove strikethrough, italics, bold, and set dark blue color
+        const currentFont = cell.font || {};
+        cell.font = {
+          name: currentFont.name || 'Calibri',
+          size: currentFont.size || 11,
+          color: { argb: 'FF003366' }, // Dark blue
+          bold: false,
+          italic: false,
+          strike: false
+        };
+        
+        console.log(`  → Applied clean formatting to cell ${cellAddress} - removed bold/italic/strike, set dark blue color`);
       }
 
       // Template section definition (rows 17-25)
