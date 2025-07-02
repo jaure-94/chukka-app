@@ -160,10 +160,21 @@ export default function Home() {
               <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
               <DataPreview sheets={dispatchUpload.preview.sheets} />
             </div>
+            
+            {/* Submit Templates Button */}
+            <div className="flex justify-center mt-6">
+              <Button 
+                onClick={() => {
+                  // Handle submit templates action
+                  console.log('Submit Templates clicked');
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-2"
+              >
+                Submit Templates
+              </Button>
+            </div>
           </div>
         )}
-
-
 
         {/* Processing Actions */}
         {(dispatchUpload || eodUpload) && (
