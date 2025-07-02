@@ -170,7 +170,7 @@ export class EODProcessor {
       }
 
       // Apply specific formatting cleanup to designated cells
-      console.log('Applying specific formatting cleanup to designated cells');
+      console.log('*** STARTING SPECIFIC CELL FORMATTING CLEANUP ***');
       const cellsToCleanup = [
         { row: 3, col: 5 },   // E3
         { row: 4, col: 5 },   // E4
