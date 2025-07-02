@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourDatePicker, TimePicker } from "@/components/enhanced-date-picker";
+import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 
 // Form validation schema
 const dispatchFormSchema = z.object({
@@ -170,26 +171,37 @@ export default function CreateDispatch() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create Dispatch Record</h1>
-              <p className="mt-2 text-gray-600">
-                Add dispatch information and generate your report
-              </p>
-            </div>
-            <Button variant="outline" onClick={handleBackToUpload}>
-              Back to Upload
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <SidebarNavigation />
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="py-6 flex items-center justify-between">
+              <div className="flex items-center">
+                {/* Mobile Navigation */}
+                <MobileNavigation />
+                <div className="ml-4 md:ml-0">
+                  <h1 className="text-3xl font-bold text-gray-900">Create Dispatch Record</h1>
+                  <p className="mt-2 text-gray-600">
+                    Add dispatch information and generate your report
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={handleBackToUpload}>
+                Back to Upload
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Create Dispatch Record Form */}
         <Card className="mb-8">
           <CardContent className="p-6">
@@ -426,7 +438,8 @@ export default function CreateDispatch() {
             </div>
           </CardContent>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
