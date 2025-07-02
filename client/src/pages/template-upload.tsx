@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SingleFileUpload } from "@/components/single-file-upload";
 import { DataPreview } from "@/components/data-preview";
+import { CheckCircle, X } from "lucide-react";
 import type { UploadResponse } from "@/lib/types";
 
 export default function TemplateUpload() {
@@ -11,6 +12,17 @@ export default function TemplateUpload() {
   const [dispatchUpload, setDispatchUpload] = useState<UploadResponse | null>(null);
   const [eodUpload, setEodUpload] = useState<UploadResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+
+  // Auto-hide success notification after 3 seconds
+  useEffect(() => {
+    if (showSuccessNotification) {
+      const timer = setTimeout(() => {
+        setShowSuccessNotification(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessNotification]);
 
   const handleFileUploaded = (response: UploadResponse, fileType: 'dispatch' | 'eod') => {
     if (fileType === 'dispatch') {
@@ -40,8 +52,13 @@ export default function TemplateUpload() {
         eod: eodUpload
       }));
       
-      // Navigate to dispatch creation page
-      setLocation('/create-dispatch');
+      // Show success notification
+      setShowSuccessNotification(true);
+      
+      // Delay navigation to allow user to see the success notification
+      setTimeout(() => {
+        setLocation('/create-dispatch');
+      }, 1500);
     } catch (error) {
       console.error('Error submitting templates:', error);
     } finally {
@@ -142,6 +159,31 @@ export default function TemplateUpload() {
             </Card>
           </div>
         )}
+
+        {/* Success Notification */}
+        <div className={`fixed top-4 right-4 z-50 transform transition-all duration-500 ease-out ${
+          showSuccessNotification 
+            ? 'translate-x-0 opacity-100 scale-100' 
+            : 'translate-x-full opacity-0 scale-95'
+        }`}>
+          {showSuccessNotification && (
+            <div className="bg-green-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center space-x-3 min-w-[320px] border border-green-500">
+              <div className="bg-green-500 rounded-full p-1">
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-white">Templates Stored Successfully!</h4>
+                <p className="text-sm text-green-100 mt-1">Redirecting to dispatch creation page...</p>
+              </div>
+              <button
+                onClick={() => setShowSuccessNotification(false)}
+                className="text-green-200 hover:text-white transition-colors duration-200 p-1 rounded-full hover:bg-green-500"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
