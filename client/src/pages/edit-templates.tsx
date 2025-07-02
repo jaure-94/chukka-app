@@ -309,15 +309,15 @@ export default function EditTemplatesPage() {
                         <p className="text-sm text-blue-600">
                           Select a new dispatch template file
                         </p>
-                        <label className="block">
+                        <label className="block cursor-pointer">
                           <input
                             type="file"
                             accept=".xlsx,.xls"
                             onChange={(e) => handleFileInputChange(e, 'dispatch')}
                             className="hidden"
                           />
-                          <Button variant="outline" size="sm" className="cursor-pointer">
-                            Replace Document
+                          <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                            <span>Replace Document</span>
                           </Button>
                         </label>
                       </div>
@@ -390,15 +390,15 @@ export default function EditTemplatesPage() {
                         <p className="text-sm text-green-600">
                           Select a new EOD template file
                         </p>
-                        <label className="block">
+                        <label className="block cursor-pointer">
                           <input
                             type="file"
                             accept=".xlsx,.xls"
                             onChange={(e) => handleFileInputChange(e, 'eod')}
                             className="hidden"
                           />
-                          <Button variant="outline" size="sm" className="cursor-pointer">
-                            Replace Document
+                          <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                            <span>Replace Document</span>
                           </Button>
                         </label>
                       </div>
