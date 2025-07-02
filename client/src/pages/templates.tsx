@@ -18,7 +18,7 @@ interface Template {
   isActive: boolean;
 }
 
-export default function Templates() {
+function Templates() {
   const { isCollapsed } = useSidebar();
 
   // Fetch current templates from storage
@@ -254,3 +254,5 @@ export default function Templates() {
     </div>
   );
 }
+
+export default Templates;
