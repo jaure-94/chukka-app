@@ -53,6 +53,43 @@ export const processingJobsRelations = relations(processingJobs, ({ one }) => ({
   }),
 }));
 
+// New tables for dispatch template and manual records
+export const dispatchTemplates = pgTable("dispatch_templates", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  filePath: text("file_path").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const eodTemplates = pgTable("eod_templates", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  filePath: text("file_path").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const dispatchRecords = pgTable("dispatch_records", {
+  id: serial("id").primaryKey(),
+  tourName: text("tour_name").notNull(),
+  numAdult: integer("num_adult").notNull().default(0),
+  numChild: integer("num_child").notNull().default(0),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const generatedReports = pgTable("generated_reports", {
+  id: serial("id").primaryKey(),
+  dispatchFilePath: text("dispatch_file_path").notNull(),
+  eodFilePath: text("eod_file_path").notNull(),
+  recordCount: integer("record_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
   id: true,
   uploadedAt: true,
@@ -69,10 +106,38 @@ export const insertProcessingJobSchema = createInsertSchema(processingJobs).omit
   completedAt: true,
 });
 
+export const insertDispatchTemplateSchema = createInsertSchema(dispatchTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEodTemplateSchema = createInsertSchema(eodTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDispatchRecordSchema = createInsertSchema(dispatchRecords).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGeneratedReportSchema = createInsertSchema(generatedReports).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
+export type InsertDispatchTemplate = z.infer<typeof insertDispatchTemplateSchema>;
+export type InsertEodTemplate = z.infer<typeof insertEodTemplateSchema>;
+export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
+export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;
 export type ProcessingJob = typeof processingJobs.$inferSelect;
+export type DispatchTemplate = typeof dispatchTemplates.$inferSelect;
+export type EodTemplate = typeof eodTemplates.$inferSelect;
+export type DispatchRecord = typeof dispatchRecords.$inferSelect;
+export type GeneratedReport = typeof generatedReports.$inferSelect;

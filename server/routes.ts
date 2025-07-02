@@ -8,7 +8,14 @@ import { ExcelParser } from "./services/excel-parser";
 import { TemplateProcessor } from "./services/template-processor";
 import { DropboxService } from "./services/dropbox-service";
 import { EODProcessor } from "./services/eod-processor-exceljs";
-import { insertUploadedFileSchema, insertProcessingJobSchema } from "@shared/schema";
+import { DispatchGenerator } from "./services/dispatch-generator";
+import { 
+  insertUploadedFileSchema, 
+  insertProcessingJobSchema, 
+  insertDispatchTemplateSchema,
+  insertEodTemplateSchema,
+  insertDispatchRecordSchema
+} from "@shared/schema";
 
 const upload = multer({ 
   dest: "uploads/",
@@ -31,6 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const templateProcessor = new TemplateProcessor();
   const dropboxService = new DropboxService();
   const eodProcessor = new EODProcessor();
+  const dispatchGenerator = new DispatchGenerator();
 
   // File upload endpoint
   app.post("/api/upload", upload.single("file"), async (req, res) => {
@@ -203,6 +211,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Export failed" });
     }
   });
+
+  // Template management routes
+  app.post("/api/templates/dispatch", upload.single("template"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No template file provided" });
+      }
+
+      const templateData = insertDispatchTemplateSchema.parse({
+        filename: req.file.filename,
+        originalFilename: req.file.originalname,
+        filePath: req.file.path,
+      });
+
+      const template = await storage.createDispatchTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("Dispatch template upload error:", error);
+      res.status(500).json({ message: "Template upload failed" });
+    }
+  });
+
+  app.post("/api/templates/eod", upload.single("template"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No template file provided" });
+      }
+
+      const templateData = insertEodTemplateSchema.parse({
+        filename: req.file.filename,
+        originalFilename: req.file.originalname,
+        filePath: req.file.path,
+      });
+
+      const template = await storage.createEodTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("EOD template upload error:", error);
+      res.status(500).json({ message: "Template upload failed" });
+    }
+  });
+
+  app.get("/api/templates/status", async (req, res) => {
+    try {
+      const dispatchTemplate = await storage.getActiveDispatchTemplate();
+      const eodTemplate = await storage.getActiveEodTemplate();
+      
+      res.json({
+        dispatch: dispatchTemplate,
+        eod: eodTemplate,
+        hasTemplates: !!(dispatchTemplate && eodTemplate)
+      });
+    } catch (error) {
+      console.error("Template status error:", error);
+      res.status(500).json({ message: "Failed to get template status" });
+    }
+  });
+
+  // Dispatch record management routes
+  app.post("/api/dispatch-records", async (req, res) => {
+    try {
+      const recordData = insertDispatchRecordSchema.parse(req.body);
+      const record = await storage.createDispatchRecord(recordData);
+      
+      // After creating record, generate updated reports
+      await generateReportsFromRecords();
+      
+      res.json(record);
+    } catch (error) {
+      console.error("Dispatch record creation error:", error);
+      res.status(500).json({ message: "Failed to create dispatch record" });
+    }
+  });
+
+  app.get("/api/dispatch-records", async (req, res) => {
+    try {
+      const records = await storage.getAllActiveDispatchRecords();
+      res.json(records);
+    } catch (error) {
+      console.error("Dispatch records fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch records" });
+    }
+  });
+
+  app.get("/api/generated-reports", async (req, res) => {
+    try {
+      const reports = await storage.getRecentGeneratedReports(10);
+      res.json(reports);
+    } catch (error) {
+      console.error("Generated reports fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch generated reports" });
+    }
+  });
+
+  app.get("/api/download-report/:reportId/:type", async (req, res) => {
+    try {
+      const { reportId, type } = req.params;
+      const report = await storage.getGeneratedReport(parseInt(reportId));
+      
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      const filePath = type === 'dispatch' ? report.dispatchFilePath : report.eodFilePath;
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Report file not found" });
+      }
+
+      const filename = path.basename(filePath);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Report download error:", error);
+      res.status(500).json({ message: "Download failed" });
+    }
+  });
+
+  // Helper function to generate reports from current records
+  async function generateReportsFromRecords() {
+    try {
+      const dispatchTemplate = await storage.getActiveDispatchTemplate();
+      const eodTemplate = await storage.getActiveEodTemplate();
+      const records = await storage.getAllActiveDispatchRecords();
+
+      if (!dispatchTemplate || !eodTemplate || records.length === 0) {
+        console.log("Missing templates or no records to process");
+        return;
+      }
+
+      const timestamp = Date.now();
+      const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
+      const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
+
+      // Generate dispatch file
+      await dispatchGenerator.generateDispatchFile(
+        dispatchTemplate.filePath,
+        records,
+        dispatchOutputPath
+      );
+
+      // Generate EOD file using existing processor
+      const parsedData = dispatchGenerator.createParsedDataFromRecords(records);
+      await eodProcessor.processEODTemplate(
+        eodTemplate.filePath,
+        parsedData,
+        eodOutputPath
+      );
+
+      // Store the generated report record
+      await storage.createGeneratedReport({
+        dispatchFilePath: dispatchOutputPath,
+        eodFilePath: eodOutputPath,
+        recordCount: records.length
+      });
+
+      console.log(`Generated reports: dispatch=${dispatchOutputPath}, eod=${eodOutputPath}`);
+    } catch (error) {
+      console.error("Report generation error:", error);
+    }
+  }
 
   const httpServer = createServer(app);
   return httpServer;
