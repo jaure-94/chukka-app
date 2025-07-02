@@ -173,6 +173,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Updated EOD processor and dispatch generator to prioritize new column names
   - Enhanced data preview to show properly structured dispatch data starting from row 8
   - Maintained backward compatibility with legacy column names for existing templates
+- July 2, 2025: Implemented dispatch sheet filtering for data preview
+  - Added intelligent sheet detection to identify "Grand Turk" and other dispatch sheets
+  - Modified Excel parser to only process and display dispatch-relevant sheets in data preview
+  - Enhanced sheet filtering logic to detect dispatch headers (Tour Name, Adults, Children, etc.)
+  - Removed irrelevant template and summary sheets from data preview interface
 
 ## User Preferences
 
