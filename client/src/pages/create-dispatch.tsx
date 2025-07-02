@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { EnhancedDatePicker } from "@/components/enhanced-date-picker";
+import { TourDatePicker, TimePicker } from "@/components/enhanced-date-picker";
 
 // Form validation schema
 const dispatchFormSchema = z.object({
@@ -43,6 +43,7 @@ export default function CreateDispatch() {
   const [templateData, setTemplateData] = useState<any>(null);
   const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [tourDate, setTourDate] = useState("");
 
   // Load template data from sessionStorage
   useEffect(() => {
@@ -262,26 +263,35 @@ export default function CreateDispatch() {
                 </div>
               </div>
 
-              {/* Date and Time Selection */}
+              {/* Tour Date Selection */}
+              <div className="mb-6">
+                <TourDatePicker
+                  label="Tour Date"
+                  selectedDate={tourDate}
+                  onDateChange={setTourDate}
+                />
+              </div>
+
+              {/* Time Selection for Departure and Return */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Departure Time */}
                 <div>
-                  <EnhancedDatePicker
+                  <TimePicker
                     label="Departure Time"
                     value={form.watch("departure") || ""}
-                    onChange={(value) => form.setValue("departure", value)}
-                    id="departure"
+                    onChange={(value: string) => form.setValue("departure", value)}
+                    selectedDate={tourDate}
                     error={form.formState.errors.departure?.message}
                   />
                 </div>
 
                 {/* Return Time */}
                 <div>
-                  <EnhancedDatePicker
+                  <TimePicker
                     label="Return Time"
                     value={form.watch("returnTime") || ""}
-                    onChange={(value) => form.setValue("returnTime", value)}
-                    id="returnTime"
+                    onChange={(value: string) => form.setValue("returnTime", value)}
+                    selectedDate={tourDate}
                     error={form.formState.errors.returnTime?.message}
                   />
                 </div>
