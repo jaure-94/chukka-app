@@ -6,7 +6,7 @@ import { FileText, Upload, Download, ChevronRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 
 interface Template {
@@ -27,6 +27,7 @@ export default function EditTemplatesPage() {
   const { isCollapsed } = useSidebar();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   const [dispatchUpload, setDispatchUpload] = useState<FileUpload | null>(null);
   const [eodUpload, setEodUpload] = useState<FileUpload | null>(null);
@@ -179,6 +180,11 @@ export default function EditTemplatesPage() {
       // Reset upload states
       setDispatchUpload(null);
       setEodUpload(null);
+      
+      // Redirect back to Templates page after a short delay to show the success message
+      setTimeout(() => {
+        setLocation('/templates');
+      }, 1500);
       
     } catch (error) {
       toast({

@@ -217,6 +217,8 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added current template display with download functionality and metadata (filename, upload date)
   - Implemented "Save and Replace Templates" functionality with proper file upload and database storage
   - Enhanced navigation with ChevronRight breadcrumb separators and hover effects
+  - Fixed "Replace Document" buttons to properly trigger file explorer using label-input connection
+  - Added automatic redirection back to Templates page after successful template replacement with 1.5 second delay
 
 ## User Preferences
 
