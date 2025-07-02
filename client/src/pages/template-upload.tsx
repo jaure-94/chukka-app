@@ -71,21 +71,56 @@ export default function TemplateUpload() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Excel Template Upload</h1>
-            <p className="mt-2 text-gray-600">
-              Upload your dispatch file and EOD template to get started
+          <div className="py-12 text-center">
+            <h1 className="text-4xl font-bold mb-4">Welcome to Excel Template Manager</h1>
+            <p className="text-xl text-blue-100 mb-6 max-w-3xl mx-auto">
+              Upload your dispatch and EOD templates to create a powerful workflow system
             </p>
+            <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-6 max-w-4xl mx-auto border border-blue-400/30">
+              <h2 className="text-lg font-semibold mb-3 text-blue-100">How it works:</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                    <span className="text-xl font-bold">1</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Upload Templates</h3>
+                  <p className="text-blue-200 text-center">Upload your dispatch file and EOD template to store them securely</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                    <span className="text-xl font-bold">2</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Create Records</h3>
+                  <p className="text-blue-200 text-center">Fill out dispatch information on the "Create new dispatch record" page</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                    <span className="text-xl font-bold">3</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Dynamic Updates</h3>
+                  <p className="text-blue-200 text-center">Your templates automatically update with new dispatch data</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Upload Instructions */}
+        <div className="text-center mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Upload Your Template Files</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Upload both your dispatch file and EOD template below. These templates will be stored securely 
+            and will automatically populate with data from dispatch records you create.
+          </p>
+        </div>
+
         {/* Document Upload Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <SingleFileUpload 
             title="Upload Dispatch Excel File"
             fileType="dispatch"
@@ -102,61 +137,82 @@ export default function TemplateUpload() {
 
         {/* Data Preview Section */}
         {dispatchUpload && (
-          <div className="mt-8 space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
-              <DataPreview sheets={dispatchUpload.preview.sheets} />
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div className="flex items-center mb-4">
+              <CheckCircle className="w-6 h-6 text-green-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Dispatch File Preview</h3>
             </div>
+            <p className="text-gray-600 mb-6">
+              Preview of your dispatch template with placeholders that will be populated with actual data
+            </p>
+            <DataPreview sheets={dispatchUpload.preview.sheets} />
           </div>
         )}
 
-        {/* Submit and Store Templates Button - Only show when both files uploaded */}
+        {/* Submit Section */}
         {canSubmit && (
-          <div className="mt-8 flex justify-center">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-8 text-center">
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to Store Templates</h3>
+            <p className="text-gray-600 mb-6">
+              Both files have been uploaded successfully. Submit to store your templates and proceed to dispatch creation.
+            </p>
             <Button 
               onClick={handleSubmitTemplates}
               disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 disabled:bg-gray-400"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-medium disabled:bg-gray-400"
             >
-              {isSubmitting ? "Submitting..." : "Submit and Store Templates"}
+              {isSubmitting ? "Storing Templates..." : "Submit and Store Templates"}
             </Button>
           </div>
         )}
 
-        {/* Upload Status */}
-        {(dispatchUpload || eodUpload) && (
-          <div className="mt-8">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Status</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Dispatch File:</span>
-                    <span className={`text-sm font-medium ${
-                      dispatchUpload ? 'text-green-600' : 'text-gray-400'
-                    }`}>
-                      {dispatchUpload ? '✓ Uploaded' : 'Not uploaded'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">EOD Template:</span>
-                    <span className={`text-sm font-medium ${
-                      eodUpload ? 'text-green-600' : 'text-gray-400'
-                    }`}>
-                      {eodUpload ? '✓ Uploaded' : 'Not uploaded'}
-                    </span>
-                  </div>
+        {/* Upload Progress Status */}
+        {(dispatchUpload || eodUpload) && !canSubmit && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+              Upload Progress
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed border-gray-200">
+                <div className="flex items-center">
+                  <div className={`w-4 h-4 rounded-full mr-3 ${
+                    dispatchUpload ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <span className="font-medium text-gray-700">Dispatch File</span>
                 </div>
-                
-                {canSubmit && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm text-green-800">
-                      Both files uploaded successfully! You can now submit your templates.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                  dispatchUpload 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {dispatchUpload ? 'Uploaded' : 'Pending'}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed border-gray-200">
+                <div className="flex items-center">
+                  <div className={`w-4 h-4 rounded-full mr-3 ${
+                    eodUpload ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+                  <span className="font-medium text-gray-700">EOD Template</span>
+                </div>
+                <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                  eodUpload 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {eodUpload ? 'Uploaded' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                Please upload both files to proceed. Once uploaded, your templates will be stored and ready for dynamic dispatch record creation.
+              </p>
+            </div>
           </div>
         )}
 
