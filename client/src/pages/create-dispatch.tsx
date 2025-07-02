@@ -269,9 +269,8 @@ export default function CreateDispatch() {
                   </Label>
                   <Input
                     id="departure"
-                    type="text"
+                    type="datetime-local"
                     {...form.register("departure")}
-                    placeholder="e.g., 9:00 AM"
                     className="w-full"
                   />
                   {form.formState.errors.departure && (
@@ -288,9 +287,8 @@ export default function CreateDispatch() {
                   </Label>
                   <Input
                     id="returnTime"
-                    type="text"
+                    type="datetime-local"
                     {...form.register("returnTime")}
-                    placeholder="e.g., 4:00 PM"
                     className="w-full"
                   />
                   {form.formState.errors.returnTime && (
