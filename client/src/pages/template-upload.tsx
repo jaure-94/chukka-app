@@ -90,17 +90,19 @@ export default function TemplateUpload() {
               <h3 className="text-lg font-semibold mb-4">Dispatch File Preview</h3>
               <DataPreview sheets={dispatchUpload.preview.sheets} />
             </div>
-            
-            {/* Submit Templates Button */}
-            <div className="flex justify-center mt-6">
-              <Button 
-                onClick={handleSubmitTemplates}
-                disabled={!canSubmit || isSubmitting}
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 disabled:bg-gray-400"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Templates"}
-              </Button>
-            </div>
+          </div>
+        )}
+
+        {/* Submit and Store Templates Button - Only show when both files uploaded */}
+        {canSubmit && (
+          <div className="mt-8 flex justify-center">
+            <Button 
+              onClick={handleSubmitTemplates}
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 disabled:bg-gray-400"
+            >
+              {isSubmitting ? "Submitting..." : "Submit and Store Templates"}
+            </Button>
           </div>
         )}
 

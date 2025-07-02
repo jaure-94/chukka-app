@@ -14,8 +14,13 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Form validation schema
 const dispatchFormSchema = z.object({
+  tourName: z.string().min(1, "Tour name is required"),
   adults: z.number().min(0, "Number of adults must be 0 or greater"),
   children: z.number().min(0, "Number of children must be 0 or greater"),
+  departure: z.string().optional(),
+  returnTime: z.string().optional(),
+  comp: z.number().min(0, "Comp guests must be 0 or greater").optional(),
+  totalGuests: z.number().min(0, "Total guests must be 0 or greater").optional(),
   notes: z.string().optional(),
 });
 
@@ -53,8 +58,13 @@ export default function CreateDispatch() {
   const form = useForm<DispatchFormData>({
     resolver: zodResolver(dispatchFormSchema),
     defaultValues: {
+      tourName: "",
       adults: 0,
       children: 0,
+      departure: "",
+      returnTime: "",
+      comp: 0,
+      totalGuests: 0,
       notes: "",
     },
   });
@@ -63,9 +73,13 @@ export default function CreateDispatch() {
   const createDispatchMutation = useMutation({
     mutationFn: async (data: DispatchFormData) => {
       const response = await apiRequest("POST", "/api/dispatch-records", {
-        tourName: "Manual Entry",
+        tourName: data.tourName,
         adults: data.adults,
         children: data.children,
+        departure: data.departure || "",
+        returnTime: data.returnTime || "",
+        comp: data.comp || 0,
+        totalGuests: data.totalGuests || (data.adults + data.children + (data.comp || 0)),
         notes: data.notes || "",
         isActive: true,
       });
@@ -169,7 +183,26 @@ export default function CreateDispatch() {
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Create new dispatch record</h2>
             
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Tour Name */}
+              <div className="space-y-2">
+                <Label htmlFor="tourName" className="text-sm font-medium text-gray-700">
+                  Tour Name
+                </Label>
+                <Input
+                  id="tourName"
+                  type="text"
+                  {...form.register("tourName")}
+                  placeholder="Enter tour name (e.g., Catamaran, HSH, etc.)"
+                  className="w-full"
+                />
+                {form.formState.errors.tourName && (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.tourName.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Number of Adults */}
                 <div className="space-y-2">
                   <Label htmlFor="adults" className="text-sm font-medium text-gray-700">
@@ -204,6 +237,85 @@ export default function CreateDispatch() {
                   {form.formState.errors.children && (
                     <p className="text-sm text-red-600">
                       {form.formState.errors.children.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Comp Guests */}
+                <div className="space-y-2">
+                  <Label htmlFor="comp" className="text-sm font-medium text-gray-700">
+                    Comp Guests
+                  </Label>
+                  <Input
+                    id="comp"
+                    type="number"
+                    min="0"
+                    {...form.register("comp", { valueAsNumber: true })}
+                    className="w-full"
+                  />
+                  {form.formState.errors.comp && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.comp.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Departure Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="departure" className="text-sm font-medium text-gray-700">
+                    Departure Time
+                  </Label>
+                  <Input
+                    id="departure"
+                    type="text"
+                    {...form.register("departure")}
+                    placeholder="e.g., 9:00 AM"
+                    className="w-full"
+                  />
+                  {form.formState.errors.departure && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.departure.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Return Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="returnTime" className="text-sm font-medium text-gray-700">
+                    Return Time
+                  </Label>
+                  <Input
+                    id="returnTime"
+                    type="text"
+                    {...form.register("returnTime")}
+                    placeholder="e.g., 4:00 PM"
+                    className="w-full"
+                  />
+                  {form.formState.errors.returnTime && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.returnTime.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Total Guests */}
+                <div className="space-y-2">
+                  <Label htmlFor="totalGuests" className="text-sm font-medium text-gray-700">
+                    Total Guests
+                  </Label>
+                  <Input
+                    id="totalGuests"
+                    type="number"
+                    min="0"
+                    {...form.register("totalGuests", { valueAsNumber: true })}
+                    placeholder="Auto-calculated if empty"
+                    className="w-full"
+                  />
+                  {form.formState.errors.totalGuests && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.totalGuests.message}
                     </p>
                   )}
                 </div>
