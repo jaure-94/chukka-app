@@ -278,6 +278,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dispatch templates
+  app.get("/api/dispatch-templates", async (req, res) => {
+    try {
+      const template = await storage.getActiveDispatchTemplate();
+      res.json(template || {});
+    } catch (error) {
+      console.error("Dispatch template fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch template" });
+    }
+  });
+
+  // Get EOD templates
+  app.get("/api/eod-templates", async (req, res) => {
+    try {
+      const template = await storage.getActiveEodTemplate();
+      res.json(template || {});
+    } catch (error) {
+      console.error("EOD template fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch EOD template" });
+    }
+  });
+
+  // Download dispatch template
+  app.get("/api/templates/dispatch/download", async (req, res) => {
+    try {
+      const template = await storage.getActiveDispatchTemplate();
+      if (!template || !template.filePath) {
+        return res.status(404).json({ message: "Dispatch template not found" });
+      }
+
+      const filePath = path.resolve(template.filePath);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Template file not found" });
+      }
+
+      res.download(filePath, template.originalFilename || "dispatch_template.xlsx");
+    } catch (error) {
+      console.error("Dispatch template download error:", error);
+      res.status(500).json({ message: "Failed to download dispatch template" });
+    }
+  });
+
+  // Download EOD template
+  app.get("/api/templates/eod/download", async (req, res) => {
+    try {
+      const template = await storage.getActiveEodTemplate();
+      if (!template || !template.filePath) {
+        return res.status(404).json({ message: "EOD template not found" });
+      }
+
+      const filePath = path.resolve(template.filePath);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Template file not found" });
+      }
+
+      res.download(filePath, template.originalFilename || "eod_template.xlsx");
+    } catch (error) {
+      console.error("EOD template download error:", error);
+      res.status(500).json({ message: "Failed to download EOD template" });
+    }
+  });
+
   // Dispatch record management routes
   app.post("/api/dispatch-records", async (req, res) => {
     try {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { BarChart3, Download, FileText, Calendar, Users, TrendingUp } from "lucide-react";
+import { BarChart3, Download, FileText, Calendar, Users, TrendingUp, File } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,6 +18,15 @@ interface ProcessingJob {
   createdAt: string;
 }
 
+interface TemplateFile {
+  id: number;
+  filename: string;
+  originalFilename: string;
+  filePath: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export default function Reports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -27,6 +36,15 @@ export default function Reports() {
   // Fetch recent generated reports
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
     queryKey: ["/api/processing-jobs"],
+  });
+
+  // Fetch template files
+  const { data: dispatchTemplate } = useQuery<TemplateFile>({
+    queryKey: ["/api/dispatch-templates"],
+  });
+
+  const { data: eodTemplate } = useQuery<TemplateFile>({
+    queryKey: ["/api/eod-templates"],
   });
 
   // Generate report mutation
@@ -60,6 +78,10 @@ export default function Reports() {
 
   const handleGenerateReport = () => {
     generateReportMutation.mutate();
+  };
+
+  const handleDownloadTemplate = (type: 'dispatch' | 'eod') => {
+    window.open(`/api/templates/${type}/download`, '_blank');
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,6 +127,99 @@ export default function Reports() {
 
         {/* Main Content */}
         <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          {/* Template Files Section */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-green-600" />
+                Stored Template Files
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Dispatch Template */}
+                <div className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">Dispatch Template</h3>
+                      <p className="text-sm text-gray-600">Main dispatch Excel file</p>
+                    </div>
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <File className="w-5 h-5 text-blue-600" />
+                    </div>
+                  </div>
+                  
+                  {dispatchTemplate && dispatchTemplate.id ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">File Name:</p>
+                        <p className="text-sm text-gray-900 truncate">{dispatchTemplate.originalFilename}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Uploaded:</p>
+                        <p className="text-sm text-gray-900">{new Date(dispatchTemplate.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadTemplate('dispatch')}
+                        className="w-full mt-3"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Template
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500 mb-3">No dispatch template uploaded</p>
+                      <Badge variant="secondary">Not Available</Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* EOD Template */}
+                <div className="border rounded-lg p-6 bg-gradient-to-br from-green-50 to-emerald-50">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">EOD Template</h3>
+                      <p className="text-sm text-gray-600">End of Day report template</p>
+                    </div>
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Calendar className="w-5 h-5 text-green-600" />
+                    </div>
+                  </div>
+                  
+                  {eodTemplate && eodTemplate.id ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">File Name:</p>
+                        <p className="text-sm text-gray-900 truncate">{eodTemplate.originalFilename}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Uploaded:</p>
+                        <p className="text-sm text-gray-900">{new Date(eodTemplate.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadTemplate('eod')}
+                        className="w-full mt-3"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Template
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500 mb-3">No EOD template uploaded</p>
+                      <Badge variant="secondary">Not Available</Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Generate Report Section */}
           <Card className="mb-8">
             <CardHeader>
