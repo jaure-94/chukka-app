@@ -512,18 +512,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
       const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
 
-      // Generate dispatch file
+      // Generate dispatch file with all records
       await dispatchGenerator.generateDispatchFile(
         dispatchTemplate.filePath,
         records,
         dispatchOutputPath
       );
 
-      // Generate EOD file using existing processor
-      const parsedData = dispatchGenerator.createParsedDataFromRecords(records);
+      // Generate EOD file from the dispatch file (not from records directly)
+      const excelParser = new ExcelParser();
+      const dispatchData = await excelParser.parseFile(dispatchOutputPath);
+      
       await eodProcessor.processEODTemplate(
         eodTemplate.filePath,
-        parsedData,
+        dispatchData,
         eodOutputPath
       );
 

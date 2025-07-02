@@ -30,8 +30,10 @@ export class EODProcessor {
     let totalAdults = 0;
     let totalChildren = 0;
 
+    console.log(`→ EOD: Processing ${dispatchData.sheets.length} sheets for EOD data extraction`);
+
     for (const sheet of dispatchData.sheets) {
-      console.log(`Processing sheet: ${sheet.name}`);
+      console.log(`→ EOD: Processing sheet: ${sheet.name} with ${sheet.data.length} rows`);
       
       for (const row of sheet.data) {
         const tourName = this.extractTourName(row);
@@ -39,6 +41,8 @@ export class EODProcessor {
           const adults = this.extractAdultCount(row);
           const children = this.extractChildCount(row);
           const notes = this.extractNotes(row);
+          
+          console.log(`→ EOD: Found tour "${tourName}" with ${adults} adults, ${children} children`);
           
           if (adults > 0 || children > 0) {
             const existingTour = tours.find(t => t.tour_name === tourName);
