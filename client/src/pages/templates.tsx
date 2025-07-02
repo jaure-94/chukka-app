@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { FileText, Upload, Calendar, User, Download } from "lucide-react";
+import { FileText, Upload, Calendar, User, Download, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { Link } from "wouter";
 
 interface Template {
   id: number;
@@ -18,7 +19,6 @@ interface Template {
 }
 
 export default function Templates() {
-  const [, setLocation] = useLocation();
   const { isCollapsed } = useSidebar();
 
   // Fetch current templates from storage
@@ -32,9 +32,7 @@ export default function Templates() {
     enabled: true,
   });
 
-  const handleEditTemplates = () => {
-    setLocation("/");
-  };
+
 
   const handleDownloadTemplate = (type: 'dispatch' | 'eod') => {
     window.open(`/api/templates/${type}/download`, '_blank');
@@ -64,10 +62,12 @@ export default function Templates() {
                   </p>
                 </div>
               </div>
-              <Button onClick={handleEditTemplates} className="bg-blue-600 hover:bg-blue-700">
-                <Upload className="w-4 h-4 mr-2" />
-                Edit Templates
-              </Button>
+              <Link href="/templates/edit">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Templates
+                </Button>
+              </Link>
             </div>
           </div>
         </header>
@@ -130,9 +130,11 @@ export default function Templates() {
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 mb-4">No dispatch template uploaded</p>
-                    <Button onClick={handleEditTemplates} variant="outline" size="sm">
-                      Upload Template
-                    </Button>
+                    <Link href="/templates/edit">
+                      <Button variant="outline" size="sm">
+                        Upload Template
+                      </Button>
+                    </Link>
                   </div>
                 )}
               </CardContent>
@@ -193,9 +195,11 @@ export default function Templates() {
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 mb-4">No EOD template uploaded</p>
-                    <Button onClick={handleEditTemplates} variant="outline" size="sm">
-                      Upload Template
-                    </Button>
+                    <Link href="/templates/edit">
+                      <Button variant="outline" size="sm">
+                        Upload Template
+                      </Button>
+                    </Link>
                   </div>
                 )}
               </CardContent>

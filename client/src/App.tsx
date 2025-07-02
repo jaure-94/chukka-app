@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 import TemplateUpload from "@/pages/template-upload";
 import CreateDispatch from "@/pages/create-dispatch";
 import Templates from "@/pages/templates";
+import EditTemplates from "@/pages/edit-templates";
 import Reports from "@/pages/reports";
 import Users from "@/pages/users";
 import { ManualDispatch } from "@/pages/ManualDispatch";
@@ -20,6 +21,7 @@ function Router() {
           <Route path="/" component={TemplateUpload} />
           <Route path="/create-dispatch" component={CreateDispatch} />
           <Route path="/templates" component={Templates} />
+          <Route path="/templates/edit" component={EditTemplates} />
           <Route path="/reports" component={Reports} />
           <Route path="/users" component={Users} />
           <Route path="/manual" component={ManualDispatch} />
