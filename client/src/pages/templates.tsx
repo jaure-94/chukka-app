@@ -11,6 +11,8 @@ import { useSidebar } from "@/contexts/sidebar-context";
 interface Template {
   id: number;
   filename: string;
+  originalFilename: string;
+  filePath: string;
   createdAt: string;
   isActive: boolean;
 }
@@ -93,7 +95,7 @@ export default function Templates() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">Filename:</span>
                       <span className="text-sm text-gray-600 truncate max-w-48">
-                        {dispatchTemplate.filename || "dispatch_template.xlsx"}
+                        {dispatchTemplate.originalFilename || "dispatch_template.xlsx"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -156,7 +158,7 @@ export default function Templates() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">Filename:</span>
                       <span className="text-sm text-gray-600 truncate max-w-48">
-                        {eodTemplate.filename || "eod_template.xlsx"}
+                        {eodTemplate.originalFilename || "eod_template.xlsx"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
