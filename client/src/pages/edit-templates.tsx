@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Download, ArrowLeft } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileText, Upload, Download, ChevronRight } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 
 interface Template {
   id: number;
@@ -192,8 +193,13 @@ export default function EditTemplatesPage() {
 
   if (dispatchLoading || eodLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gray-50 flex">
+        <div className="hidden md:block fixed left-0 top-0 h-full z-10">
+          <SidebarNavigation />
+        </div>
+        <div className={`flex-1 flex items-center justify-center transition-all duration-300 ${
+          isCollapsed ? 'md:ml-16' : 'md:ml-64'
+        }`}>
           <div className="text-center">Loading templates...</div>
         </div>
       </div>
@@ -201,31 +207,44 @@ export default function EditTemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div 
-        className="transition-all duration-300 ease-in-out"
-        style={{ 
-          marginLeft: isCollapsed ? '16px' : '64px',
-          marginRight: '16px'
-        }}
-      >
-        <div className="max-w-4xl mx-auto py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              <Link href="/templates">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Templates
-                </Button>
-              </Link>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Templates</h1>
-            <p className="text-gray-600">
-              Replace your current templates with new versions. Select new files to upload and save changes.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Fixed Desktop Sidebar */}
+      <div className="hidden md:block fixed left-0 top-0 h-full z-10">
+        <SidebarNavigation />
+      </div>
 
+      {/* Main Content Area */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+        isCollapsed ? 'md:ml-16' : 'md:ml-64'
+      }`}>
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="py-6">
+              <div className="flex items-center">
+                <MobileNavigation />
+                <div className="ml-4 md:ml-0">
+                  {/* Breadcrumb Navigation */}
+                  <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-3">
+                    <Link href="/templates" className="hover:text-gray-700 transition-colors">
+                      Templates
+                    </Link>
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="text-gray-900 font-medium">Edit Templates</span>
+                  </nav>
+                  
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Templates</h1>
+                  <p className="text-gray-600">
+                    Replace your current templates with new versions. Select new files to upload and save changes.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Dispatch Template */}
             <Card className="border-2 border-blue-200">
@@ -411,7 +430,7 @@ export default function EditTemplatesPage() {
               )}
             </Button>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
