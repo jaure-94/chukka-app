@@ -78,9 +78,9 @@ export default function TemplateUpload() {
             <p className="text-xl text-blue-100 mb-6 max-w-3xl mx-auto">
               Upload your dispatch and EOD templates to create a powerful workflow system
             </p>
-            <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-6 max-w-4xl mx-auto border border-blue-400/30">
+            <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-6 max-w-5xl mx-auto border border-blue-400/30">
               <h2 className="text-lg font-semibold mb-3 text-blue-100">How it works:</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
                     <span className="text-xl font-bold">1</span>
@@ -101,6 +101,13 @@ export default function TemplateUpload() {
                   </div>
                   <h3 className="font-medium mb-2">Dynamic Updates</h3>
                   <p className="text-blue-200 text-center">Your templates automatically update with new dispatch data</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center mb-3">
+                    <span className="text-xl font-bold">4</span>
+                  </div>
+                  <h3 className="font-medium mb-2">Download Reports</h3>
+                  <p className="text-blue-200 text-center">Download the complete template populated with all dispatch records</p>
                 </div>
               </div>
             </div>
