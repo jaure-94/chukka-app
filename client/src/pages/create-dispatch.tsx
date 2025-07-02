@@ -117,41 +117,13 @@ export default function CreateDispatch() {
     },
   });
 
-  // Generate report mutation
-  const generateReportMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/process", {
-        dispatchFileId: templateData?.dispatch?.file?.id || 1,
-        eodFileId: templateData?.eod?.file?.id || 1,
-        templateType: "eod-template",
-      });
-      return await response.json();
-    },
-    onSuccess: (job) => {
-      setCurrentJob(job);
-      setIsProcessing(true);
-      toast({
-        title: "Processing Started",
-        description: "Your report is being generated",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to start report generation",
-        variant: "destructive",
-      });
-      console.error("Error generating report:", error);
-    },
-  });
+
 
   const onSubmit = (data: DispatchFormData) => {
     createDispatchMutation.mutate(data);
   };
 
-  const handleGenerateReport = () => {
-    generateReportMutation.mutate();
-  };
+
 
   const handleBackToUpload = () => {
     sessionStorage.removeItem('templateData');
@@ -172,13 +144,13 @@ export default function CreateDispatch() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+      {/* Fixed Desktop Sidebar */}
+      <div className="hidden md:block fixed left-0 top-0 h-full z-10">
         <SidebarNavigation />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-64">
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">
@@ -376,68 +348,7 @@ export default function CreateDispatch() {
           </CardContent>
         </Card>
 
-        {/* Generate Report Section */}
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Generate Report</h2>
-            
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Ready to generate your EOD report using the uploaded templates and dispatch records.
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-900">Report Generation</h3>
-                  <p className="text-sm text-gray-500">
-                    Create EOD report from your templates and data
-                  </p>
-                </div>
-                <Button
-                  onClick={handleGenerateReport}
-                  disabled={generateReportMutation.isPending || isProcessing}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {generateReportMutation.isPending || isProcessing ? "Generating..." : "Generate Report"}
-                </Button>
-              </div>
 
-              {/* Processing Status */}
-              {currentJob && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-blue-900">Processing Status</h4>
-                      <p className="text-sm text-blue-700">
-                        Status: {currentJob.status}
-                      </p>
-                    </div>
-                    {currentJob.status === "completed" && currentJob.outputPath && (
-                      <div className="space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/api/download/${currentJob.id}`, '_blank')}
-                        >
-                          Download Report
-                        </Button>
-                        {currentJob.dropboxUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(currentJob.dropboxUrl, '_blank')}
-                          >
-                            View in Dropbox
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
         </main>
       </div>
     </div>

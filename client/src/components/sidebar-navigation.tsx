@@ -57,7 +57,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 
   return (
     <div className={cn(
-      "flex flex-col h-screen bg-white border-r border-gray-200 transition-all duration-300",
+      "flex flex-col h-screen bg-white border-r border-gray-200 transition-all duration-300 fixed left-0 top-0 z-10",
       isCollapsed ? "w-16" : "w-64",
       className
     )}>
