@@ -342,6 +342,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create dispatch template from already uploaded file
+  app.post("/api/templates/dispatch/create", async (req, res) => {
+    try {
+      const templateData = insertDispatchTemplateSchema.parse(req.body);
+      const template = await storage.createDispatchTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("Dispatch template creation error:", error);
+      res.status(500).json({ message: "Failed to create dispatch template" });
+    }
+  });
+
+  // Create EOD template from already uploaded file
+  app.post("/api/templates/eod/create", async (req, res) => {
+    try {
+      const templateData = insertEodTemplateSchema.parse(req.body);
+      const template = await storage.createEodTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("EOD template creation error:", error);
+      res.status(500).json({ message: "Failed to create EOD template" });
+    }
+  });
+
   // Dispatch record management routes
   app.post("/api/dispatch-records", async (req, res) => {
     try {

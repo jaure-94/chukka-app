@@ -51,40 +51,45 @@ export default function TemplateUpload() {
     setIsSubmitting(true);
     
     try {
-      // Create FormData for dispatch template
-      const dispatchFormData = new FormData();
-      if (dispatchUpload.file instanceof File) {
-        dispatchFormData.append('template', dispatchUpload.file);
-      } else {
-        throw new Error('Invalid dispatch file');
-      }
+      // Convert uploaded files to template records using the file information
+      const dispatchTemplateData = {
+        filename: dispatchUpload.file.filename,
+        originalFilename: dispatchUpload.file.originalName,
+        filePath: `uploads/${dispatchUpload.file.filename}`,
+      };
 
-      // Create FormData for EOD template  
-      const eodFormData = new FormData();
-      if (eodUpload.file instanceof File) {
-        eodFormData.append('template', eodUpload.file);
-      } else {
-        throw new Error('Invalid EOD file');
-      }
+      const eodTemplateData = {
+        filename: eodUpload.file.filename,
+        originalFilename: eodUpload.file.originalName,
+        filePath: `uploads/${eodUpload.file.filename}`,
+      };
 
-      // Upload dispatch template to database
-      const dispatchResponse = await fetch('/api/templates/dispatch', {
+      // Create dispatch template record
+      const dispatchResponse = await fetch('/api/templates/dispatch/create', {
         method: 'POST',
-        body: dispatchFormData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dispatchTemplateData),
       });
 
       if (!dispatchResponse.ok) {
-        throw new Error('Failed to upload dispatch template');
+        const errorData = await dispatchResponse.json();
+        throw new Error(`Failed to create dispatch template: ${errorData.message || 'Unknown error'}`);
       }
 
-      // Upload EOD template to database
-      const eodResponse = await fetch('/api/templates/eod', {
+      // Create EOD template record
+      const eodResponse = await fetch('/api/templates/eod/create', {
         method: 'POST',
-        body: eodFormData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eodTemplateData),
       });
 
       if (!eodResponse.ok) {
-        throw new Error('Failed to upload EOD template');
+        const errorData = await eodResponse.json();
+        throw new Error(`Failed to create EOD template: ${errorData.message || 'Unknown error'}`);
       }
 
       // Show success notification
@@ -102,7 +107,7 @@ export default function TemplateUpload() {
       console.error('Error submitting templates:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your templates. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your templates. Please try again.",
         variant: "destructive",
       });
     } finally {
