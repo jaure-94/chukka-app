@@ -219,6 +219,14 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced navigation with ChevronRight breadcrumb separators and hover effects
   - Fixed "Replace Document" buttons to properly trigger file explorer using label-input connection
   - Added automatic redirection back to Templates page after successful template replacement with 1.5 second delay
+- July 2, 2025: Implemented comprehensive dispatch record system with automatic dual report generation
+  - Modified dispatch record creation to automatically generate both dispatch and EOD reports using all active records
+  - Fixed Reports page to display generated reports with separate download buttons for dispatch and EOD files
+  - Updated report statistics to show total reports and total records processed
+  - Streamlined form submission to eliminate duplicate report generation
+  - Enhanced report display with proper labeling (Single Record Report vs Batch Report based on record count)
+  - Both dispatch and EOD reports are now automatically created whenever a new dispatch record is added
+  - Reports page shows downloadable files immediately after record creation with proper cache invalidation
 
 ## User Preferences
 

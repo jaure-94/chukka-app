@@ -97,10 +97,10 @@ export default function CreateDispatch() {
     form.setValue("totalGuests", calculatedTotal);
   }, [adults, children, comp, form]);
 
-  // Create dispatch record and generate report mutation
+  // Create dispatch record mutation
   const createDispatchMutation = useMutation({
     mutationFn: async (data: DispatchFormData) => {
-      // First create the dispatch record
+      // Create the dispatch record - this will automatically generate reports
       const recordResponse = await apiRequest("POST", "/api/dispatch-records", {
         tourName: data.tourName,
         adults: data.adults,
@@ -115,28 +115,12 @@ export default function CreateDispatch() {
       
       const recordResult = await recordResponse.json();
       
-      // Then generate a report with the new data
-      const reportResponse = await apiRequest("POST", "/api/generate-single-record-report", {
-        recordId: recordResult.id,
-        tourName: data.tourName,
-        adults: data.adults,
-        children: data.children,
-        departure: data.departure || "",
-        returnTime: data.returnTime || "",
-        comp: data.comp || 0,
-        totalGuests: data.totalGuests || (data.adults + data.children + (data.comp || 0)),
-        notes: data.notes || "",
-        tourDate: tourDate,
-      });
-      
-      const reportResult = await reportResponse.json();
-      
-      return { record: recordResult, report: reportResult };
+      return { record: recordResult };
     },
     onSuccess: (result) => {
       toast({
         title: "Success",
-        description: `Dispatch record created and report generated successfully. Available for download in Reports section.`,
+        description: `Dispatch record created successfully. Both dispatch and EOD reports have been generated automatically and are available for download in the Reports section.`,
       });
       form.reset();
       setTourDate("");
