@@ -167,6 +167,12 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Removed strikethrough, italic, and bold formatting from designated cells
   - Applied consistent dark blue text color (FF003366) to all specified cells
   - Maintained original font size while ensuring clean visual presentation
+- July 2, 2025: Updated dispatch sheet processing to start from row 8 with specific column headers
+  - Modified Excel parser to ignore first 7 rows and read headers from row 8
+  - Implemented exact column header mapping: Tour Name, Departure, Return, Adults, Children, Comp, Total Guests, Notes
+  - Updated EOD processor and dispatch generator to prioritize new column names
+  - Enhanced data preview to show properly structured dispatch data starting from row 8
+  - Maintained backward compatibility with legacy column names for existing templates
 
 ## User Preferences
 

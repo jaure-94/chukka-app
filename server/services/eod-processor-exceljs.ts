@@ -77,7 +77,7 @@ export class EODProcessor {
   }
 
   private extractTourName(row: Record<string, any>): string | null {
-    const possibleColumns = ['tour_name', 'Tour', 'Tour Name', 'TOUR', 'Product', 'Activity'];
+    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
@@ -89,7 +89,7 @@ export class EODProcessor {
   }
 
   private extractAdultCount(row: Record<string, any>): number {
-    const possibleColumns = ['num_adult', 'Adult', 'Adults', 'ADULT', 'adult', 'Num Adult'];
+    const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult'];
     
     for (const col of possibleColumns) {
       if (row[col] !== undefined && row[col] !== null) {
@@ -104,7 +104,7 @@ export class EODProcessor {
   }
 
   private extractChildCount(row: Record<string, any>): number {
-    const possibleColumns = ['num_chd', 'Child', 'Children', 'CHD', 'child', 'CHILD', 'Num Child'];
+    const possibleColumns = ['Children', 'num_chd', 'Child', 'CHD', 'child', 'CHILD', 'Num Child'];
     
     for (const col of possibleColumns) {
       if (row[col] !== undefined && row[col] !== null) {

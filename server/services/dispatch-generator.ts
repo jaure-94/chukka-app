@@ -84,14 +84,17 @@ export class DispatchGenerator {
    */
   createParsedDataFromRecords(records: DispatchRecord[]) {
     const data = records.map(record => ({
+      'Tour Name': record.tourName,
+      'Adults': record.numAdult,
+      'Children': record.numChild,
+      'Notes': record.notes || '',
+      // Include legacy column names for backward compatibility
       'Tour': record.tourName,
       'tour_name': record.tourName,
       'Adult': record.numAdult,
       'num_adult': record.numAdult,
       'Child': record.numChild,
-      'Children': record.numChild,
       'num_chd': record.numChild,
-      'Notes': record.notes || '',
       'notes': record.notes || '',
       'Comments': record.notes || '',
       'Remarks': record.notes || '',
