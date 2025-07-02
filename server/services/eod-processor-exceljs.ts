@@ -169,46 +169,7 @@ export class EODProcessor {
         }
       }
 
-      // Apply specific formatting cleanup to designated cells
-      console.log('*** STARTING SPECIFIC CELL FORMATTING CLEANUP ***');
-      const cellsToCleanup = [
-        { row: 3, col: 5 },   // E3
-        { row: 4, col: 5 },   // E4
-        { row: 5, col: 5 },   // E5
-        { row: 6, col: 5 },   // E6
-        { row: 10, col: 6 },  // F10
-        { row: 18, col: 4 },  // D18
-        { row: 19, col: 4 },  // D19
-        { row: 18, col: 5 },  // E18
-        { row: 19, col: 5 },  // E19
-        { row: 23, col: 4 },  // D23
-        { row: 24, col: 4 },  // D24
-        { row: 23, col: 5 },  // E23
-        { row: 24, col: 5 },  // E24
-        { row: 22, col: 9 },  // I22
-        { row: 23, col: 9 },  // I23
-        { row: 24, col: 9 },  // I24
-      ];
 
-      for (const cellInfo of cellsToCleanup) {
-        const cell = worksheet.getCell(cellInfo.row, cellInfo.col);
-        const cellAddress = `${String.fromCharCode(64 + cellInfo.col)}${cellInfo.row}`;
-        
-        console.log(`  → Processing cell ${cellAddress}, current value: "${cell.value}", current font:`, cell.font);
-        
-        // Apply clean formatting: remove strikethrough, italics, bold, and set dark blue color
-        const currentFont = cell.font || {};
-        cell.font = {
-          name: currentFont.name || 'Calibri',
-          size: currentFont.size || 11,
-          color: { argb: 'FF003366' }, // Dark blue
-          bold: false,
-          italic: false,
-          strike: false
-        };
-        
-        console.log(`  → Applied clean formatting to cell ${cellAddress} - removed bold/italic/strike, set dark blue color`);
-      }
 
       // Template section definition (rows 17-25)
       const templateStartRow = 17;
@@ -427,6 +388,47 @@ export class EODProcessor {
       
       totalAdultCell.value = templateData.total_adult;
       totalChildCell.value = templateData.total_chd;
+
+      // Apply specific formatting cleanup to designated cells (after all tour processing)
+      console.log('*** APPLYING FINAL CELL FORMATTING CLEANUP ***');
+      const cellsToCleanup = [
+        { row: 3, col: 5 },   // E3
+        { row: 4, col: 5 },   // E4
+        { row: 5, col: 5 },   // E5
+        { row: 6, col: 5 },   // E6
+        { row: 10, col: 6 },  // F10
+        { row: 18, col: 4 },  // D18
+        { row: 19, col: 4 },  // D19
+        { row: 18, col: 5 },  // E18
+        { row: 19, col: 5 },  // E19
+        { row: 23, col: 4 },  // D23
+        { row: 24, col: 4 },  // D24
+        { row: 23, col: 5 },  // E23
+        { row: 24, col: 5 },  // E24
+        { row: 22, col: 9 },  // I22
+        { row: 23, col: 9 },  // I23
+        { row: 24, col: 9 },  // I24
+      ];
+
+      for (const cellInfo of cellsToCleanup) {
+        const cell = worksheet.getCell(cellInfo.row, cellInfo.col);
+        const cellAddress = `${String.fromCharCode(64 + cellInfo.col)}${cellInfo.row}`;
+        
+        console.log(`  → Processing cell ${cellAddress}, current value: "${cell.value}", current font:`, cell.font);
+        
+        // Apply clean formatting: remove strikethrough, italics, bold, and set dark blue color
+        const currentFont = cell.font || {};
+        cell.font = {
+          name: currentFont.name || 'Calibri',
+          size: currentFont.size || 11,
+          color: { argb: 'FF003366' }, // Dark blue
+          bold: false,
+          italic: false,
+          strike: false
+        };
+        
+        console.log(`  → Applied clean formatting to cell ${cellAddress} - removed bold/italic/strike, set dark blue color`);
+      }
 
       // Save the workbook with all formatting preserved
       console.log(`Saving formatted file to: ${outputPath}`);
