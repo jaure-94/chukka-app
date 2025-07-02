@@ -200,6 +200,16 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Styled with proper spacing, icons, and responsive grid layout
   - Redesigned user display from cards to table format with rows and columns for better data organization
   - Added comprehensive table layout with avatar, user info, role, department, contact details, status, and actions
+- July 2, 2025: Implemented responsive sidebar navigation with content shifting
+  - Added global sidebar context to manage collapse/expand state across all pages
+  - Content automatically shifts left/right based on sidebar state (16px collapsed, 64px expanded)
+  - Applied responsive layout to all pages: Users, Templates, Reports, Create Dispatch
+  - Added smooth 300ms transitions for all layout changes
+- July 2, 2025: Redesigned Dashboard tab as "Home" with welcome page
+  - Changed navigation from "Dashboard" to "Home" linking to root URL (/)
+  - Updated template-upload page to include sidebar navigation and responsive layout
+  - Enhanced welcome header with modern gradient design and 4-step workflow visualization
+  - Integrated sidebar navigation with proper content shifting for mobile and desktop
 
 ## User Preferences
 
