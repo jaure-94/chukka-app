@@ -192,6 +192,12 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Added real-time calculation that sums Adults + Children + Comp Guests automatically
   - Created visual indicators including "Auto-calculated" badge and calculation breakdown
   - Disabled manual input with read-only styling to prevent calculation errors
+- July 2, 2025: Created comprehensive Users page with professional design
+  - Added 10 dummy users with realistic data (names, roles, departments, contact info)
+  - Implemented user cards with avatar initials, status badges, and contact details
+  - Added stats overview cards showing active, pending, inactive, and total user counts
+  - Integrated dropdown menus for user management actions (view, edit, reset password, deactivate)
+  - Styled with proper spacing, icons, and responsive grid layout
 
 ## User Preferences
 
