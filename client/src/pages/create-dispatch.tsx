@@ -15,14 +15,26 @@ import { TourDatePicker, TimePicker } from "@/components/enhanced-date-picker";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
 
-// Form validation schema
+// Form validation schema with comprehensive validation
 const dispatchFormSchema = z.object({
-  tourName: z.string().min(1, "Tour name is required"),
-  adults: z.number().min(0, "Number of adults must be 0 or greater"),
-  children: z.number().min(0, "Number of children must be 0 or greater"),
-  departure: z.string().optional(),
-  returnTime: z.string().optional(),
-  comp: z.number().min(0, "Comp guests must be 0 or greater").optional(),
+  tourName: z.string()
+    .min(1, "Tour name is required")
+    .refine((val) => val.trim().length > 0, "Tour name cannot be empty"),
+  adults: z.number()
+    .min(0, "Number of adults must be 0 or greater")
+    .refine((val) => !isNaN(val), "Adults must be a valid number"),
+  children: z.number()
+    .min(0, "Number of children must be 0 or greater")
+    .refine((val) => !isNaN(val), "Children must be a valid number"),
+  departure: z.string()
+    .min(1, "Departure time is required")
+    .refine((val) => val.trim().length > 0, "Departure time cannot be empty"),
+  returnTime: z.string()
+    .min(1, "Return time is required")
+    .refine((val) => val.trim().length > 0, "Return time cannot be empty"),
+  comp: z.number()
+    .min(0, "Comp guests must be 0 or greater")
+    .refine((val) => !isNaN(val), "Comp guests must be a valid number"),
   totalGuests: z.number().min(0, "Total guests must be 0 or greater").optional(),
   notes: z.string().optional(),
 });
@@ -85,10 +97,11 @@ export default function CreateDispatch() {
     form.setValue("totalGuests", calculatedTotal);
   }, [adults, children, comp, form]);
 
-  // Create dispatch record mutation
+  // Create dispatch record and generate report mutation
   const createDispatchMutation = useMutation({
     mutationFn: async (data: DispatchFormData) => {
-      const response = await apiRequest("POST", "/api/dispatch-records", {
+      // First create the dispatch record
+      const recordResponse = await apiRequest("POST", "/api/dispatch-records", {
         tourName: data.tourName,
         adults: data.adults,
         children: data.children,
@@ -99,20 +112,41 @@ export default function CreateDispatch() {
         notes: data.notes || "",
         isActive: true,
       });
-      return response.json();
+      
+      const recordResult = await recordResponse.json();
+      
+      // Then generate a report with the new data
+      const reportResponse = await apiRequest("POST", "/api/generate-single-record-report", {
+        recordId: recordResult.id,
+        tourName: data.tourName,
+        adults: data.adults,
+        children: data.children,
+        departure: data.departure || "",
+        returnTime: data.returnTime || "",
+        comp: data.comp || 0,
+        totalGuests: data.totalGuests || (data.adults + data.children + (data.comp || 0)),
+        notes: data.notes || "",
+        tourDate: tourDate,
+      });
+      
+      const reportResult = await reportResponse.json();
+      
+      return { record: recordResult, report: reportResult };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast({
         title: "Success",
-        description: "Dispatch record created successfully",
+        description: `Dispatch record created and report generated successfully. Available for download in Reports section.`,
       });
       form.reset();
+      setTourDate("");
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create dispatch record",
+        description: "Failed to create dispatch record and generate report",
         variant: "destructive",
       });
       console.error("Error creating dispatch record:", error);

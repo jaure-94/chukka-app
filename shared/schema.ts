@@ -77,7 +77,12 @@ export const dispatchRecords = pgTable("dispatch_records", {
   tourName: text("tour_name").notNull(),
   numAdult: integer("num_adult").notNull().default(0),
   numChild: integer("num_child").notNull().default(0),
+  departure: text("departure"),
+  returnTime: text("return_time"),
+  comp: integer("comp").default(0),
+  totalGuests: integer("total_guests").default(0),
   notes: text("notes"),
+  tourDate: text("tour_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
@@ -85,7 +90,7 @@ export const dispatchRecords = pgTable("dispatch_records", {
 export const generatedReports = pgTable("generated_reports", {
   id: serial("id").primaryKey(),
   dispatchFilePath: text("dispatch_file_path").notNull(),
-  eodFilePath: text("eod_file_path").notNull(),
+  eodFilePath: text("eod_file_path"),
   recordCount: integer("record_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -413,6 +413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const filePath = type === 'dispatch' ? report.dispatchFilePath : report.eodFilePath;
       
+      if (!filePath) {
+        return res.status(404).json({ message: "Report file path not available" });
+      }
+
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "Report file not found" });
       }
@@ -426,6 +430,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Report download error:", error);
       res.status(500).json({ message: "Download failed" });
+    }
+  });
+
+  // Generate report for a single dispatch record
+  app.post("/api/generate-single-record-report", async (req, res) => {
+    try {
+      const { recordId, tourName, adults, children, departure, returnTime, comp, totalGuests, notes, tourDate } = req.body;
+
+      // Get active dispatch template
+      const dispatchTemplate = await storage.getActiveDispatchTemplate();
+      if (!dispatchTemplate) {
+        return res.status(400).json({ message: "No active dispatch template found" });
+      }
+
+      // Create a single record for processing
+      const singleRecord = {
+        id: recordId || Date.now(),
+        tourName,
+        numAdult: adults,
+        numChild: children,
+        departure,
+        returnTime,
+        comp,
+        totalGuests,
+        notes: notes || "",
+        tourDate,
+        isActive: true,
+        createdAt: new Date()
+      };
+
+      const timestamp = Date.now();
+      const outputPath = path.join(process.cwd(), "output", `dispatch_record_${recordId || timestamp}.xlsx`);
+
+      // Generate dispatch file with single record
+      await dispatchGenerator.generateDispatchFile(
+        dispatchTemplate.filePath,
+        [singleRecord],
+        outputPath
+      );
+
+      // Store the generated report record
+      const generatedReport = await storage.createGeneratedReport({
+        dispatchFilePath: outputPath,
+        eodFilePath: null, // Single record doesn't generate EOD
+        recordCount: 1
+      });
+
+      console.log(`Generated single record report: ${outputPath}`);
+
+      res.json({
+        success: true,
+        message: "Report generated successfully",
+        reportId: generatedReport.id,
+        outputPath,
+        recordCount: 1
+      });
+
+    } catch (error) {
+      console.error("Single record report generation error:", error);
+      res.status(500).json({ 
+        message: "Failed to generate report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
