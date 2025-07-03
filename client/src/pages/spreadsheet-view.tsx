@@ -211,7 +211,22 @@ export default function SpreadsheetView() {
   const handleEditSpreadsheet = () => {
     if (!file) return;
     
-    setEditedData([...file.data]);
+    const dataToEdit = [...file.data];
+    console.log('Starting edit mode with data:', {
+      totalRows: dataToEdit.length,
+      totalCols: dataToEdit[0]?.length,
+      row23Data: dataToEdit[22],
+      row24Data: dataToEdit[23],
+      row30Data: dataToEdit[29],
+      lastRowWithContent: dataToEdit.findLastIndex(row => row.some(cell => cell !== '')),
+      allRowsWithContent: dataToEdit.map((row, idx) => ({
+        rowNum: idx + 1,
+        hasContent: row.some(cell => cell !== ''),
+        cells: row.filter(cell => cell !== '')
+      })).filter(r => r.hasContent)
+    });
+    
+    setEditedData(dataToEdit);
     setIsEditing(true);
   };
 
@@ -418,7 +433,7 @@ export default function SpreadsheetView() {
                         manualColumnResize={true}
                         stretchH="none"
                         width="100%"
-                        height="500"
+                        height="600"
                         licenseKey="non-commercial-and-evaluation"
                         afterChange={handleDataChange}
                         className="htCenter"
@@ -430,6 +445,10 @@ export default function SpreadsheetView() {
                         outsideClickDeselects={false}
                         allowEmpty={true}
                         trimWhitespace={false}
+                        minRows={editedData.length}
+                        maxRows={editedData.length + 20}
+                        viewportRowRenderingOffset={50}
+                        viewportColumnRenderingOffset={10}
                       />
                     </div>
                   </div>
