@@ -71,17 +71,21 @@ export default function SpreadsheetView() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          // Convert to JSON with headers
+          // Convert to JSON including headers as first row
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
           if (jsonData.length > 0) {
-            const headers = jsonData[0] as string[];
-            const rows = jsonData.slice(1) as SpreadsheetData;
+            const allRows = jsonData as SpreadsheetData;
+            // Generate generic column headers (A, B, C, etc.)
+            const maxColumns = Math.max(...allRows.map(row => row.length));
+            const genericHeaders = Array.from({length: maxColumns}, (_, i) => 
+              String.fromCharCode(65 + i) // A, B, C, D, etc.
+            );
             
             setFile({
               name: uploadedFile.name,
-              data: rows,
-              headers: headers,
+              data: allRows,
+              headers: genericHeaders,
             });
             
             setUploadProgress(100);
@@ -151,9 +155,8 @@ export default function SpreadsheetView() {
       // Create a new workbook
       const wb = XLSX.utils.book_new();
       
-      // Add headers and data
-      const wsData = [file.headers, ...file.data];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      // Use the data directly (headers are already included as first row)
+      const ws = XLSX.utils.aoa_to_sheet(file.data);
       
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
