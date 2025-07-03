@@ -228,6 +228,15 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Both dispatch and EOD reports are now automatically created whenever a new dispatch record is added
   - Reports page shows downloadable files immediately after record creation with proper cache invalidation
   - Added automatic redirection to Reports page after successful dispatch record creation with 1.5 second delay
+- July 3, 2025: Added Spreadsheet View feature with in-browser Excel editing capabilities
+  - Created new "Spreadsheet View" tab in navigation with Table icon
+  - Implemented Excel file upload functionality with drag-and-drop support
+  - Added Handsontable integration for in-browser spreadsheet editing
+  - Implemented save functionality to persist changes made in the editor
+  - Added download capability for edited spreadsheets with "_edited" suffix
+  - Enhanced UI with progress indicators, file validation, and proper error handling
+  - Integrated with existing sidebar navigation and responsive design system
+  - Added comprehensive workflow: Upload → Edit → Save → Download
 
 ## User Preferences
 

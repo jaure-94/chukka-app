@@ -6,6 +6,7 @@ import {
   FileText, 
   BarChart3, 
   Users, 
+  Table,
   ChevronLeft, 
   ChevronRight,
   Menu
@@ -40,6 +41,11 @@ const navigationItems: NavigationItem[] = [
     name: "Reports",
     href: "/reports",
     icon: BarChart3,
+  },
+  {
+    name: "Spreadsheet View",
+    href: "/spreadsheet",
+    icon: Table,
   },
   {
     name: "Users",
