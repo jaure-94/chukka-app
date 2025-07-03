@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { HotTable } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
-import { Upload, FileSpreadsheet, Edit3, Save, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Edit3, Save, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import "handsontable/dist/handsontable.full.min.css";
@@ -32,7 +32,6 @@ export default function SpreadsheetView() {
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const hotTableRef = useRef(null);
 
   const onDrop = async (acceptedFiles: File[]) => {
@@ -290,61 +289,24 @@ export default function SpreadsheetView() {
     setEditedData(newData);
   };
 
-  const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
-  };
-
-  // Calculate viewport height for spreadsheet
-  const getSpreadsheetHeight = () => {
-    if (isFullScreen) {
-      return 'calc(100vh - 100px)'; // Full screen minus header/controls
-    }
-    return 'calc(100vh - 300px)'; // Normal view with space for other content
-  };
-
   return (
-    <div className={`min-h-screen bg-gray-50 flex ${isFullScreen ? 'fixed inset-0 z-50' : ''}`}>
-      {/* Fixed Desktop Sidebar - Hidden in full screen */}
-      {!isFullScreen && (
-        <div className="hidden md:block fixed left-0 top-0 h-full z-10">
-          <SidebarNavigation />
-        </div>
-      )}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Fixed Desktop Sidebar */}
+      <div className="hidden md:block fixed left-0 top-0 h-full z-10">
+        <SidebarNavigation />
+      </div>
 
-      {/* Mobile Navigation - Hidden in full screen */}
-      {!isFullScreen && <MobileNavigation />}
+      {/* Mobile Navigation */}
+      <MobileNavigation />
       
       <div className={`flex-1 transition-all duration-300 ${
-        isFullScreen ? "ml-0" : (isCollapsed ? "ml-16" : "ml-64")
+        isCollapsed ? "ml-16" : "ml-64"
       }`}>
         <div className="p-6 space-y-6">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold mb-2">Spreadsheet View</h1>
-                <p className="text-blue-100">Upload, edit, and download Excel spreadsheets directly in your browser</p>
-              </div>
-              {isEditing && (
-                <Button
-                  onClick={toggleFullScreen}
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  {isFullScreen ? (
-                    <>
-                      <Minimize2 className="h-4 w-4 mr-2" />
-                      Exit Full Screen
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="h-4 w-4 mr-2" />
-                      Full Screen
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            <h1 className="text-2xl font-bold mb-2">Spreadsheet View</h1>
+            <p className="text-blue-100">Upload, edit, and download Excel spreadsheets directly in your browser</p>
           </div>
 
           {/* Upload Section */}
@@ -471,7 +433,7 @@ export default function SpreadsheetView() {
                         manualColumnResize={true}
                         stretchH="none"
                         width="100%"
-                        height={getSpreadsheetHeight()}
+                        height="600"
                         licenseKey="non-commercial-and-evaluation"
                         afterChange={handleDataChange}
                         className="htCenter"
