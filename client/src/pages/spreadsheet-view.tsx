@@ -71,14 +71,31 @@ export default function SpreadsheetView() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          // Convert to JSON including headers as first row
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          // Get the range to determine actual column count
+          const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+          const actualColumnCount = range.e.c + 1; // +1 because it's 0-indexed
+          
+          // Convert to JSON including headers as first row, ensuring we get all columns
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1, 
+            range: 0,
+            defval: '' // Use empty string for missing cells
+          });
           
           if (jsonData.length > 0) {
             const allRows = jsonData as SpreadsheetData;
+            
+            // Ensure all rows have the same number of columns by padding with empty strings
+            const paddedRows = allRows.map(row => {
+              const paddedRow = [...(row || [])];
+              while (paddedRow.length < actualColumnCount) {
+                paddedRow.push('');
+              }
+              return paddedRow;
+            });
+            
             // Generate generic column headers (A, B, C, etc.)
-            const maxColumns = Math.max(...allRows.map(row => row ? row.length : 0));
-            const genericHeaders = Array.from({length: maxColumns}, (_, i) => {
+            const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
               if (i < 26) {
                 return String.fromCharCode(65 + i); // A, B, C, D, etc.
               } else {
@@ -91,14 +108,23 @@ export default function SpreadsheetView() {
             
             setFile({
               name: uploadedFile.name,
-              data: allRows,
+              data: paddedRows,
               headers: genericHeaders,
             });
             
             setUploadProgress(100);
             toast({
               title: "File uploaded successfully",
-              description: `${uploadedFile.name} has been loaded and is ready for editing.`,
+              description: `${uploadedFile.name} loaded with ${paddedRows.length} rows and ${actualColumnCount} columns.`,
+            });
+            
+            // Debug log for development
+            console.log('Excel parsing results:', {
+              totalRows: paddedRows.length,
+              totalColumns: actualColumnCount,
+              worksheetRange: worksheet['!ref'],
+              firstRowLength: paddedRows[0]?.length,
+              headers: genericHeaders
             });
           }
         } catch (error) {
