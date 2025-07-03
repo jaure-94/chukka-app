@@ -71,28 +71,35 @@ export default function SpreadsheetView() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          // Get the range to determine actual column count
+          // Get the complete data range from the worksheet
           const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
           const actualColumnCount = range.e.c + 1; // +1 because it's 0-indexed
+          const actualRowCount = range.e.r + 1; // +1 because it's 0-indexed
           
-          // Convert to JSON including headers as first row, ensuring we get all columns
+          // Convert to JSON ensuring we capture the complete range
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
             header: 1, 
-            range: 0,
-            defval: '' // Use empty string for missing cells
+            range: worksheet['!ref'], // Use the full range
+            defval: '', // Use empty string for missing cells
+            blankrows: true // Include blank rows
           });
           
           if (jsonData.length > 0) {
             const allRows = jsonData as SpreadsheetData;
             
-            // Ensure all rows have the same number of columns by padding with empty strings
-            const paddedRows = allRows.map(row => {
-              const paddedRow = [...(row || [])];
-              while (paddedRow.length < actualColumnCount) {
-                paddedRow.push('');
+            // Ensure we have exactly the right number of rows and columns
+            const completeRows: SpreadsheetData = [];
+            
+            for (let r = 0; r < actualRowCount; r++) {
+              const row = allRows[r] || [];
+              const completeRow: (string | number)[] = [];
+              
+              for (let c = 0; c < actualColumnCount; c++) {
+                completeRow[c] = row[c] !== undefined ? row[c] : '';
               }
-              return paddedRow;
-            });
+              
+              completeRows.push(completeRow);
+            }
             
             // Generate generic column headers (A, B, C, etc.)
             const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
@@ -108,22 +115,24 @@ export default function SpreadsheetView() {
             
             setFile({
               name: uploadedFile.name,
-              data: paddedRows,
+              data: completeRows,
               headers: genericHeaders,
             });
             
             setUploadProgress(100);
             toast({
               title: "File uploaded successfully",
-              description: `${uploadedFile.name} loaded with ${paddedRows.length} rows and ${actualColumnCount} columns.`,
+              description: `${uploadedFile.name} loaded with ${actualRowCount} rows and ${actualColumnCount} columns.`,
             });
             
             // Debug log for development
             console.log('Excel parsing results:', {
-              totalRows: paddedRows.length,
+              totalRows: actualRowCount,
               totalColumns: actualColumnCount,
               worksheetRange: worksheet['!ref'],
-              firstRowLength: paddedRows[0]?.length,
+              actualDataRows: completeRows.length,
+              firstRowLength: completeRows[0]?.length,
+              lastRowWithData: completeRows.findIndex(row => row.every(cell => cell === '')),
               headers: genericHeaders
             });
           }
@@ -378,6 +387,11 @@ export default function SpreadsheetView() {
                         colWidths={120}
                         autoColumnSize={false}
                         preventOverflow="horizontal"
+                        fillHandle={true}
+                        mergeCells={false}
+                        outsideClickDeselects={false}
+                        allowEmpty={true}
+                        trimWhitespace={false}
                       />
                     </div>
                   </div>
