@@ -101,6 +101,15 @@ export default function SpreadsheetView() {
               completeRows.push(completeRow);
             }
             
+            // Add 10 extra empty rows for editing convenience
+            for (let extraRow = 0; extraRow < 10; extraRow++) {
+              const emptyRow: (string | number)[] = [];
+              for (let c = 0; c < actualColumnCount; c++) {
+                emptyRow[c] = '';
+              }
+              completeRows.push(emptyRow);
+            }
+            
             // Generate generic column headers (A, B, C, etc.)
             const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
               if (i < 26) {
@@ -122,17 +131,17 @@ export default function SpreadsheetView() {
             setUploadProgress(100);
             toast({
               title: "File uploaded successfully",
-              description: `${uploadedFile.name} loaded with ${actualRowCount} rows and ${actualColumnCount} columns.`,
+              description: `${uploadedFile.name} loaded with ${actualRowCount} data rows + 10 extra rows, ${actualColumnCount} columns total.`,
             });
             
             // Debug log for development
             console.log('Excel parsing results:', {
-              totalRows: actualRowCount,
+              originalRows: actualRowCount,
+              totalRowsWithExtra: completeRows.length,
               totalColumns: actualColumnCount,
               worksheetRange: worksheet['!ref'],
-              actualDataRows: completeRows.length,
               firstRowLength: completeRows[0]?.length,
-              lastRowWithData: completeRows.findIndex(row => row.every(cell => cell === '')),
+              extraRowsAdded: 10,
               headers: genericHeaders
             });
           }
