@@ -87,10 +87,12 @@ export default function SpreadsheetView() {
           if (jsonData.length > 0) {
             const allRows = jsonData as SpreadsheetData;
             
-            // Ensure we have exactly the right number of rows and columns
+            // Ensure we have exactly the right number of rows and columns, plus extra rows
+            const extraRows = 10; // Add 10 extra rows for editing
+            const totalRowsWithExtra = actualRowCount + extraRows;
             const completeRows: SpreadsheetData = [];
             
-            for (let r = 0; r < actualRowCount; r++) {
+            for (let r = 0; r < totalRowsWithExtra; r++) {
               const row = allRows[r] || [];
               const completeRow: (string | number)[] = [];
               
@@ -122,17 +124,17 @@ export default function SpreadsheetView() {
             setUploadProgress(100);
             toast({
               title: "File uploaded successfully",
-              description: `${uploadedFile.name} loaded with ${actualRowCount} rows and ${actualColumnCount} columns.`,
+              description: `${uploadedFile.name} loaded with ${actualRowCount} rows and ${actualColumnCount} columns (${extraRows} extra rows added).`,
             });
             
             // Debug log for development
             console.log('Excel parsing results:', {
-              totalRows: actualRowCount,
+              originalRows: actualRowCount,
+              totalRowsWithExtra: totalRowsWithExtra,
               totalColumns: actualColumnCount,
               worksheetRange: worksheet['!ref'],
-              actualDataRows: completeRows.length,
               firstRowLength: completeRows[0]?.length,
-              lastRowWithData: completeRows.findIndex(row => row.every(cell => cell === '')),
+              extraRowsAdded: extraRows,
               headers: genericHeaders
             });
           }
