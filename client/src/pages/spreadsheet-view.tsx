@@ -235,11 +235,15 @@ export default function SpreadsheetView() {
                     <p className="text-blue-600">Drop your Excel file here...</p>
                   ) : (
                     <div>
-                      <p className="text-gray-600 mb-2">
-                        Drag and drop an Excel file here, or click to browse
+                      <p className="text-gray-600 mb-4">
+                        Drag and drop an Excel file here, or click below to browse
                       </p>
+                      <Button size="lg" className="mb-4 flex items-center gap-2 mx-auto bg-blue-600 hover:bg-blue-700 text-white">
+                        <Upload className="w-5 h-5" />
+                        Choose Excel File
+                      </Button>
                       <p className="text-sm text-gray-500">
-                        Supports .xlsx and .xls files
+                        Supports .xlsx and .xls files • Maximum 10MB
                       </p>
                     </div>
                   )}
