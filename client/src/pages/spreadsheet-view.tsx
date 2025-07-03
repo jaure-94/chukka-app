@@ -77,10 +77,17 @@ export default function SpreadsheetView() {
           if (jsonData.length > 0) {
             const allRows = jsonData as SpreadsheetData;
             // Generate generic column headers (A, B, C, etc.)
-            const maxColumns = Math.max(...allRows.map(row => row.length));
-            const genericHeaders = Array.from({length: maxColumns}, (_, i) => 
-              String.fromCharCode(65 + i) // A, B, C, D, etc.
-            );
+            const maxColumns = Math.max(...allRows.map(row => row ? row.length : 0));
+            const genericHeaders = Array.from({length: maxColumns}, (_, i) => {
+              if (i < 26) {
+                return String.fromCharCode(65 + i); // A, B, C, D, etc.
+              } else {
+                // For columns beyond Z, use AA, AB, AC, etc.
+                const firstLetter = String.fromCharCode(65 + Math.floor(i / 26) - 1);
+                const secondLetter = String.fromCharCode(65 + (i % 26));
+                return firstLetter + secondLetter;
+              }
+            });
             
             setFile({
               name: uploadedFile.name,
@@ -326,22 +333,27 @@ export default function SpreadsheetView() {
                   </div>
                   
                   {/* Handsontable Editor */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <HotTable
-                      ref={hotTableRef}
-                      data={editedData}
-                      colHeaders={file.headers}
-                      rowHeaders={true}
-                      contextMenu={true}
-                      manualRowResize={true}
-                      manualColumnResize={true}
-                      stretchH="all"
-                      width="100%"
-                      height="500"
-                      licenseKey="non-commercial-and-evaluation"
-                      afterChange={handleDataChange}
-                      className="htCenter"
-                    />
+                  <div className="border rounded-lg overflow-auto w-full max-w-full">
+                    <div className="min-w-full">
+                      <HotTable
+                        ref={hotTableRef}
+                        data={editedData}
+                        colHeaders={file.headers}
+                        rowHeaders={true}
+                        contextMenu={true}
+                        manualRowResize={true}
+                        manualColumnResize={true}
+                        stretchH="none"
+                        width="100%"
+                        height="500"
+                        licenseKey="non-commercial-and-evaluation"
+                        afterChange={handleDataChange}
+                        className="htCenter"
+                        colWidths={120}
+                        autoColumnSize={false}
+                        preventOverflow="horizontal"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
