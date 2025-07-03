@@ -66,3 +66,20 @@
 .bold-cell {
   font-weight: bold !important;
 }
+
+.red-font {
+  color: red !important;
+}
+
+.bottom-center-cell {
+  vertical-align: bottom !important;
+  text-align: center !important;
+}
+
+.thick-bottom-border {
+  border-bottom: 3px solid black !important;
+}
+
+.thin-bottom-border {
+  border-bottom: 1px solid black !important;
+}

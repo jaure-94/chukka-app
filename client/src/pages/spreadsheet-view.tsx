@@ -454,17 +454,46 @@ export default function SpreadsheetView() {
                         viewportColumnRenderingOffset={10}
                         cells={function(row, col) {
                           const cellProperties: any = {};
+                          let classNames = [];
                           
                           // Left-justify everything in column A
                           if (col === 0) {
-                            cellProperties.className = 'htLeft';
+                            classNames.push('htLeft');
                           }
                           
                           // Bold content from row 1 to row 6 (0-indexed: 0-5)
                           if (row >= 0 && row <= 5) {
-                            cellProperties.className = (cellProperties.className || '') + ' bold-cell';
+                            classNames.push('bold-cell');
                           }
                           
+                          // Make everything under column B font red (column index 1)
+                          if (col === 1) {
+                            classNames.push('red-font');
+                          }
+                          
+                          // Bottom-align and center all contents in row 6 (0-indexed: 5)
+                          if (row === 5) {
+                            classNames.push('bottom-center-cell');
+                          }
+                          
+                          // Add thick black border under row 6 (0-indexed: 5)
+                          if (row === 5) {
+                            classNames.push('thick-bottom-border');
+                          }
+                          
+                          // Add thin black border under row 1 (0-indexed: 0)
+                          if (row === 0) {
+                            classNames.push('thin-bottom-border');
+                          }
+                          
+                          // Make contents in column A with "Tour" bold
+                          if (col === 0 && editedData[row] && editedData[row][0] && 
+                              typeof editedData[row][0] === 'string' && 
+                              editedData[row][0].includes('Tour')) {
+                            classNames.push('bold-cell');
+                          }
+                          
+                          cellProperties.className = classNames.join(' ');
                           return cellProperties;
                         }}
                       />
