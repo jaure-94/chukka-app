@@ -76,6 +76,26 @@ export default function SpreadsheetView() {
           const actualColumnCount = range.e.c + 1; // +1 because it's 0-indexed
           const actualRowCount = range.e.r + 1; // +1 because it's 0-indexed
           
+          // Debug worksheet information
+          console.log('Worksheet analysis:', {
+            worksheetRef: worksheet['!ref'],
+            range: range,
+            startRow: range.s.r,
+            endRow: range.e.r,
+            startCol: range.s.c,
+            endCol: range.e.c,
+            calculatedRows: actualRowCount,
+            calculatedCols: actualColumnCount,
+            // Check for specific cells
+            cellA23: worksheet['A23'],
+            cellB23: worksheet['B23'],
+            cellA24: worksheet['A24'],
+            cellA25: worksheet['A25'],
+            cellA30: worksheet['A30'],
+            // Get all cell addresses
+            allCellAddresses: Object.keys(worksheet).filter(key => key.match(/^[A-Z]+[0-9]+$/)).sort()
+          });
+          
           // Convert to JSON ensuring we capture the complete range
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
             header: 1, 
@@ -127,7 +147,7 @@ export default function SpreadsheetView() {
               description: `${uploadedFile.name} loaded with ${actualRowCount} rows and ${actualColumnCount} columns (${extraRows} extra rows added).`,
             });
             
-            // Debug log for development
+            // Debug log for development - check specific rows
             console.log('Excel parsing results:', {
               originalRows: actualRowCount,
               totalRowsWithExtra: totalRowsWithExtra,
@@ -135,7 +155,23 @@ export default function SpreadsheetView() {
               worksheetRange: worksheet['!ref'],
               firstRowLength: completeRows[0]?.length,
               extraRowsAdded: extraRows,
-              headers: genericHeaders
+              headers: genericHeaders,
+              // Check specific rows 23-30 (0-indexed would be 22-29)
+              row23: completeRows[22],
+              row24: completeRows[23],
+              row25: completeRows[24],
+              row26: completeRows[25],
+              row27: completeRows[26],
+              row28: completeRows[27],
+              row29: completeRows[28],
+              row30: completeRows[29],
+              // Check if these rows have any content
+              rowsWithContent: completeRows.map((row, index) => ({
+                rowNumber: index + 1,
+                hasContent: row.some(cell => cell !== undefined && cell !== null && cell !== ''),
+                cellCount: row.length,
+                content: row.filter(cell => cell !== undefined && cell !== null && cell !== '')
+              })).filter(r => r.hasContent)
             });
           }
         } catch (error) {
