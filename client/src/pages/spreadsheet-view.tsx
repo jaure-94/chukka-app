@@ -437,7 +437,10 @@ export default function SpreadsheetView() {
                         licenseKey="non-commercial-and-evaluation"
                         afterChange={handleDataChange}
                         className="htCenter"
-                        colWidths={120}
+                        colWidths={function(index) {
+                          if (index === 0) return 360; // Column A - 3x wider (120 * 3)
+                          return 120; // Other columns default width
+                        }}
                         autoColumnSize={false}
                         preventOverflow="horizontal"
                         fillHandle={true}
@@ -449,6 +452,21 @@ export default function SpreadsheetView() {
                         maxRows={editedData.length + 20}
                         viewportRowRenderingOffset={50}
                         viewportColumnRenderingOffset={10}
+                        cells={function(row, col) {
+                          const cellProperties: any = {};
+                          
+                          // Left-justify everything in column A
+                          if (col === 0) {
+                            cellProperties.className = 'htLeft';
+                          }
+                          
+                          // Bold content from row 1 to row 6 (0-indexed: 0-5)
+                          if (row >= 0 && row <= 5) {
+                            cellProperties.className = (cellProperties.className || '') + ' bold-cell';
+                          }
+                          
+                          return cellProperties;
+                        }}
                       />
                     </div>
                   </div>

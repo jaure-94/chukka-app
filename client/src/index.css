@@ -57,3 +57,12 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Handsontable custom styling */
+.htLeft {
+  text-align: left !important;
+}
+
+.bold-cell {
+  font-weight: bold !important;
+}
