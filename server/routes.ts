@@ -40,6 +40,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const eodProcessor = new EODProcessor();
   const dispatchGenerator = new DispatchGenerator();
 
+  // Serve uploaded files
+  app.get("/api/files/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const filePath = path.join(process.cwd(), "uploads", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Set appropriate headers for Excel files
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("File serving error:", error);
+      res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
   // File upload endpoint
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {

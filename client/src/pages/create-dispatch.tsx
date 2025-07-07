@@ -1,397 +1,392 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { TourDatePicker, TimePicker } from "@/components/enhanced-date-picker";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { HotTable } from "@handsontable/react";
+import { registerAllModules } from "handsontable/registry";
+import "handsontable/dist/handsontable.full.min.css";
+import * as XLSX from "xlsx";
 
-// Form validation schema with comprehensive validation
-const dispatchFormSchema = z.object({
-  tourName: z.string()
-    .min(1, "Tour name is required")
-    .refine((val) => val.trim().length > 0, "Tour name cannot be empty"),
-  adults: z.number()
-    .min(0, "Number of adults must be 0 or greater")
-    .refine((val) => !isNaN(val), "Adults must be a valid number"),
-  children: z.number()
-    .min(0, "Number of children must be 0 or greater")
-    .refine((val) => !isNaN(val), "Children must be a valid number"),
-  departure: z.string()
-    .min(1, "Departure time is required")
-    .refine((val) => val.trim().length > 0, "Departure time cannot be empty"),
-  returnTime: z.string()
-    .min(1, "Return time is required")
-    .refine((val) => val.trim().length > 0, "Return time cannot be empty"),
-  comp: z.number()
-    .min(0, "Comp guests must be 0 or greater")
-    .refine((val) => !isNaN(val), "Comp guests must be a valid number"),
-  totalGuests: z.number().min(0, "Total guests must be 0 or greater").optional(),
-  notes: z.string().optional(),
-});
+// Register Handsontable modules
+registerAllModules();
 
-type DispatchFormData = z.infer<typeof dispatchFormSchema>;
+type SpreadsheetData = (string | number)[][];
 
-interface ProcessingJob {
-  id: number;
-  status: string;
-  templateType: string;
-  outputPath?: string;
-  dropboxUrl?: string;
-  createdAt: string;
+interface SpreadsheetFile {
+  name: string;
+  data: SpreadsheetData;
+  headers: string[];
 }
 
 export default function CreateDispatch() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [tourDate, setTourDate] = useState("");
   const { isCollapsed } = useSidebar();
+  const hotTableRef = useRef<HotTable>(null);
 
-  // Check if templates are available
+  const [file, setFile] = useState<SpreadsheetFile | null>(null);
+  const [editedData, setEditedData] = useState<SpreadsheetData>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
     queryKey: ["/api/dispatch-templates"],
   });
-  
-  const { data: eodTemplate, isLoading: isLoadingEod } = useQuery({
-    queryKey: ["/api/eod-templates"], 
-  });
 
-  // Form setup
-  const form = useForm<DispatchFormData>({
-    resolver: zodResolver(dispatchFormSchema),
-    defaultValues: {
-      tourName: "",
-      adults: 0,
-      children: 0,
-      departure: "",
-      returnTime: "",
-      comp: 0,
-      totalGuests: 0,
-      notes: "",
-    },
-  });
-
-  // Watch form values for auto-calculation
-  const adults = form.watch("adults") || 0;
-  const children = form.watch("children") || 0;
-  const comp = form.watch("comp") || 0;
-
-  // Auto-calculate total guests whenever component values change
+  // Load dispatch template when available
   useEffect(() => {
-    const calculatedTotal = adults + children + comp;
-    form.setValue("totalGuests", calculatedTotal);
-  }, [adults, children, comp, form]);
+    if (dispatchTemplate && !file) {
+      loadDispatchTemplate();
+    }
+  }, [dispatchTemplate, file]);
 
-  // Create dispatch record mutation
-  const createDispatchMutation = useMutation({
-    mutationFn: async (data: DispatchFormData) => {
-      // Create the dispatch record - this will automatically generate reports
-      const recordResponse = await apiRequest("POST", "/api/dispatch-records", {
-        tourName: data.tourName,
-        adults: data.adults,
-        children: data.children,
-        departure: data.departure || "",
-        returnTime: data.returnTime || "",
-        comp: data.comp || 0,
-        totalGuests: data.totalGuests || (data.adults + data.children + (data.comp || 0)),
-        notes: data.notes || "",
-        isActive: true,
+  const loadDispatchTemplate = async () => {
+    if (!dispatchTemplate?.filePath) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/files/${dispatchTemplate.filename}`);
+      if (!response.ok) throw new Error('Failed to fetch template');
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      
+      // Convert to binary string for XLSX
+      const binaryString = data.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+      
+      // Parse Excel file
+      const workbook = XLSX.read(binaryString, { type: "binary" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Get the complete data range
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      const actualColumnCount = range.e.c + 1;
+      const actualRowCount = range.e.r + 1;
+      
+      // Convert to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1, 
+        range: worksheet['!ref'],
+        defval: '',
+        blankrows: true
       });
       
-      const recordResult = await recordResponse.json();
-      
-      return { record: recordResult };
-    },
-    onSuccess: (result) => {
-      toast({
-        title: "Success",
-        description: `Dispatch record created successfully. Both dispatch and EOD reports have been generated automatically. Redirecting to Reports page...`,
-      });
-      form.reset();
-      setTourDate("");
-      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-records"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
-      
-      // Redirect to Reports page after a short delay to show the success message
-      setTimeout(() => {
-        setLocation("/reports");
-      }, 1500);
-    },
-    onError: (error) => {
+      // Helper function to convert Excel time decimal to readable format
+      const convertExcelTimeToReadable = (value: any) => {
+        if (typeof value === 'number' && value > 0 && value < 1) {
+          const totalMinutes = Math.round(value * 24 * 60);
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+          
+          const period = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+          const displayMinutes = minutes.toString().padStart(2, '0');
+          
+          return `${displayHours}:${displayMinutes} ${period}`;
+        }
+        return value;
+      };
+
+      if (jsonData.length > 0) {
+        const allRows = jsonData as SpreadsheetData;
+        const extraRows = 10;
+        const totalRowsWithExtra = actualRowCount + extraRows;
+        const completeRows: SpreadsheetData = [];
+        
+        for (let r = 0; r < totalRowsWithExtra; r++) {
+          const row = allRows[r] || [];
+          const completeRow: (string | number)[] = [];
+          
+          for (let c = 0; c < actualColumnCount; c++) {
+            let cellValue = row[c] !== undefined ? row[c] : '';
+            
+            // Convert time values in column B
+            if (c === 1) {
+              cellValue = convertExcelTimeToReadable(cellValue);
+            }
+            
+            completeRow[c] = cellValue;
+          }
+          
+          completeRows.push(completeRow);
+        }
+        
+        // Generate headers
+        const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
+          if (i < 26) {
+            return String.fromCharCode(65 + i);
+          } else {
+            const firstLetter = String.fromCharCode(65 + Math.floor(i / 26) - 1);
+            const secondLetter = String.fromCharCode(65 + (i % 26));
+            return firstLetter + secondLetter;
+          }
+        });
+        
+        setFile({
+          name: dispatchTemplate.originalFilename,
+          data: completeRows,
+          headers: genericHeaders
+        });
+      }
+    } catch (error) {
+      console.error('Error loading dispatch template:', error);
       toast({
         title: "Error",
-        description: "Failed to create dispatch record and generate report",
+        description: "Failed to load dispatch template",
         variant: "destructive",
       });
-      console.error("Error creating dispatch record:", error);
-    },
-  });
-
-
-
-  const onSubmit = (data: DispatchFormData) => {
-    createDispatchMutation.mutate(data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-
-
-  const handleBackToUpload = () => {
-    setLocation('/');
+  const handleEditSpreadsheet = () => {
+    if (!file) return;
+    
+    setEditedData([...file.data]);
+    setIsEditing(true);
+    setHasUnsavedChanges(false);
   };
 
-  // Show loading state while templates are being fetched
-  if (isLoadingDispatch || isLoadingEod) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading templates...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleDataChange = (changes: any) => {
+    if (changes) {
+      setHasUnsavedChanges(true);
+    }
+  };
 
-  // Show message if templates are not available
-  if (!dispatchTemplate || !eodTemplate) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-gray-600 mb-4">Templates not found. Please upload dispatch and EOD templates first.</p>
-            <Button onClick={() => setLocation('/templates')}>
-              Go to Templates
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleSave = async () => {
+    if (!editedData.length) return;
+    
+    setIsLoading(true);
+    try {
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(editedData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Dispatch");
+      
+      // Convert to buffer
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      
+      // Create FormData
+      const formData = new FormData();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      formData.append('file', blob, `edited_dispatch_${Date.now()}.xlsx`);
+      
+      // Save the file
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Failed to save file');
+      
+      const result = await response.json();
+      
+      toast({
+        title: "Success",
+        description: "Dispatch sheet saved successfully!",
+      });
+      
+      setHasUnsavedChanges(false);
+      
+      // Update the file data
+      if (file) {
+        setFile({
+          ...file,
+          data: editedData
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error saving dispatch sheet:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save dispatch sheet",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedData([]);
+    setHasUnsavedChanges(false);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Fixed Desktop Sidebar */}
-      <div className="hidden md:block fixed left-0 top-0 h-full z-10">
-        <SidebarNavigation />
-      </div>
-
-      {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'md:ml-16' : 'md:ml-64'
-      }`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="py-6 flex items-center justify-between">
-              <div className="flex items-center">
-                {/* Mobile Navigation */}
-                <MobileNavigation />
-                <div className="ml-4 md:ml-0">
-                  <h1 className="text-3xl font-bold text-gray-900">Create Dispatch Record</h1>
-                  <p className="mt-2 text-gray-600">
-                    Add dispatch information and generate your report
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={handleBackToUpload}>
-                Back to Upload
-              </Button>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <SidebarNavigation />
+      <MobileNavigation />
+      
+      <div 
+        className={`transition-all duration-300 ${
+          isCollapsed ? 'ml-16' : 'ml-64'
+        } p-6`}
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Create New Dispatch Record</h1>
+            <p className="text-gray-600">Edit the dispatch template spreadsheet to create a new record</p>
           </div>
-        </header>
 
-        {/* Main Content */}
-        <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        {/* Create Dispatch Record Form */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Create new dispatch record</h2>
-            
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Tour Name */}
-              <div className="space-y-2">
-                <Label htmlFor="tourName" className="text-sm font-medium text-gray-700">
-                  Tour Name
-                </Label>
-                <Input
-                  id="tourName"
-                  type="text"
-                  {...form.register("tourName")}
-                  placeholder="Enter tour name (e.g., Catamaran, HSH, etc.)"
-                  className="w-full"
-                />
-                {form.formState.errors.tourName && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.tourName.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Number of Adults */}
-                <div className="space-y-2">
-                  <Label htmlFor="adults" className="text-sm font-medium text-gray-700">
-                    Number of Adults
-                  </Label>
-                  <Input
-                    id="adults"
-                    type="number"
-                    min="0"
-                    {...form.register("adults", { valueAsNumber: true })}
-                    className="w-full"
-                  />
-                  {form.formState.errors.adults && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.adults.message}
-                    </p>
-                  )}
+          {isLoadingDispatch ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading dispatch template...</p>
                 </div>
-
-                {/* Number of Children */}
-                <div className="space-y-2">
-                  <Label htmlFor="children" className="text-sm font-medium text-gray-700">
-                    Number of Children
-                  </Label>
-                  <Input
-                    id="children"
-                    type="number"
-                    min="0"
-                    {...form.register("children", { valueAsNumber: true })}
-                    className="w-full"
-                  />
-                  {form.formState.errors.children && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.children.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Comp Guests */}
-                <div className="space-y-2">
-                  <Label htmlFor="comp" className="text-sm font-medium text-gray-700">
-                    Comp Guests
-                  </Label>
-                  <Input
-                    id="comp"
-                    type="number"
-                    min="0"
-                    {...form.register("comp", { valueAsNumber: true })}
-                    className="w-full"
-                  />
-                  {form.formState.errors.comp && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.comp.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tour Date Selection */}
-              <div className="mb-6">
-                <TourDatePicker
-                  label="Tour Date"
-                  selectedDate={tourDate}
-                  onDateChange={setTourDate}
-                />
-              </div>
-
-              {/* Time Selection for Departure and Return */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Departure Time */}
-                <div>
-                  <TimePicker
-                    label="Departure Time"
-                    value={form.watch("departure") || ""}
-                    onChange={(value: string) => form.setValue("departure", value)}
-                    selectedDate={tourDate}
-                    error={form.formState.errors.departure?.message}
-                  />
-                </div>
-
-                {/* Return Time */}
-                <div>
-                  <TimePicker
-                    label="Return Time"
-                    value={form.watch("returnTime") || ""}
-                    onChange={(value: string) => form.setValue("returnTime", value)}
-                    selectedDate={tourDate}
-                    error={form.formState.errors.returnTime?.message}
-                  />
-                </div>
-              </div>
-
-              {/* Total Guests */}
-              <div className="space-y-2">
-                <Label htmlFor="totalGuests" className="text-sm font-medium text-gray-700">
-                  Total Guests
-                  <span className="text-xs text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-calculated</span>
-                </Label>
-                <Input
-                  id="totalGuests"
-                  type="number"
-                  min="0"
-                  {...form.register("totalGuests", { valueAsNumber: true })}
-                  disabled
-                  className="w-full max-w-xs rounded-lg border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
-                />
-                <p className="text-xs text-gray-500">
-                  Automatically calculated: {adults} adults + {children} children + {comp} comp guests = {adults + children + comp} total
-                </p>
-                {form.formState.errors.totalGuests && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.totalGuests.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                  Notes
-                </Label>
-                <Textarea
-                  id="notes"
-                  {...form.register("notes")}
-                  placeholder="Enter any additional notes..."
-                  className="w-full min-h-[100px]"
-                />
-                {form.formState.errors.notes && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.notes.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={createDispatchMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {createDispatchMutation.isPending ? "Creating..." : "Create Record"}
+              </CardContent>
+            </Card>
+          ) : !dispatchTemplate ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-gray-600 mb-4">No dispatch template found. Please upload a template first.</p>
+                <Button onClick={() => setLocation("/templates/edit")}>
+                  Upload Template
                 </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Template Information */}
+              <Card>
+                <CardContent className="py-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Dispatch Template</h3>
+                      <p className="text-sm text-gray-600">{dispatchTemplate.originalFilename}</p>
+                    </div>
+                    <div className="flex space-x-3">
+                      {!isEditing ? (
+                        <Button 
+                          onClick={handleEditSpreadsheet}
+                          disabled={isLoading}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Edit Dispatch Sheet
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={handleSave}
+                            disabled={isLoading}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {isLoading ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                          <Button 
+                            onClick={handleCancel}
+                            variant="outline"
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {hasUnsavedChanges && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-800">⚠️ You have unsaved changes</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-
-        </main>
+              {/* Spreadsheet Editor */}
+              {isEditing && file && (
+                <Card>
+                  <CardContent className="py-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Dispatch Sheet</h3>
+                    <div className="border rounded-lg overflow-auto w-full max-w-full">
+                      <div className="min-w-full">
+                        <HotTable
+                          ref={hotTableRef}
+                          data={editedData}
+                          colHeaders={file.headers}
+                          rowHeaders={true}
+                          contextMenu={true}
+                          manualRowResize={true}
+                          manualColumnResize={true}
+                          stretchH="none"
+                          width="100%"
+                          height="600"
+                          licenseKey="non-commercial-and-evaluation"
+                          afterChange={handleDataChange}
+                          className="htCenter"
+                          colWidths={function(index) {
+                            if (index === 0) return 360;
+                            return 120;
+                          }}
+                          autoColumnSize={false}
+                          preventOverflow="horizontal"
+                          fillHandle={true}
+                          mergeCells={false}
+                          outsideClickDeselects={false}
+                          allowEmpty={true}
+                          trimWhitespace={false}
+                          minRows={editedData.length}
+                          maxRows={editedData.length + 20}
+                          viewportRowRenderingOffset={50}
+                          viewportColumnRenderingOffset={10}
+                          cells={function(row, col) {
+                            const cellProperties: any = {};
+                            let classNames = [];
+                            
+                            if (col === 0) {
+                              classNames.push('htLeft');
+                            }
+                            
+                            if (row >= 0 && row <= 5) {
+                              classNames.push('bold-cell');
+                            }
+                            
+                            if (col === 1) {
+                              classNames.push('red-font');
+                            }
+                            
+                            if (row === 5) {
+                              classNames.push('bottom-center-cell');
+                              classNames.push('thick-bottom-border');
+                            }
+                            
+                            if (row === 0) {
+                              classNames.push('thin-bottom-border');
+                            }
+                            
+                            if (col === 0 && editedData[row] && editedData[row][0] && 
+                                typeof editedData[row][0] === 'string' && 
+                                editedData[row][0].includes('Tour')) {
+                              classNames.push('bold-cell');
+                            }
+                            
+                            cellProperties.className = classNames.join(' ');
+                            return cellProperties;
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
