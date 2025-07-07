@@ -73,10 +73,22 @@ export class SimpleEODProcessor {
       }
 
       if (cellData.cellH8) {
-        // Find a notes cell to replace - let's use a merged cell range for notes
-        const notesCell = worksheet.getCell('B20'); // Adjust as needed
-        notesCell.value = cellData.cellH8;
-        console.log(`→ SimpleEOD: Set B20 (notes) = "${cellData.cellH8}"`);
+        // Find the cell containing {{notes}} placeholder
+        let notesCellFound = false;
+        worksheet.eachRow((row, rowNumber) => {
+          row.eachCell((cell, colNumber) => {
+            if (cell.value && typeof cell.value === 'string' && cell.value.includes('{{notes}}')) {
+              cell.value = cellData.cellH8;
+              const cellAddress = worksheet.getCell(rowNumber, colNumber).address;
+              console.log(`→ SimpleEOD: Found {{notes}} in ${cellAddress}, replaced with: "${cellData.cellH8}"`);
+              notesCellFound = true;
+            }
+          });
+        });
+        
+        if (!notesCellFound) {
+          console.log('→ SimpleEOD: Warning - {{notes}} placeholder not found in EOD template');
+        }
       }
 
       // Save the processed file
@@ -91,7 +103,7 @@ export class SimpleEODProcessor {
   ✓ Extracted L8 (Notes): "${cellData.cellH8}"
   ✓ Replaced B17 with: "${cellData.cellA8}"
   ✓ Replaced I22 with: "${cellData.cellB8}"
-  ✓ Replaced B20 with: "${cellData.cellH8}"
+  ✓ Replaced {{notes}} placeholder with: "${cellData.cellH8}"
   ✓ Generated file: ${path.basename(outputPath)}
       `);
 
