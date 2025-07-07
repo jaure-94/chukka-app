@@ -82,12 +82,21 @@ export class SimpleEODProcessor {
               const cellAddress = worksheet.getCell(rowNumber, colNumber).address;
               
               // Apply formatting: remove strikethrough, remove bold, set dark blue color
+              const currentFont = cell.font || {};
+              console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
+              
               cell.font = {
-                ...cell.font,
+                name: currentFont.name || 'Calibri',
+                size: currentFont.size || 11,
+                family: currentFont.family || 2,
+                scheme: currentFont.scheme || 'minor',
                 strike: false,
                 bold: false,
+                italic: false,
                 color: { argb: 'FF003366' }
               };
+              
+              console.log(`→ SimpleEOD: New font for ${cellAddress}:`, cell.font);
               
               console.log(`→ SimpleEOD: Found {{notes}} in ${cellAddress}, replaced with: "${cellData.cellH8}"`);
               notesCellFound = true;
@@ -104,14 +113,25 @@ export class SimpleEODProcessor {
       const formatCells = ['E3', 'E4', 'E5', 'E6', 'I22', 'I23', 'I24'];
       formatCells.forEach(cellAddress => {
         const cell = worksheet.getCell(cellAddress);
+        
+        // Get current font properties first
+        const currentFont = cell.font || {};
+        console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
+        
+        // Apply new font properties explicitly
         cell.font = {
-          ...cell.font,
+          name: currentFont.name || 'Calibri',
+          size: currentFont.size || 11,
+          family: currentFont.family || 2,
+          scheme: currentFont.scheme || 'minor',
           strike: false,
           bold: false,
+          italic: false,
           color: { argb: 'FF003366' }
         };
+        
+        console.log(`→ SimpleEOD: New font for ${cellAddress}:`, cell.font);
       });
-      console.log('→ SimpleEOD: Applied formatting cleanup to cells E3-E6, I22-I24');
 
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
