@@ -85,14 +85,12 @@ export class SimpleEODProcessor {
               const currentFont = cell.font || {};
               console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
               
+              // Completely override font to ensure strikethrough is removed
+              delete cell.font;
               cell.font = {
-                name: currentFont.name || 'Calibri',
-                size: currentFont.size || 11,
-                family: currentFont.family || 2,
-                scheme: currentFont.scheme || 'minor',
-                strike: false,
-                bold: false,
-                italic: false,
+                name: currentFont.name || 'Verdana',
+                size: currentFont.size || 9,
+                family: 2,
                 color: { argb: 'FF003366' }
               };
               
@@ -118,15 +116,12 @@ export class SimpleEODProcessor {
         const currentFont = cell.font || {};
         console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
         
-        // Apply new font properties explicitly
+        // Completely override font to ensure strikethrough is removed
+        delete cell.font;
         cell.font = {
-          name: currentFont.name || 'Calibri',
-          size: currentFont.size || 11,
-          family: currentFont.family || 2,
-          scheme: currentFont.scheme || 'minor',
-          strike: false,
-          bold: false,
-          italic: false,
+          name: currentFont.name || 'Verdana',
+          size: currentFont.size || 9,
+          family: 2,
           color: { argb: 'FF003366' }
         };
         
