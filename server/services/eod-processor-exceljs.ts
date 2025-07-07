@@ -94,7 +94,7 @@ export class EODProcessor {
   }
 
   private extractTourName(row: Record<string, any>): string | null {
-    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity'];
+    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity', 'A'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
@@ -106,7 +106,7 @@ export class EODProcessor {
   }
 
   private extractAdultCount(row: Record<string, any>): number {
-    const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult'];
+    const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult', 'D'];
     
     for (const col of possibleColumns) {
       if (row[col] !== undefined && row[col] !== null) {
@@ -121,7 +121,7 @@ export class EODProcessor {
   }
 
   private extractChildCount(row: Record<string, any>): number {
-    const possibleColumns = ['Children', 'num_chd', 'Child', 'CHD', 'child', 'CHILD', 'Num Child'];
+    const possibleColumns = ['Children', 'num_chd', 'Child', 'CHD', 'child', 'CHILD', 'Num Child', 'E'];
     
     for (const col of possibleColumns) {
       if (row[col] !== undefined && row[col] !== null) {
@@ -136,7 +136,7 @@ export class EODProcessor {
   }
 
   private extractNotes(row: Record<string, any>): string {
-    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS', 'Incident, accident, cancellation etc.'];
+    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS', 'Incident, accident, cancellation etc.', 'H'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
@@ -148,7 +148,7 @@ export class EODProcessor {
   }
 
   private extractDepartureTime(row: Record<string, any>): string {
-    const possibleColumns = ['TOUR TIME + duration', 'Tour Time', 'Departure Time', 'departure_time', 'Departure', 'departure', 'DEPARTURE', 'Time'];
+    const possibleColumns = ['TOUR TIME + duration', 'Tour Time', 'Departure Time', 'departure_time', 'Departure', 'departure', 'DEPARTURE', 'Time', 'B'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {

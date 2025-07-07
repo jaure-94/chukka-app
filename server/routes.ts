@@ -551,7 +551,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Dispatch file path:', dispatchFilePath);
       console.log('File exists:', fs.existsSync(dispatchFilePath));
       const dispatchData = await excelParser.parseFile(dispatchFilePath);
-      console.log('Dispatch data for EOD processing:', dispatchData);
+      console.log('Dispatch data for EOD processing:', JSON.stringify({
+        filename: dispatchData.filename,
+        sheets: dispatchData.sheets.map(sheet => ({
+          name: sheet.name,
+          rowCount: sheet.data.length,
+          columns: sheet.data.length > 0 ? Object.keys(sheet.data[0]) : [],
+          firstRowSample: sheet.data.length > 0 ? sheet.data[0] : null
+        }))
+      }, null, 2));
 
       // Generate timestamp for unique filenames
       const timestamp = Date.now();

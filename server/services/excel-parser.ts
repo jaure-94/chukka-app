@@ -65,6 +65,10 @@ export class ExcelParser {
       const workbook = XLSX.readFile(filePath);
       const sheets: ParsedSheet[] = [];
 
+      // Check if this is a user-edited file (starts with "edited_dispatch_") or a template file
+      const isEditedFile = filePath.includes('edited_dispatch_') || !filePath.includes('standard-dispatch-template');
+      console.log(`Parsing file: ${filePath}, isEditedFile: ${isEditedFile}`);
+
       // Find the dispatch sheet (Grand Turk or sheets with dispatch data structure)
       const dispatchSheetNames = this.findDispatchSheets(workbook);
       const sheetsToProcess = dispatchSheetNames.length > 0 ? dispatchSheetNames : workbook.SheetNames;
@@ -72,11 +76,13 @@ export class ExcelParser {
       for (const sheetName of sheetsToProcess) {
         const worksheet = workbook.Sheets[sheetName];
         
-        // For dispatch sheets, ignore first 7 rows and start from row 8
+        // For template files: start from row 8, for edited files: start from row 1
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-        const startRow = 7; // Row 8 (0-indexed as 7)
+        const startRow = isEditedFile ? 0 : 7; // Row 1 for edited files, Row 8 for templates
         
-        // Get column headers from row 8
+        console.log(`Processing sheet: ${sheetName}, startRow: ${startRow + 1}, isEditedFile: ${isEditedFile}`);
+        
+        // Get column headers from the appropriate row
         const columns: string[] = [];
         for (let col = range.s.c; col <= range.e.c; col++) {
           const cellAddress = XLSX.utils.encode_cell({ r: startRow, c: col });
@@ -100,10 +106,13 @@ export class ExcelParser {
           'Notes'
         ];
 
-        // Parse data starting from row 9 (data rows after headers)
+        // Parse data starting from the next row after headers
         const jsonData: Record<string, any>[] = [];
+        const dataStartRow = startRow + 1;
         
-        for (let row = startRow + 1; row <= range.e.r; row++) {
+        console.log(`Parsing data from row ${dataStartRow + 1} to ${range.e.r + 1}`);
+        
+        for (let row = dataStartRow; row <= range.e.r; row++) {
           const rowData: Record<string, any> = {};
           let hasData = false;
           
