@@ -39,7 +39,8 @@ export class EODProcessor {
       // Debug: Show first few rows and available columns
       if (sheet.data.length > 0) {
         console.log(`→ EOD: Available columns in sheet "${sheet.name}":`, Object.keys(sheet.data[0]));
-        console.log(`→ EOD: First row data:`, sheet.data[0]);
+        console.log(`→ EOD: First row data:`, JSON.stringify(sheet.data[0], null, 2));
+        console.log(`→ EOD: Sample of first 3 rows:`, JSON.stringify(sheet.data.slice(0, 3), null, 2));
       }
       
       for (const row of sheet.data) {

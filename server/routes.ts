@@ -523,6 +523,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug route to examine dispatch file data
+  app.post("/api/debug-dispatch-data", async (req, res) => {
+    try {
+      const { dispatchFileId } = req.body;
+      
+      if (!dispatchFileId) {
+        return res.status(400).json({ message: "Dispatch file ID is required" });
+      }
+
+      const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+      if (!dispatchFile) {
+        return res.status(404).json({ message: "Dispatch file not found" });
+      }
+
+      const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
+      const dispatchData = await excelParser.parseFile(dispatchFilePath);
+      
+      // Extract tour data to see what's being found
+      const extractedData = eodProcessor.extractDispatchData(dispatchData);
+      
+      res.json({
+        file: dispatchFile,
+        parsedData: dispatchData,
+        extractedTours: extractedData,
+        debugInfo: {
+          totalSheets: dispatchData.sheets.length,
+          sheetsWithData: dispatchData.sheets.filter(s => s.data.length > 0).length,
+          firstSheetColumns: dispatchData.sheets.length > 0 && dispatchData.sheets[0].data.length > 0 
+            ? Object.keys(dispatchData.sheets[0].data[0]) 
+            : []
+        }
+      });
+    } catch (error) {
+      console.error("Debug dispatch data error:", error);
+      res.status(500).json({ message: "Failed to debug dispatch data", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   // Process EOD report from dispatch file
   app.post("/api/process-eod-from-dispatch", async (req, res) => {
     try {

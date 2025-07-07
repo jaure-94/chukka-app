@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { History, File, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -292,6 +293,40 @@ export default function CreateDispatch() {
     updateEODMutation.mutate();
   };
 
+  // Debug mutation to test data extraction
+  const debugDataMutation = useMutation({
+    mutationFn: async () => {
+      if (!savedFileId) {
+        throw new Error('No saved file ID available');
+      }
+
+      const response = await apiRequest("POST", "/api/debug-dispatch-data", {
+        dispatchFileId: savedFileId
+      });
+
+      return response.json();
+    },
+    onSuccess: (result) => {
+      console.log("Debug Data Result:", result);
+      toast({
+        title: "Debug Complete",
+        description: `Found ${result.extractedTours.tours.length} tours. Check console for details.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Debug error:", error);
+      toast({
+        title: "Debug Error",
+        description: "Failed to debug dispatch data",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDebugData = () => {
+    debugDataMutation.mutate();
+  };
+
   // Handle viewing dispatch version
   const handleViewVersion = async (version: any) => {
     setIsLoading(true);
@@ -435,6 +470,14 @@ export default function CreateDispatch() {
                             {updateEODMutation.isPending ? 'Updating...' : 'Update EOD Report'}
                           </Button>
                           <Button 
+                            onClick={handleDebugData}
+                            disabled={debugDataMutation.isPending}
+                            variant="outline"
+                            className="bg-orange-50 hover:bg-orange-100 border-orange-300"
+                          >
+                            {debugDataMutation.isPending ? 'Debugging...' : 'Debug Data'}
+                          </Button>
+                          <Button 
                             onClick={() => {
                               setShowUpdateEOD(false);
                               setSavedFileId(null);
@@ -550,43 +593,43 @@ export default function CreateDispatch() {
                       <p className="text-sm">Save an edited dispatch sheet to see versions here</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-3">
                       {dispatchVersions.map((version: any) => (
-                        <div key={version.id} className="border rounded-lg p-4 hover:border-blue-300 transition-colors">
-                          <div className="flex items-start justify-between mb-3">
+                        <div key={version.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <File className="w-5 h-5 text-blue-600" />
+                            </div>
                             <div>
-                              <h4 className="font-medium text-gray-900 truncate">
+                              <h4 className="font-medium text-gray-900">
                                 {version.originalFilename}
                               </h4>
-                              <p className="text-sm text-gray-500">Version {version.version}</p>
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {new Date(version.createdAt).toLocaleDateString()}
+                              <p className="text-sm text-gray-500">
+                                Version {version.id} • Saved on {new Date(version.createdAt).toLocaleDateString()} at{" "}
+                                {new Date(version.createdAt).toLocaleTimeString()}
+                              </p>
                             </div>
                           </div>
                           
-                          {version.description && (
-                            <p className="text-sm text-gray-600 mb-3">{version.description}</p>
-                          )}
-                          
-                          <div className="flex gap-2">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="text-xs">
+                              Saved
+                            </Badge>
                             <Button
-                              size="sm"
                               variant="outline"
+                              size="sm"
                               onClick={() => handleViewVersion(version)}
                               disabled={isLoading}
-                              className="flex-1"
                             >
-                              <Eye className="h-4 w-4 mr-1" />
+                              <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
                             <Button
-                              size="sm"
                               variant="outline"
+                              size="sm"
                               onClick={() => handleDownloadVersion(version)}
-                              className="flex-1"
                             >
-                              <Download className="h-4 w-4 mr-1" />
+                              <Download className="w-4 h-4 mr-1" />
                               Download
                             </Button>
                           </div>
