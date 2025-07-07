@@ -14,8 +14,140 @@ export class SimpleEODProcessor {
   }
 
   /**
+   * Process multiple dispatch records - replicate rows 17-25 for each record
+   */
+  async processMultipleRecords(
+    eodTemplatePath: string,
+    dispatchFileId: number,
+    dispatchFilePath: string,
+    outputPath: string
+  ): Promise<string> {
+    try {
+      console.log('→ SimpleEOD: Processing multiple dispatch records');
+      
+      // Extract all dispatch records
+      const multipleData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+      
+      if (multipleData.records.length === 0) {
+        throw new Error('No tour records found in dispatch file');
+      }
+      
+      console.log(`→ SimpleEOD: Found ${multipleData.records.length} tour records to process`);
+      
+      // Load EOD template
+      if (!fs.existsSync(eodTemplatePath)) {
+        throw new Error(`EOD template file not found: ${eodTemplatePath}`);
+      }
+      
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(eodTemplatePath);
+      const worksheet = workbook.getWorksheet(1);
+      
+      if (!worksheet) {
+        throw new Error('Could not find worksheet in EOD template');
+      }
+      
+      // Store original template section (rows 17-25) for replication
+      const templateRows = [];
+      for (let rowNum = 17; rowNum <= 25; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        templateRows.push(this.copyRowData(row));
+      }
+      
+      console.log('→ SimpleEOD: Template section (rows 17-25) stored for replication');
+      
+      // Process each record
+      for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
+        const record = multipleData.records[recordIndex];
+        const startRow = 17 + (recordIndex * 9); // Each record takes 9 rows (17-25)
+        
+        console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
+        
+        // Insert template rows for this record
+        if (recordIndex > 0) {
+          // Insert new rows for this record
+          worksheet.spliceRows(startRow, 0, 9); // Insert 9 empty rows
+          
+          // Copy template data to new rows
+          for (let i = 0; i < templateRows.length; i++) {
+            const templateRow = templateRows[i];
+            const newRow = worksheet.getRow(startRow + i);
+            
+            // Copy each cell from template
+            templateRow.forEach((cellData: any, colIndex: number) => {
+              if (cellData && colIndex > 0) {
+                const cell = newRow.getCell(colIndex);
+                cell.value = cellData.value;
+                cell.style = cellData.style;
+              }
+            });
+          }
+        }
+        
+        // Apply delimiter replacements for this record
+        this.applyDelimiterReplacements(worksheet, record, startRow);
+        
+        // Store this record in database
+        await storage.createExtractedDispatchData({
+          dispatchFileId: dispatchFileId,
+          cellA8Value: record.cellA8,
+          cellB8Value: record.cellB8,
+          cellH8Value: record.cellH8
+        });
+      }
+      
+      // Save the processed file
+      await workbook.xlsx.writeFile(outputPath);
+      
+      console.log(`→ SimpleEOD: Processed ${multipleData.records.length} records and saved to ${outputPath}`);
+      
+      return outputPath;
+      
+    } catch (error) {
+      console.error('→ SimpleEOD: Error processing multiple records:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Copy row data including formatting for template replication
+   */
+  private copyRowData(row: ExcelJS.Row): any[] {
+    const cells: any[] = [];
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cells[colNumber] = {
+        value: cell.value,
+        style: { ...cell.style }
+      };
+    });
+    return cells;
+  }
+
+  /**
+   * Apply delimiter replacements for a specific record at given row offset
+   */
+  private applyDelimiterReplacements(worksheet: ExcelJS.Worksheet, record: any, startRow: number): void {
+    // Replace {{tour_name}} in B17 (offset: startRow + 0)
+    const tourNameCell = worksheet.getCell(startRow, 2); // Column B
+    tourNameCell.value = record.cellA8;
+    console.log(`→ SimpleEOD: Set row ${startRow} col B (tour_name) = "${record.cellA8}"`);
+    
+    // Replace {{departure_time}} in I22 (offset: startRow + 5)
+    const departureTimeCell = worksheet.getCell(startRow + 5, 9); // Column I
+    departureTimeCell.value = record.cellB8;
+    console.log(`→ SimpleEOD: Set row ${startRow + 5} col I (departure_time) = "${record.cellB8}"`);
+    
+    // Replace {{notes}} in B21 (offset: startRow + 4)
+    const notesCell = worksheet.getCell(startRow + 4, 2); // Column B
+    if (notesCell.value && typeof notesCell.value === 'string' && notesCell.value.includes('{{notes}}')) {
+      notesCell.value = record.cellH8;
+      console.log(`→ SimpleEOD: Set row ${startRow + 4} col B (notes) = "${record.cellH8}"`);
+    }
+  }
+
+  /**
    * Step 2: Store dispatch data in database
-   * Step 3: Replace delimiters in EOD template with stored data
+   * Step 3: Replace delimiters in EOD template with stored data (single record - legacy)
    */
   async processEODWithStoredData(
     eodTemplatePath: string,
