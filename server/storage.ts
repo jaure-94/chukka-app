@@ -6,6 +6,8 @@ import {
   eodTemplates,
   dispatchRecords,
   generatedReports,
+  dispatchVersions,
+  extractedDispatchData,
   type UploadedFile, 
   type ExcelData,
   type ProcessingJob,
@@ -13,6 +15,8 @@ import {
   type EodTemplate,
   type DispatchRecord,
   type GeneratedReport,
+  type DispatchVersion,
+  type ExtractedDispatchData,
   type InsertUploadedFile, 
   type InsertExcelData,
   type InsertProcessingJob,
@@ -20,9 +24,8 @@ import {
   type InsertEodTemplate,
   type InsertDispatchRecord,
   type InsertGeneratedReport,
-  dispatchVersions,
-  type DispatchVersion,
-  type InsertDispatchVersion
+  type InsertDispatchVersion,
+  type InsertExtractedDispatchData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -63,6 +66,10 @@ export interface IStorage {
   createDispatchVersion(version: InsertDispatchVersion): Promise<DispatchVersion>;
   getDispatchVersions(limit?: number): Promise<DispatchVersion[]>;
   getDispatchVersion(id: number): Promise<DispatchVersion | undefined>;
+
+  // Extracted dispatch data operations
+  createExtractedDispatchData(data: InsertExtractedDispatchData): Promise<ExtractedDispatchData>;
+  getExtractedDispatchData(dispatchFileId: number): Promise<ExtractedDispatchData | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -259,6 +266,19 @@ export class DatabaseStorage implements IStorage {
       .from(dispatchVersions)
       .where(eq(dispatchVersions.id, id));
     return version || undefined;
+  }
+
+  async createExtractedDispatchData(data: InsertExtractedDispatchData): Promise<ExtractedDispatchData> {
+    const [inserted] = await db.insert(extractedDispatchData).values(data).returning();
+    return inserted;
+  }
+
+  async getExtractedDispatchData(dispatchFileId: number): Promise<ExtractedDispatchData | undefined> {
+    const result = await db.select().from(extractedDispatchData)
+      .where(eq(extractedDispatchData.dispatchFileId, dispatchFileId))
+      .orderBy(desc(extractedDispatchData.extractedAt))
+      .limit(1);
+    return result[0];
   }
 }
 

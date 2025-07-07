@@ -105,6 +105,15 @@ export const dispatchVersions = pgTable("dispatch_versions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const extractedDispatchData = pgTable("extracted_dispatch_data", {
+  id: serial("id").primaryKey(),
+  dispatchFileId: integer("dispatch_file_id").notNull(),
+  cellA8Value: text("cell_a8_value"), // Tour name from A8
+  cellB8Value: text("cell_b8_value"), // Departure time from B8
+  cellH8Value: text("cell_h8_value"), // Notes from H8
+  extractedAt: timestamp("extracted_at").defaultNow().notNull(),
+});
+
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
   id: true,
   uploadedAt: true,
@@ -146,6 +155,11 @@ export const insertDispatchVersionSchema = createInsertSchema(dispatchVersions).
   createdAt: true,
 });
 
+export const insertExtractedDispatchDataSchema = createInsertSchema(extractedDispatchData).omit({
+  id: true,
+  extractedAt: true,
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
@@ -154,6 +168,7 @@ export type InsertEodTemplate = z.infer<typeof insertEodTemplateSchema>;
 export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
+export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;
@@ -163,3 +178,4 @@ export type EodTemplate = typeof eodTemplates.$inferSelect;
 export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
+export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;

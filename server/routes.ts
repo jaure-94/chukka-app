@@ -9,6 +9,7 @@ import { TemplateProcessor } from "./services/template-processor";
 import { DropboxService } from "./services/dropbox-service";
 import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
+import { simpleEODProcessor } from "./services/simple-eod-processor";
 import { 
   insertUploadedFileSchema, 
   insertProcessingJobSchema, 
@@ -602,10 +603,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate timestamp for unique filenames
       const timestamp = Date.now();
       
-      // Process EOD template with dispatch data
+      // Process EOD template with dispatch data using simple approach
       const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
       const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
-      await eodProcessor.processEODTemplate(eodTemplatePath, dispatchData, eodOutputPath);
+      await simpleEODProcessor.processEODWithStoredData(
+        eodTemplatePath,
+        parseInt(dispatchFileId),
+        dispatchFilePath,
+        eodOutputPath
+      );
 
       // Generate dispatch report as well - for now, just copy the original file
       const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
