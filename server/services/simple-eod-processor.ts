@@ -49,6 +49,17 @@ export class SimpleEODProcessor {
       
       // Store original template section (rows 17-25) for replication
       const templateRows = [];
+      const templateMergedCells = [];
+      
+      // Store merged cells in the template section
+      worksheet.model.merges.forEach(merge => {
+        const mergeStart = worksheet.getCell(merge).row;
+        const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
+        if (mergeStart >= 17 && mergeEnd <= 25) {
+          templateMergedCells.push(merge);
+        }
+      });
+      
       for (let rowNum = 17; rowNum <= 25; rowNum++) {
         const row = worksheet.getRow(rowNum);
         templateRows.push(this.copyRowData(row));
@@ -82,6 +93,25 @@ export class SimpleEODProcessor {
               }
             });
           }
+          
+          // Copy merged cells for this record
+          templateMergedCells.forEach(mergeRange => {
+            const [startCell, endCell] = mergeRange.split(':');
+            const startRow = parseInt(startCell.match(/\d+/)[0]);
+            const endRow = parseInt(endCell.match(/\d+/)[0]);
+            
+            // Calculate offset for new record
+            const rowOffset = (startRow + (recordIndex * 9)) - startRow;
+            const newStartRow = startRow + rowOffset;
+            const newEndRow = endRow + rowOffset;
+            
+            const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
+              const rowNum = parseInt(match);
+              return (rowNum + rowOffset).toString();
+            });
+            
+            worksheet.mergeCells(newMergeRange);
+          });
         }
         
         // Apply delimiter replacements for this record
@@ -127,21 +157,39 @@ export class SimpleEODProcessor {
    * Apply delimiter replacements for a specific record at given row offset
    */
   private applyDelimiterReplacements(worksheet: ExcelJS.Worksheet, record: any, startRow: number): void {
-    // Replace {{tour_name}} in B17 (offset: startRow + 0)
+    // Replace {{tour_name}} in B17 (offset: startRow + 0) and merge cells B to I
     const tourNameCell = worksheet.getCell(startRow, 2); // Column B
     tourNameCell.value = record.cellA8;
-    console.log(`→ SimpleEOD: Set row ${startRow} col B (tour_name) = "${record.cellA8}"`);
+    tourNameCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    // Merge cells B through I for tour name
+    worksheet.mergeCells(`B${startRow}:I${startRow}`);
+    console.log(`→ SimpleEOD: Set row ${startRow} col B (tour_name) = "${record.cellA8}" and merged B:I`);
     
     // Replace {{departure_time}} in I22 (offset: startRow + 5)
     const departureTimeCell = worksheet.getCell(startRow + 5, 9); // Column I
     departureTimeCell.value = record.cellB8;
     console.log(`→ SimpleEOD: Set row ${startRow + 5} col I (departure_time) = "${record.cellB8}"`);
     
-    // Replace {{notes}} in B21 (offset: startRow + 4)
+    // Handle Comments/Notes subheading - merge cells B through I (offset: startRow + 3)
+    const commentsSubheadingRow = startRow + 3;
+    const commentsCell = worksheet.getCell(commentsSubheadingRow, 2); // Column B
+    if (commentsCell.value && typeof commentsCell.value === 'string' && 
+        (commentsCell.value.toLowerCase().includes('comment') || commentsCell.value.toLowerCase().includes('note'))) {
+      commentsCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      worksheet.mergeCells(`B${commentsSubheadingRow}:I${commentsSubheadingRow}`);
+      console.log(`→ SimpleEOD: Merged comments subheading row ${commentsSubheadingRow} B:I`);
+    }
+    
+    // Replace {{notes}} in B21 (offset: startRow + 4) and merge cells B through I
     const notesCell = worksheet.getCell(startRow + 4, 2); // Column B
     if (notesCell.value && typeof notesCell.value === 'string' && notesCell.value.includes('{{notes}}')) {
       notesCell.value = record.cellH8;
-      console.log(`→ SimpleEOD: Set row ${startRow + 4} col B (notes) = "${record.cellH8}"`);
+      notesCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+      
+      // Merge cells B through I for notes
+      worksheet.mergeCells(`B${startRow + 4}:I${startRow + 4}`);
+      console.log(`→ SimpleEOD: Set row ${startRow + 4} col B (notes) = "${record.cellH8}" and merged B:I`);
     }
   }
 
