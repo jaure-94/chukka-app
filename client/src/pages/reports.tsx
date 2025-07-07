@@ -130,9 +130,13 @@ export default function Reports() {
                   </div>
                   
                   {(() => {
-                    const latestEOD = outputFiles
-                      .filter(file => file.filename.startsWith('eod_'))
+                    const eodFiles = outputFiles.filter(file => file.filename.startsWith('eod_'));
+                    const latestEOD = eodFiles
                       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    
+                    // Debug logging
+                    console.log('EOD files found:', eodFiles.length);
+                    console.log('Latest EOD:', latestEOD?.filename);
                     
                     return latestEOD ? (
                       <div>

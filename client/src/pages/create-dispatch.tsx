@@ -272,9 +272,10 @@ export default function CreateDispatch() {
         description: `EOD report generated successfully! Files: ${result.eodFile} & ${result.dispatchFile}`,
       });
       
-      // Invalidate reports cache and dispatch versions cache
+      // Invalidate all related caches
       queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
       
       // Redirect to Reports page after a short delay
       setTimeout(() => {
