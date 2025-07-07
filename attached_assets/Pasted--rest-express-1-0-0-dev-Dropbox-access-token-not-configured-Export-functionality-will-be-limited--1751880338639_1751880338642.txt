@@ -1,0 +1,1132 @@
+> rest-express@1.0.0 dev
+Dropbox access token not configured. Export functionality will be limited.
+9:22:17 AM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Dispatch template query result: {
+  id: 5,
+  filename: '673e23b980f67971b3c67874ad5f04be',
+  originalFilename: 'standard-dispatch-template.xlsx',
+  filePath: 'uploads/673e23b980f67971b3c67874ad5f04be',
+  createdAt: 2025-07-07T07:08:36.820Z,
+  isActive: true
+}
+9:22:25 AM [express] GET /api/dispatch-templates 304 in 532ms :: {"id":5,"filename":"673e23b980f6797…
+9:22:25 AM [express] GET /api/files/673e23b980f67971b3c67874ad5f04be 200 in 9ms
+9:22:27 AM [express] GET /api/dispatch-versions 200 in 2188ms :: [{"id":7,"filename":"d1deeae56135d5…
+Dispatch template query result: {
+  id: 5,
+  filename: '673e23b980f67971b3c67874ad5f04be',
+  originalFilename: 'standard-dispatch-template.xlsx',
+  filePath: 'uploads/673e23b980f67971b3c67874ad5f04be',
+  createdAt: 2025-07-07T07:08:36.820Z,
+  isActive: true
+}
+9:22:31 AM [express] GET /api/dispatch-templates 200 in 40ms :: {"id":5,"filename":"673e23b980f67971…
+9:22:31 AM [express] GET /api/dispatch-versions 200 in 40ms :: [{"id":7,"filename":"d1deeae56135d57d…
+9:22:31 AM [express] GET /api/files/673e23b980f67971b3c67874ad5f04be 200 in 0ms
+Parsing file: uploads/df03912116aa37f4308da6ca66677655, isEditedDispatch: false
+Sheet "Dispatch" - Headers: [tour 1, 9:30 am, x, guide 1] - Is dispatch: false
+Found dispatch sheets: 
+Processing sheet: Dispatch, headerRow: 6, dataRows: [8, 13, 17, 19, 23] (template)
+Sheet: Dispatch, Reading headers from row 6: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+Parsing data from specific rows: [8, 13, 17, 19, 23]
+Row 8 data: {
+  TOUR: 'Tour 1',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 13 data: {
+  TOUR: 'Tour 2',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 17 data: {
+  TOUR: 'Tour 3',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 19 data: {
+  TOUR: 'Tour 4',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 23 data: {
+  TOUR: 'Tour 5',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Sheet: Dispatch, Parsed 5 dispatch data rows
+All parsed data: [
+  {
+    TOUR: 'Tour 1',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 2',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 3',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 4',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 5',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  }
+]
+Parsed data preview: {
+  "sheets": [
+    {
+      "name": "Dispatch",
+      "rowCount": 5,
+      "columns": [
+        "TOUR",
+        "TOUR TIME +\r\nduration",
+        "Actual Dep",
+        "TOUR NR.\r\nSticker etc",
+        "(Armband)",
+        "GUIDE",
+        "(BUS NR.)",
+        "(DRIVER)",
+        "ALLOC.",
+        "PRE",
+        "ACTUAL",
+        "Incident, accident, cancellation etc.",
+        "(Arrival loc)",
+        "(Dep Loc)",
+        "Column15"
+      ],
+      "sampleData": [
+        {
+          "TOUR": "Tour 1",
+          "TOUR TIME +\r\nduration": "9:30 AM",
+          "Actual Dep": "",
+          "TOUR NR.\r\nSticker etc": "X",
+          "(Armband)": "",
+          "GUIDE": "Guide 1",
+          "(BUS NR.)": "",
+          "(DRIVER)": "",
+          "ALLOC.": "",
+          "PRE": "",
+          "ACTUAL": "",
+          "Incident, accident, cancellation etc.": "",
+          "(Arrival loc)": "",
+          "(Dep Loc)": "",
+          "Column15": ""
+        },
+        {
+          "TOUR": "Tour 2",
+          "TOUR TIME +\r\nduration": "9:30 AM",
+          "Actual Dep": "",
+          "TOUR NR.\r\nSticker etc": "X",
+          "(Armband)": "",
+          "GUIDE": "Guide 1",
+          "(BUS NR.)": "",
+          "(DRIVER)": "",
+          "ALLOC.": "",
+          "PRE": "",
+          "ACTUAL": "",
+          "Incident, accident, cancellation etc.": "",
+          "(Arrival loc)": "",
+          "(Dep Loc)": "",
+          "Column15": ""
+        },
+        {
+          "TOUR": "Tour 3",
+          "TOUR TIME +\r\nduration": "9:30 AM",
+          "Actual Dep": "",
+          "TOUR NR.\r\nSticker etc": "X",
+          "(Armband)": "",
+          "GUIDE": "Guide 1",
+          "(BUS NR.)": "",
+          "(DRIVER)": "",
+          "ALLOC.": "",
+          "PRE": "",
+          "ACTUAL": " ",
+          "Incident, accident, cancellation etc.": "",
+          "(Arrival loc)": "",
+          "(Dep Loc)": "",
+          "Column15": ""
+        }
+      ]
+    }
+  ]
+}
+9:22:52 AM [express] POST /api/upload 200 in 709ms :: {"file":{"id":129,"filename":"df03912116aa37f4…
+Parsing file: /home/runner/workspace/uploads/df03912116aa37f4308da6ca66677655, isEditedDispatch: false
+Sheet "Dispatch" - Headers: [tour 1, 9:30 am, x, guide 1] - Is dispatch: false
+Found dispatch sheets: 
+Processing sheet: Dispatch, headerRow: 6, dataRows: [8, 13, 17, 19, 23] (template)
+Sheet: Dispatch, Reading headers from row 6: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+Parsing data from specific rows: [8, 13, 17, 19, 23]
+Row 8 data: {
+  TOUR: 'Tour 1',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 13 data: {
+  TOUR: 'Tour 2',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 17 data: {
+  TOUR: 'Tour 3',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 19 data: {
+  TOUR: 'Tour 4',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 23 data: {
+  TOUR: 'Tour 5',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Sheet: Dispatch, Parsed 5 dispatch data rows
+All parsed data: [
+  {
+    TOUR: 'Tour 1',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 2',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 3',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 4',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 5',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  }
+]
+→ EOD: Processing 1 sheets for EOD data extraction
+→ EOD: Processing sheet: Dispatch with 5 rows
+→ EOD: Available columns in sheet "Dispatch": [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ EOD: First row data: {
+  "TOUR": "Tour 1",
+  "TOUR TIME +\r\nduration": "9:30 AM",
+  "Actual Dep": "",
+  "TOUR NR.\r\nSticker etc": "X",
+  "(Armband)": "",
+  "GUIDE": "Guide 1",
+  "(BUS NR.)": "",
+  "(DRIVER)": "",
+  "ALLOC.": "",
+  "PRE": "",
+  "ACTUAL": "",
+  "Incident, accident, cancellation etc.": "",
+  "(Arrival loc)": "",
+  "(Dep Loc)": "",
+  "Column15": ""
+}
+→ EOD: Sample of first 3 rows: [
+  {
+    "TOUR": "Tour 1",
+    "TOUR TIME +\r\nduration": "9:30 AM",
+    "Actual Dep": "",
+    "TOUR NR.\r\nSticker etc": "X",
+    "(Armband)": "",
+    "GUIDE": "Guide 1",
+    "(BUS NR.)": "",
+    "(DRIVER)": "",
+    "ALLOC.": "",
+    "PRE": "",
+    "ACTUAL": "",
+    "Incident, accident, cancellation etc.": "",
+    "(Arrival loc)": "",
+    "(Dep Loc)": "",
+    "Column15": ""
+  },
+  {
+    "TOUR": "Tour 2",
+    "TOUR TIME +\r\nduration": "9:30 AM",
+    "Actual Dep": "",
+    "TOUR NR.\r\nSticker etc": "X",
+    "(Armband)": "",
+    "GUIDE": "Guide 1",
+    "(BUS NR.)": "",
+    "(DRIVER)": "",
+    "ALLOC.": "",
+    "PRE": "",
+    "ACTUAL": "",
+    "Incident, accident, cancellation etc.": "",
+    "(Arrival loc)": "",
+    "(Dep Loc)": "",
+    "Column15": ""
+  },
+  {
+    "TOUR": "Tour 3",
+    "TOUR TIME +\r\nduration": "9:30 AM",
+    "Actual Dep": "",
+    "TOUR NR.\r\nSticker etc": "X",
+    "(Armband)": "",
+    "GUIDE": "Guide 1",
+    "(BUS NR.)": "",
+    "(DRIVER)": "",
+    "ALLOC.": "",
+    "PRE": "",
+    "ACTUAL": " ",
+    "Incident, accident, cancellation etc.": "",
+    "(Arrival loc)": "",
+    "(Dep Loc)": "",
+    "Column15": ""
+  }
+]
+→ Extracting tour name from row with columns: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ Row data: {
+  TOUR: 'Tour 1',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+→ Found tour name "Tour 1" in column "TOUR"
+→ Extracting adult count from row: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ X columns found: []
+→ No adult count found in this row
+→ EOD: Found tour "Tour 1" with 0 adults, 0 children, departure: , notes: 
+→ Extracting tour name from row with columns: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ Row data: {
+  TOUR: 'Tour 2',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+→ Found tour name "Tour 2" in column "TOUR"
+→ Extracting adult count from row: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ X columns found: []
+→ No adult count found in this row
+→ EOD: Found tour "Tour 2" with 0 adults, 0 children, departure: , notes: 
+→ Extracting tour name from row with columns: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ Row data: {
+  TOUR: 'Tour 3',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+→ Found tour name "Tour 3" in column "TOUR"
+→ Extracting adult count from row: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ X columns found: []
+→ No adult count found in this row
+→ EOD: Found tour "Tour 3" with 0 adults, 0 children, departure: , notes: 
+→ Extracting tour name from row with columns: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ Row data: {
+  TOUR: 'Tour 4',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+→ Found tour name "Tour 4" in column "TOUR"
+→ Extracting adult count from row: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ X columns found: []
+→ No adult count found in this row
+→ EOD: Found tour "Tour 4" with 0 adults, 0 children, departure: , notes: 
+→ Extracting tour name from row with columns: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ Row data: {
+  TOUR: 'Tour 5',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+→ Found tour name "Tour 5" in column "TOUR"
+→ Extracting adult count from row: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+→ X columns found: []
+→ No adult count found in this row
+→ EOD: Found tour "Tour 5" with 0 adults, 0 children, departure: , notes: 
+Extracted 0 unique tours with 0 adults and 0 children
+9:22:53 AM [express] POST /api/debug-dispatch-data 200 in 51ms :: {"file":{"id":129,"filename":"df03…
+Dispatch file object: {
+  id: 129,
+  filename: 'df03912116aa37f4308da6ca66677655',
+  originalName: 'edited_dispatch_1751880172235.xlsx',
+  mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  size: 41958,
+  uploadedAt: 2025-07-07T09:22:52.012Z
+}
+Dispatch file path: /home/runner/workspace/uploads/df03912116aa37f4308da6ca66677655
+File exists: true
+Parsing file: /home/runner/workspace/uploads/df03912116aa37f4308da6ca66677655, isEditedDispatch: false
+Sheet "Dispatch" - Headers: [tour 1, 9:30 am, x, guide 1] - Is dispatch: false
+Found dispatch sheets: 
+Processing sheet: Dispatch, headerRow: 6, dataRows: [8, 13, 17, 19, 23] (template)
+Sheet: Dispatch, Reading headers from row 6: [
+  'TOUR',
+  'TOUR TIME +\r\nduration',
+  'Actual Dep',
+  'TOUR NR.\r\nSticker etc',
+  '(Armband)',
+  'GUIDE',
+  '(BUS NR.)',
+  '(DRIVER)',
+  'ALLOC.',
+  'PRE',
+  'ACTUAL',
+  'Incident, accident, cancellation etc.',
+  '(Arrival loc)',
+  '(Dep Loc)',
+  'Column15'
+]
+Parsing data from specific rows: [8, 13, 17, 19, 23]
+Row 8 data: {
+  TOUR: 'Tour 1',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 13 data: {
+  TOUR: 'Tour 2',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 17 data: {
+  TOUR: 'Tour 3',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 19 data: {
+  TOUR: 'Tour 4',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: ' ',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Row 23 data: {
+  TOUR: 'Tour 5',
+  'TOUR TIME +\r\nduration': '9:30 AM',
+  'Actual Dep': '',
+  'TOUR NR.\r\nSticker etc': 'X',
+  '(Armband)': '',
+  GUIDE: 'Guide 1',
+  '(BUS NR.)': '',
+  '(DRIVER)': '',
+  'ALLOC.': '',
+  PRE: '',
+  ACTUAL: '',
+  'Incident, accident, cancellation etc.': '',
+  '(Arrival loc)': '',
+  '(Dep Loc)': '',
+  Column15: ''
+}
+Sheet: Dispatch, Parsed 5 dispatch data rows
+All parsed data: [
+  {
+    TOUR: 'Tour 1',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 2',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 3',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 4',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: ' ',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  },
+  {
+    TOUR: 'Tour 5',
+    'TOUR TIME +\r\nduration': '9:30 AM',
+    'Actual Dep': '',
+    'TOUR NR.\r\nSticker etc': 'X',
+    '(Armband)': '',
+    GUIDE: 'Guide 1',
+    '(BUS NR.)': '',
+    '(DRIVER)': '',
+    'ALLOC.': '',
+    PRE: '',
+    ACTUAL: '',
+    'Incident, accident, cancellation etc.': '',
+    '(Arrival loc)': '',
+    '(Dep Loc)': '',
+    Column15: ''
+  }
+]
+Dispatch data for EOD processing: {
+  "sheets": [
+    {
+      "name": "Dispatch",
+      "rowCount": 5,
+      "columns": [
+        "TOUR",
+        "TOUR TIME +\r\nduration",
+        "Actual Dep",
+        "TOUR NR.\r\nSticker etc",
+        "(Armband)",
+        "GUIDE",
+        "(BUS NR.)",
+        "(DRIVER)",
+        "ALLOC.",
+        "PRE",
+        "ACTUAL",
+        "Incident, accident, cancellation etc.",
+        "(Arrival loc)",
+        "(Dep Loc)",
+        "Column15"
+      ],
+      "firstRowSample": {
+        "TOUR": "Tour 1",
+        "TOUR TIME +\r\nduration": "9:30 AM",
+        "Actual Dep": "",
+        "TOUR NR.\r\nSticker etc": "X",
+        "(Armband)": "",
+        "GUIDE": "Guide 1",
+        "(BUS NR.)": "",
+        "(DRIVER)": "",
+        "ALLOC.": "",
+        "PRE": "",
+        "ACTUAL": "",
+        "Incident, accident, cancellation etc.": "",
+        "(Arrival loc)": "",
+        "(Dep Loc)": "",
+        "Column15": ""
+      }
+    }
+  ]
+}
+→ SimpleEOD: Step 2 - Extract and store dispatch data
+→ CellExtractor: Reading file /home/runner/workspace/uploads/df03912116aa37f4308da6ca66677655
+→ CellExtractor: Processing sheet "Dispatch"
+→ CellExtractor: A8="Tour 1", B8="9:30 AM", H8=""
+→ SimpleEOD: Stored dispatch data: {
+  id: 1,
+  dispatchFileId: 129,
+  cellA8Value: 'Tour 1',
+  cellB8Value: '9:30 AM',
+  cellH8Value: '',
+  extractedAt: 2025-07-07T09:22:55.054Z
+}
+→ SimpleEOD: Step 3 - Replace delimiters in EOD template
+→ SimpleEOD: Replacing B17 with tour name from A8
+→ SimpleEOD: Set B17 = "Tour 1"
+→ SimpleEOD: Set I22 (departure_time) = "9:30 AM"
+→ SimpleEOD: Step 4 - Saved populated EOD report to /home/runner/workspace/output/eod_1751880175029.xlsx
+9:22:55 AM [express] POST /api/process-eod-from-dispatch 200 in 305ms :: {"success":true,"dispatchFi…
+9:22:57 AM [express] GET /api/output-files 200 in 2ms :: [{"filename":"dispatch_1751880175029.xlsx",…
+9:22:57 AM [express] GET /api/processing-jobs 200 in 10ms
+9:22:57 AM [express] GET /api/generated-reports 304 in 42ms :: [{"id":10,"dispatchFilePath":"/home/r…
+9:23:00 AM [express] GET /api/download-report/10/eod 200 in 40ms

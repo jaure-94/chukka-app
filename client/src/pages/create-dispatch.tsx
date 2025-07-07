@@ -35,6 +35,7 @@ export default function CreateDispatch() {
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [showAllVersions, setShowAllVersions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savedFileId, setSavedFileId] = useState<string | null>(null);
@@ -594,7 +595,7 @@ export default function CreateDispatch() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {dispatchVersions.map((version: any) => (
+                      {dispatchVersions.slice(0, showAllVersions ? dispatchVersions.length : 3).map((version: any) => (
                         <div key={version.id} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
                           <div className="flex items-center space-x-4">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -635,6 +636,22 @@ export default function CreateDispatch() {
                           </div>
                         </div>
                       ))}
+                      
+                      {dispatchVersions.length > 3 && (
+                        <div className="text-center pt-3 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowAllVersions(!showAllVersions)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            {showAllVersions 
+                              ? 'Show Less' 
+                              : `View More Versions (${dispatchVersions.length - 3} more)`
+                            }
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

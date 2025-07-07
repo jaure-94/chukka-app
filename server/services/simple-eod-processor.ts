@@ -82,6 +82,17 @@ export class SimpleEODProcessor {
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
       console.log(`→ SimpleEOD: Step 4 - Saved populated EOD report to ${outputPath}`);
+      
+      // Log success summary
+      console.log(`
+→ SimpleEOD: SUCCESS SUMMARY:
+  ✓ Extracted A8 (Tour Name): "${cellData.cellA8}"
+  ✓ Extracted B8 (Departure): "${cellData.cellB8}"  
+  ✓ Extracted H8 (Notes): "${cellData.cellH8}"
+  ✓ Replaced B17 with: "${cellData.cellA8}"
+  ✓ Replaced I22 with: "${cellData.cellB8}"
+  ✓ Generated file: ${path.basename(outputPath)}
+      `);
 
       return outputPath;
     } catch (error) {
