@@ -190,10 +190,17 @@ export default function CreateDispatch() {
     
     setIsLoading(true);
     try {
+      // Debug: Log the data being saved
+      console.log('Saving edited data with', editedData.length, 'rows');
+      if (editedData.length > 8) {
+        console.log('Sample data row 8:', editedData[7]); // Row 8 (index 7)
+        console.log('Sample data row 13:', editedData[12]); // Row 13 (index 12)
+      }
+      
       // Create workbook and worksheet
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.aoa_to_sheet(editedData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Dispatch");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
       
       // Convert to buffer
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });

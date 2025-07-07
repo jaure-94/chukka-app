@@ -527,14 +527,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       editedWorksheet.eachRow((row, rowNumber) => {
         if (rowNumber >= 9) { // Data rows start from row 9
           row.eachCell((cell, colNumber) => {
-            if (colNumber <= 8) { // Only process columns A-H
+            if (colNumber <= 15) { // Process columns A-O (1-15) to include notes column
               const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
               const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
               
               // Set the value from edited sheet
               targetCell.value = cell.value;
               
-              // Preserve original template formatting
+              // Preserve original template formatting (if template cell has formatting)
               if (templateCell.font) targetCell.font = { ...templateCell.font };
               if (templateCell.fill) targetCell.fill = { ...templateCell.fill };
               if (templateCell.border) targetCell.border = { ...templateCell.border };
