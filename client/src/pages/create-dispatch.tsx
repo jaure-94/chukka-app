@@ -139,11 +139,19 @@ export default function CreateDispatch() {
           }
         });
         
-        setFile({
+        const newFile = {
           name: dispatchTemplate.originalFilename,
           data: completeRows,
           headers: genericHeaders
+        };
+        
+        console.log('Setting file with data:', { 
+          name: newFile.name, 
+          rowCount: newFile.data.length,
+          colCount: newFile.data[0]?.length || 0 
         });
+        
+        setFile(newFile);
       }
     } catch (error) {
       console.error('Error loading dispatch template:', error);
@@ -157,9 +165,27 @@ export default function CreateDispatch() {
     }
   };
 
-  const handleEditSpreadsheet = () => {
-    if (!file) return;
+  const handleEditSpreadsheet = async () => {
+    console.log('Edit button clicked. Current file state:', file);
+    console.log('Dispatch template:', dispatchTemplate);
     
+    // If file is not loaded yet, load the dispatch template first
+    if (!file && dispatchTemplate) {
+      console.log('Loading dispatch template...');
+      await loadDispatchTemplate();
+    }
+    
+    if (!file) {
+      console.log('No file available after loading attempt');
+      toast({
+        title: "Error",
+        description: "No dispatch template available to edit",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Setting editing state with file data:', file.data.length, 'rows');
     setEditedData([...file.data]);
     setIsEditing(true);
     setHasUnsavedChanges(false);
