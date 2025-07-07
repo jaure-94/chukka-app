@@ -95,10 +95,15 @@ export class EODProcessor {
   }
 
   private extractTourName(row: Record<string, any>): string | null {
-    console.log('→ Extracting tour name from row:', Object.keys(row));
+    console.log('→ Extracting tour name from row with columns:', Object.keys(row));
+    console.log('→ Row data:', row);
     
-    // Try standard column names first
-    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity'];
+    // With proper headers from row 6, we should have correct column names
+    const possibleColumns = [
+      'Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity',
+      // Also try first few columns in case headers are generic
+      'A', 'Column1', 'Column0'
+    ];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
@@ -113,17 +118,6 @@ export class EODProcessor {
     for (const col of tourColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
         console.log(`→ Found tour name "${row[col]}" in tour column "${col}"`);
-        return row[col].trim();
-      }
-    }
-    
-    // If standard columns don't work, try positional columns (for edited dispatch files)
-    // Based on dispatch template structure: A=Tour Name
-    const positionalColumns = ['A', 'Column1', 'Column0'];
-    
-    for (const col of positionalColumns) {
-      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
-        console.log(`→ Found tour name "${row[col]}" in positional column "${col}"`);
         return row[col].trim();
       }
     }

@@ -77,16 +77,28 @@ export class ExcelParser {
         const worksheet = workbook.Sheets[sheetName];
         
         // For edited dispatch files, headers are in row 1 (0-indexed as 0)
-        // For original templates, headers are in row 8 (0-indexed as 7)
+        // For original templates, headers are in row 6 (0-indexed as 5)
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-        const startRow = isEditedDispatch ? 0 : 7;
+        const headerRow = isEditedDispatch ? 0 : 5; // Row 6 contains headers
+        // For edited files, read all rows after header. For templates, read specific dispatch rows
+        let dataRows: number[];
+        if (isEditedDispatch) {
+          // Read all rows from row 2 onwards (after header in row 1)
+          dataRows = [];
+          for (let r = 1; r <= range.e.r; r++) {
+            dataRows.push(r);
+          }
+        } else {
+          // Read specific dispatch rows: 8, 13, 17, 19, 23 (0-indexed: 7, 12, 16, 18, 22)
+          dataRows = [7, 12, 16, 18, 22];
+        }
         
-        console.log(`Processing sheet: ${sheetName}, startRow: ${startRow + 1} (${isEditedDispatch ? 'edited file' : 'template'})`);
+        console.log(`Processing sheet: ${sheetName}, headerRow: ${headerRow + 1}, dataRows: [${dataRows.map(r => r + 1).join(', ')}] (${isEditedDispatch ? 'edited file' : 'template'})`);
         
-        // Get column headers from the appropriate row
+        // Get column headers from the header row
         const columns: string[] = [];
         for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: startRow, c: col });
+          const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
           const cell = worksheet[cellAddress];
           if (cell && cell.v) {
             columns.push(String(cell.v).trim());
@@ -96,27 +108,17 @@ export class ExcelParser {
           }
         }
         
-        console.log(`Sheet: ${sheetName}, Reading headers from row ${startRow + 1}:`, columns);
+        console.log(`Sheet: ${sheetName}, Reading headers from row ${headerRow + 1}:`, columns);
 
-        // Expected dispatch column headers
-        const expectedColumns = [
-          'Tour Name',
-          'Departure', 
-          'Return',
-          'Adults',
-          'Children',
-          'Comp',
-          'Total Guests',
-          'Notes'
-        ];
-
-        // Parse data starting from the next row after headers
+        // Parse data only from specific dispatch rows
         const jsonData: Record<string, any>[] = [];
-        const dataStartRow = startRow + 1;
         
-        console.log(`Parsing data from row ${dataStartRow + 1} to ${range.e.r + 1}`);
+        console.log(`Parsing data from specific rows: [${dataRows.map(r => r + 1).join(', ')}]`);
         
-        for (let row = dataStartRow; row <= range.e.r; row++) {
+        for (const row of dataRows) {
+          // Skip if row is beyond the sheet range
+          if (row > range.e.r) continue;
+          
           const rowData: Record<string, any> = {};
           let hasData = false;
           
@@ -135,17 +137,18 @@ export class ExcelParser {
           
           // Only include rows that have some data
           if (hasData) {
+            console.log(`Row ${row + 1} data:`, rowData);
             jsonData.push(rowData);
           }
         }
 
-        console.log(`Sheet: ${sheetName}, Parsed ${jsonData.length} data rows starting from row ${startRow + 2}`);
-        console.log(`First few rows:`, jsonData.slice(0, 3));
+        console.log(`Sheet: ${sheetName}, Parsed ${jsonData.length} dispatch data rows`);
+        console.log(`All parsed data:`, jsonData);
 
         sheets.push({
           name: sheetName,
           data: jsonData,
-          columns: columns.length > 0 ? columns : expectedColumns,
+          columns: columns,
         });
       }
 
