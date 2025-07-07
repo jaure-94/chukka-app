@@ -36,6 +36,12 @@ export class EODProcessor {
     for (const sheet of dispatchData.sheets) {
       console.log(`→ EOD: Processing sheet: ${sheet.name} with ${sheet.data.length} rows`);
       
+      // Debug: Show first few rows and available columns
+      if (sheet.data.length > 0) {
+        console.log(`→ EOD: Available columns in sheet "${sheet.name}":`, Object.keys(sheet.data[0]));
+        console.log(`→ EOD: First row data:`, sheet.data[0]);
+      }
+      
       for (const row of sheet.data) {
         const tourName = this.extractTourName(row);
         if (tourName) {
@@ -44,7 +50,7 @@ export class EODProcessor {
           const notes = this.extractNotes(row);
           const departureTime = this.extractDepartureTime(row);
           
-          console.log(`→ EOD: Found tour "${tourName}" with ${adults} adults, ${children} children, departure: ${departureTime}`);
+          console.log(`→ EOD: Found tour "${tourName}" with ${adults} adults, ${children} children, departure: ${departureTime}, notes: ${notes}`);
           
           if (adults > 0 || children > 0) {
             const existingTour = tours.find(t => t.tour_name === tourName);
