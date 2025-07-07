@@ -151,6 +151,9 @@ export default function Reports() {
                               second: '2-digit'
                             })}
                           </div>
+                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                            File: {latestEOD.filename}
+                          </div>
                         </div>
                         <Button 
                           size="sm" 
