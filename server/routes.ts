@@ -61,6 +61,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve output files (generated reports)
+  app.get("/api/output/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const filePath = path.join(process.cwd(), "output", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Set appropriate headers for Excel files
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Output file serving error:", error);
+      res.status(500).json({ message: "Failed to serve output file" });
+    }
+  });
+
   // File upload endpoint
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
@@ -460,6 +482,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Dispatch version fetch error:", error);
       res.status(500).json({ message: "Failed to fetch dispatch version" });
+    }
+  });
+
+  // Get all output files with metadata
+  app.get("/api/output-files", async (req, res) => {
+    try {
+      const outputDir = path.join(process.cwd(), "output");
+      
+      if (!fs.existsSync(outputDir)) {
+        return res.json([]);
+      }
+
+      const files = fs.readdirSync(outputDir).filter(file => file.endsWith('.xlsx'));
+      
+      const fileList = files.map(filename => {
+        const filePath = path.join(outputDir, filename);
+        const stats = fs.statSync(filePath);
+        
+        // Parse filename to determine type
+        const isEOD = filename.startsWith('eod_');
+        const isDispatch = filename.startsWith('dispatch_');
+        
+        return {
+          filename,
+          type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : 'Other',
+          size: stats.size,
+          createdAt: stats.birthtime,
+          downloadUrl: `/api/output/${filename}`
+        };
+      });
+
+      // Sort by creation date, newest first
+      fileList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json(fileList);
+    } catch (error) {
+      console.error("Output files fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch output files" });
     }
   });
 

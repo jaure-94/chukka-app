@@ -60,6 +60,11 @@ export default function Reports() {
     queryKey: ["/api/eod-templates"],
   });
 
+  // Fetch output files
+  const { data: outputFiles = [], isLoading: isLoadingFiles } = useQuery({
+    queryKey: ["/api/output-files"],
+  });
+
   // Generate report mutation
   const generateReportMutation = useMutation({
     mutationFn: async () => {
@@ -339,6 +344,86 @@ export default function Reports() {
                           </Button>
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Generated Files */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <File className="w-5 h-5 mr-2 text-purple-600" />
+                Generated Files
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Download your generated EOD and dispatch reports
+              </p>
+            </CardHeader>
+            <CardContent>
+              {isLoadingFiles ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Loading files...</p>
+                </div>
+              ) : outputFiles.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <File className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 mb-4">No generated files yet</p>
+                  <p className="text-sm text-gray-400">
+                    Edit and save dispatch sheets to generate files
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {outputFiles.map((file: any) => (
+                    <div
+                      key={file.filename}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-2 h-2 rounded-full ${
+                              file.type === 'EOD Report' ? 'bg-green-500' : 'bg-blue-500'
+                            }`}></div>
+                            <Badge 
+                              variant={file.type === 'EOD Report' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {file.type}
+                            </Badge>
+                          </div>
+                          <h4 className="font-medium text-gray-900 text-sm truncate">
+                            {file.filename}
+                          </h4>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Size:</span>
+                          <span>{(file.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Created:</span>
+                          <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        onClick={() => window.open(file.downloadUrl, '_blank')}
+                        className="w-full"
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
                     </div>
                   ))}
                 </div>
