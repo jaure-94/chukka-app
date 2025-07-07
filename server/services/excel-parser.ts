@@ -65,9 +65,9 @@ export class ExcelParser {
       const workbook = XLSX.readFile(filePath);
       const sheets: ParsedSheet[] = [];
 
-      // Check if this is a user-edited file (starts with "edited_dispatch_") or a template file
-      const isEditedFile = filePath.includes('edited_dispatch_') || !filePath.includes('standard-dispatch-template');
-      console.log(`Parsing file: ${filePath}, isEditedFile: ${isEditedFile}`);
+      // Determine if this is an edited dispatch file vs original template
+      const isEditedDispatch = filePath.includes('edited_dispatch_');
+      console.log(`Parsing file: ${filePath}, isEditedDispatch: ${isEditedDispatch}`);
 
       // Find the dispatch sheet (Grand Turk or sheets with dispatch data structure)
       const dispatchSheetNames = this.findDispatchSheets(workbook);
@@ -76,11 +76,12 @@ export class ExcelParser {
       for (const sheetName of sheetsToProcess) {
         const worksheet = workbook.Sheets[sheetName];
         
-        // For template files: start from row 8, for edited files: start from row 1
+        // For edited dispatch files, headers are in row 1 (0-indexed as 0)
+        // For original templates, headers are in row 8 (0-indexed as 7)
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-        const startRow = isEditedFile ? 0 : 7; // Row 1 for edited files, Row 8 for templates
+        const startRow = isEditedDispatch ? 0 : 7;
         
-        console.log(`Processing sheet: ${sheetName}, startRow: ${startRow + 1}, isEditedFile: ${isEditedFile}`);
+        console.log(`Processing sheet: ${sheetName}, startRow: ${startRow + 1} (${isEditedDispatch ? 'edited file' : 'template'})`);
         
         // Get column headers from the appropriate row
         const columns: string[] = [];
@@ -89,6 +90,9 @@ export class ExcelParser {
           const cell = worksheet[cellAddress];
           if (cell && cell.v) {
             columns.push(String(cell.v).trim());
+          } else {
+            // If no value, use column letter as placeholder
+            columns.push(`Column${col + 1}`);
           }
         }
         

@@ -95,9 +95,20 @@ export class EODProcessor {
   }
 
   private extractTourName(row: Record<string, any>): string | null {
-    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity', 'A'];
+    // Try standard column names first
+    const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity'];
     
     for (const col of possibleColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        return row[col].trim();
+      }
+    }
+    
+    // If standard columns don't work, try positional columns (for edited dispatch files)
+    // Based on dispatch template structure: A=Tour Name
+    const positionalColumns = ['A', 'Column1', 'Column0'];
+    
+    for (const col of positionalColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
         return row[col].trim();
       }
@@ -107,9 +118,23 @@ export class EODProcessor {
   }
 
   private extractAdultCount(row: Record<string, any>): number {
-    const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult', 'D'];
+    // Try standard column names first
+    const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult'];
     
     for (const col of possibleColumns) {
+      if (row[col] !== undefined && row[col] !== null) {
+        const count = parseInt(row[col].toString());
+        if (!isNaN(count) && count >= 0) {
+          return count;
+        }
+      }
+    }
+    
+    // Try positional columns (for edited dispatch files)
+    // Based on dispatch template structure: D=Adults
+    const positionalColumns = ['D', 'Column4', 'Column3'];
+    
+    for (const col of positionalColumns) {
       if (row[col] !== undefined && row[col] !== null) {
         const count = parseInt(row[col].toString());
         if (!isNaN(count) && count >= 0) {
@@ -122,9 +147,23 @@ export class EODProcessor {
   }
 
   private extractChildCount(row: Record<string, any>): number {
-    const possibleColumns = ['Children', 'num_chd', 'Child', 'CHD', 'child', 'CHILD', 'Num Child', 'E'];
+    // Try standard column names first
+    const possibleColumns = ['Children', 'num_chd', 'Child', 'CHD', 'child', 'CHILD', 'Num Child'];
     
     for (const col of possibleColumns) {
+      if (row[col] !== undefined && row[col] !== null) {
+        const count = parseInt(row[col].toString());
+        if (!isNaN(count) && count >= 0) {
+          return count;
+        }
+      }
+    }
+    
+    // Try positional columns (for edited dispatch files)
+    // Based on dispatch template structure: E=Children
+    const positionalColumns = ['E', 'Column5', 'Column4'];
+    
+    for (const col of positionalColumns) {
       if (row[col] !== undefined && row[col] !== null) {
         const count = parseInt(row[col].toString());
         if (!isNaN(count) && count >= 0) {
@@ -137,9 +176,20 @@ export class EODProcessor {
   }
 
   private extractNotes(row: Record<string, any>): string {
-    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS', 'Incident, accident, cancellation etc.', 'H'];
+    // Try standard column names first
+    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS', 'Incident, accident, cancellation etc.'];
     
     for (const col of possibleColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        return row[col].trim();
+      }
+    }
+    
+    // Try positional columns (for edited dispatch files)
+    // Based on dispatch template structure: H=Notes
+    const positionalColumns = ['H', 'Column8', 'Column7'];
+    
+    for (const col of positionalColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
         return row[col].trim();
       }
@@ -149,9 +199,20 @@ export class EODProcessor {
   }
 
   private extractDepartureTime(row: Record<string, any>): string {
-    const possibleColumns = ['TOUR TIME + duration', 'Tour Time', 'Departure Time', 'departure_time', 'Departure', 'departure', 'DEPARTURE', 'Time', 'B'];
+    // Try standard column names first
+    const possibleColumns = ['TOUR TIME + duration', 'Tour Time', 'Departure Time', 'departure_time', 'Departure', 'departure', 'DEPARTURE', 'Time'];
     
     for (const col of possibleColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        return row[col].trim();
+      }
+    }
+    
+    // Try positional columns (for edited dispatch files)
+    // Based on dispatch template structure: B=Departure
+    const positionalColumns = ['B', 'Column2', 'Column1'];
+    
+    for (const col of positionalColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
         return row[col].trim();
       }
