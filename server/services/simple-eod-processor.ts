@@ -80,6 +80,15 @@ export class SimpleEODProcessor {
             if (cell.value && typeof cell.value === 'string' && cell.value.includes('{{notes}}')) {
               cell.value = cellData.cellH8;
               const cellAddress = worksheet.getCell(rowNumber, colNumber).address;
+              
+              // Apply formatting: remove strikethrough, remove bold, set dark blue color
+              cell.font = {
+                ...cell.font,
+                strike: false,
+                bold: false,
+                color: { argb: 'FF003366' }
+              };
+              
               console.log(`→ SimpleEOD: Found {{notes}} in ${cellAddress}, replaced with: "${cellData.cellH8}"`);
               notesCellFound = true;
             }
@@ -90,6 +99,19 @@ export class SimpleEODProcessor {
           console.log('→ SimpleEOD: Warning - {{notes}} placeholder not found in EOD template');
         }
       }
+
+      // Apply formatting cleanup to specified cells
+      const formatCells = ['E3', 'E4', 'E5', 'E6', 'I22', 'I23', 'I24'];
+      formatCells.forEach(cellAddress => {
+        const cell = worksheet.getCell(cellAddress);
+        cell.font = {
+          ...cell.font,
+          strike: false,
+          bold: false,
+          color: { argb: 'FF003366' }
+        };
+      });
+      console.log('→ SimpleEOD: Applied formatting cleanup to cells E3-E6, I22-I24');
 
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
