@@ -722,12 +722,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
       fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
 
+      // Create a new dispatch version record to make it appear in "Latest Dispatch Sheet"
+      const dispatchVersion = await storage.createDispatchVersion({
+        filename: path.basename(dispatchFilePath),
+        originalFilename: `dispatch_${timestamp}.xlsx`,
+        filePath: dispatchFilePath,
+        isActive: true
+      });
+
       // For now, skip database record and just return success
       res.json({
         success: true,
         dispatchFile: path.basename(dispatchOutputPath),
         eodFile: path.basename(eodOutputPath),
-        message: "EOD report generated successfully"
+        message: "EOD report generated successfully",
+        dispatchVersionId: dispatchVersion.id
       });
 
     } catch (error) {
