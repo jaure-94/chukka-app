@@ -112,12 +112,37 @@ export default function SpreadsheetView() {
             const totalRowsWithExtra = actualRowCount + extraRows;
             const completeRows: SpreadsheetData = [];
             
+            // Helper function to convert Excel time decimal to readable format
+            const convertExcelTimeToReadable = (value: any) => {
+              if (typeof value === 'number' && value > 0 && value < 1) {
+                // This is likely a time value (fraction of a day)
+                const totalMinutes = Math.round(value * 24 * 60);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                
+                // Format as 12-hour time with AM/PM
+                const period = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                const displayMinutes = minutes.toString().padStart(2, '0');
+                
+                return `${displayHours}:${displayMinutes} ${period}`;
+              }
+              return value;
+            };
+
             for (let r = 0; r < totalRowsWithExtra; r++) {
               const row = allRows[r] || [];
               const completeRow: (string | number)[] = [];
               
               for (let c = 0; c < actualColumnCount; c++) {
-                completeRow[c] = row[c] !== undefined ? row[c] : '';
+                let cellValue = row[c] !== undefined ? row[c] : '';
+                
+                // Convert time values in column B (index 1) - "TOUR TIME + duration" column
+                if (c === 1) {
+                  cellValue = convertExcelTimeToReadable(cellValue);
+                }
+                
+                completeRow[c] = cellValue;
               }
               
               completeRows.push(completeRow);
