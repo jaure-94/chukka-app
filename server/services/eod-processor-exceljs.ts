@@ -95,11 +95,24 @@ export class EODProcessor {
   }
 
   private extractTourName(row: Record<string, any>): string | null {
+    console.log('→ Extracting tour name from row:', Object.keys(row));
+    
     // Try standard column names first
     const possibleColumns = ['Tour Name', 'tour_name', 'Tour', 'TOUR', 'Product', 'Activity'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        console.log(`→ Found tour name "${row[col]}" in column "${col}"`);
+        return row[col].trim();
+      }
+    }
+    
+    // Try any column that contains "tour" (case insensitive) 
+    const tourColumns = Object.keys(row).filter(key => key.toLowerCase().includes('tour'));
+    console.log('→ Tour columns found:', tourColumns);
+    for (const col of tourColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        console.log(`→ Found tour name "${row[col]}" in tour column "${col}"`);
         return row[col].trim();
       }
     }
@@ -110,14 +123,18 @@ export class EODProcessor {
     
     for (const col of positionalColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        console.log(`→ Found tour name "${row[col]}" in positional column "${col}"`);
         return row[col].trim();
       }
     }
     
+    console.log('→ No tour name found in this row');
     return null;
   }
 
   private extractAdultCount(row: Record<string, any>): number {
+    console.log('→ Extracting adult count from row:', Object.keys(row));
+    
     // Try standard column names first
     const possibleColumns = ['Adults', 'num_adult', 'Adult', 'ADULT', 'adult', 'Num Adult'];
     
@@ -125,6 +142,23 @@ export class EODProcessor {
       if (row[col] !== undefined && row[col] !== null) {
         const count = parseInt(row[col].toString());
         if (!isNaN(count) && count >= 0) {
+          console.log(`→ Found adult count ${count} in column "${col}"`);
+          return count;
+        }
+      }
+    }
+    
+    // Try any column that contains "X" (dispatch template uses X for counts)
+    const xColumns = Object.keys(row).filter(key => key === 'X');
+    console.log('→ X columns found:', xColumns);
+    
+    if (xColumns.length >= 1) {
+      // First X column should be adults
+      const firstXCol = xColumns[0];
+      if (row[firstXCol] !== undefined && row[firstXCol] !== null) {
+        const count = parseInt(row[firstXCol].toString());
+        if (!isNaN(count) && count >= 0) {
+          console.log(`→ Found adult count ${count} in first X column "${firstXCol}"`);
           return count;
         }
       }
@@ -138,11 +172,13 @@ export class EODProcessor {
       if (row[col] !== undefined && row[col] !== null) {
         const count = parseInt(row[col].toString());
         if (!isNaN(count) && count >= 0) {
+          console.log(`→ Found adult count ${count} in positional column "${col}"`);
           return count;
         }
       }
     }
     
+    console.log('→ No adult count found in this row');
     return 0;
   }
 
