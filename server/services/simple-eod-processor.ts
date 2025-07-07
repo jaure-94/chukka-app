@@ -81,21 +81,6 @@ export class SimpleEODProcessor {
               cell.value = cellData.cellH8;
               const cellAddress = worksheet.getCell(rowNumber, colNumber).address;
               
-              // Apply formatting: remove strikethrough, remove bold, set dark blue color
-              const currentFont = cell.font || {};
-              console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
-              
-              // Completely override font to ensure strikethrough is removed
-              delete cell.font;
-              cell.font = {
-                name: currentFont.name || 'Verdana',
-                size: currentFont.size || 9,
-                family: 2,
-                color: { argb: 'FF003366' }
-              };
-              
-              console.log(`→ SimpleEOD: New font for ${cellAddress}:`, cell.font);
-              
               console.log(`→ SimpleEOD: Found {{notes}} in ${cellAddress}, replaced with: "${cellData.cellH8}"`);
               notesCellFound = true;
             }
@@ -107,8 +92,10 @@ export class SimpleEODProcessor {
         }
       }
 
-      // Apply formatting cleanup to specified cells
-      const formatCells = ['E3', 'E4', 'E5', 'E6', 'I22', 'I23', 'I24'];
+      // Apply formatting cleanup to specified cells (including the notes cell)
+      const formatCells = ['B21', 'E3', 'E4', 'E5', 'E6', 'I22', 'I23', 'I24'];
+      
+      // Apply formatting changes AFTER all content changes
       formatCells.forEach(cellAddress => {
         const cell = worksheet.getCell(cellAddress);
         
@@ -116,16 +103,24 @@ export class SimpleEODProcessor {
         const currentFont = cell.font || {};
         console.log(`→ SimpleEOD: Current font for ${cellAddress}:`, currentFont);
         
-        // Completely override font to ensure strikethrough is removed
-        delete cell.font;
+        // Force remove all problematic formatting
+        cell.font = undefined;
+        cell.style = cell.style || {};
+        
+        // Set clean font properties
         cell.font = {
-          name: currentFont.name || 'Verdana',
-          size: currentFont.size || 9,
+          name: 'Verdana',
+          size: 9,
           family: 2,
           color: { argb: 'FF003366' }
         };
         
-        console.log(`→ SimpleEOD: New font for ${cellAddress}:`, cell.font);
+        // Explicitly ensure no strikethrough or bold
+        if (cell.style) {
+          delete cell.style.font;
+        }
+        
+        console.log(`→ SimpleEOD: Clean font applied to ${cellAddress}:`, cell.font);
       });
 
       // Save the processed file
