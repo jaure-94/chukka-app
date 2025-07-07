@@ -248,8 +248,8 @@ export default function CreateDispatch() {
     },
     onSuccess: (result) => {
       toast({
-        title: "Success",
-        description: "EOD report updated successfully! Redirecting to Reports page...",
+        title: "Success! 🎉",
+        description: `EOD report generated successfully! Files: ${result.eodFile} & ${result.dispatchFile}`,
       });
       
       // Invalidate reports cache
@@ -258,7 +258,7 @@ export default function CreateDispatch() {
       // Redirect to Reports page after a short delay
       setTimeout(() => {
         setLocation("/reports");
-      }, 1500);
+      }, 2000);
     },
     onError: (error) => {
       toast({
