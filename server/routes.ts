@@ -10,6 +10,7 @@ import { DropboxService } from "./services/dropbox-service";
 import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
+import ExcelJS from "exceljs";
 import { 
   insertUploadedFileSchema, 
   insertProcessingJobSchema, 
@@ -507,7 +508,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create a new dispatch version with formatting preservation
-      const ExcelJS = await import("exceljs");
       const templateWorkbook = new ExcelJS.Workbook();
       const editedWorkbook = new ExcelJS.Workbook();
       
