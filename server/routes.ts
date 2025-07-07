@@ -423,6 +423,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process EOD report from dispatch file
+  app.post("/api/process-eod-from-dispatch", async (req, res) => {
+    try {
+      const { dispatchFileId } = req.body;
+      
+      if (!dispatchFileId) {
+        return res.status(400).json({ message: "Dispatch file ID is required" });
+      }
+
+      // Get the uploaded dispatch file
+      const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+      if (!dispatchFile) {
+        return res.status(404).json({ message: "Dispatch file not found" });
+      }
+
+      // Get active EOD template
+      const eodTemplate = await storage.getActiveEodTemplate();
+      if (!eodTemplate) {
+        return res.status(400).json({ message: "No active EOD template found" });
+      }
+
+      // Parse dispatch data
+      const dispatchData = await excelParser.parseFile(dispatchFile.filePath);
+      console.log('Dispatch data for EOD processing:', dispatchData);
+
+      // Generate timestamp for unique filenames
+      const timestamp = Date.now();
+      
+      // Process EOD template with dispatch data
+      const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
+      await eodProcessor.processEODTemplate(eodTemplate.filePath, dispatchData, eodOutputPath);
+
+      // Generate dispatch report as well
+      const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
+      await dispatchGenerator.generateDispatchReport(dispatchData, dispatchOutputPath);
+
+      // Create generated report record
+      const generatedReport = await storage.createGeneratedReport({
+        dispatchFilePath: dispatchOutputPath,
+        eodFilePath: eodOutputPath,
+        recordCount: dispatchData.sheets.reduce((total, sheet) => total + sheet.rowCount, 0),
+      });
+
+      res.json({
+        success: true,
+        reportId: generatedReport.id,
+        dispatchFile: dispatchOutputPath,
+        eodFile: eodOutputPath,
+        message: "EOD report generated successfully"
+      });
+
+    } catch (error) {
+      console.error("EOD processing error:", error);
+      res.status(500).json({ 
+        message: "Failed to process EOD report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/download-report/:reportId/:type", async (req, res) => {
     try {
       const { reportId, type } = req.params;

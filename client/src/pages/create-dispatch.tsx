@@ -35,6 +35,8 @@ export default function CreateDispatch() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [savedFileId, setSavedFileId] = useState<string | null>(null);
+  const [showUpdateEOD, setShowUpdateEOD] = useState(false);
 
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -197,6 +199,11 @@ export default function CreateDispatch() {
       });
       
       setHasUnsavedChanges(false);
+      setSavedFileId(result.file.id);
+      
+      // Close the editing view and show Update EOD button
+      setIsEditing(false);
+      setShowUpdateEOD(true);
       
       // Update the file data
       if (file) {
@@ -224,6 +231,47 @@ export default function CreateDispatch() {
     setIsEditing(false);
     setEditedData([]);
     setHasUnsavedChanges(false);
+  };
+
+  // Update EOD Report mutation
+  const updateEODMutation = useMutation({
+    mutationFn: async () => {
+      if (!savedFileId) {
+        throw new Error('No saved file ID available');
+      }
+
+      const response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
+        dispatchFileId: savedFileId
+      });
+
+      return response.json();
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Success",
+        description: "EOD report updated successfully! Redirecting to Reports page...",
+      });
+      
+      // Invalidate reports cache
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
+      
+      // Redirect to Reports page after a short delay
+      setTimeout(() => {
+        setLocation("/reports");
+      }, 1500);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update EOD report",
+        variant: "destructive",
+      });
+      console.error("Error updating EOD report:", error);
+    },
+  });
+
+  const handleUpdateEOD = () => {
+    updateEODMutation.mutate();
   };
 
   return (
@@ -271,7 +319,7 @@ export default function CreateDispatch() {
                       <p className="text-sm text-gray-600">{dispatchTemplate.originalFilename}</p>
                     </div>
                     <div className="flex space-x-3">
-                      {!isEditing ? (
+                      {!isEditing && !showUpdateEOD ? (
                         <Button 
                           onClick={handleEditSpreadsheet}
                           disabled={isLoading}
@@ -279,7 +327,7 @@ export default function CreateDispatch() {
                         >
                           Edit Dispatch Sheet
                         </Button>
-                      ) : (
+                      ) : isEditing ? (
                         <div className="flex space-x-2">
                           <Button 
                             onClick={handleSave}
@@ -296,7 +344,26 @@ export default function CreateDispatch() {
                             Cancel
                           </Button>
                         </div>
-                      )}
+                      ) : showUpdateEOD ? (
+                        <div className="flex space-x-2">
+                          <Button 
+                            onClick={handleUpdateEOD}
+                            disabled={updateEODMutation.isPending}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            {updateEODMutation.isPending ? 'Updating...' : 'Update EOD Report'}
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setShowUpdateEOD(false);
+                              setSavedFileId(null);
+                            }}
+                            variant="outline"
+                          >
+                            Edit Again
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   
