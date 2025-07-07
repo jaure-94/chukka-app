@@ -203,8 +203,8 @@ export default function CreateDispatch() {
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       formData.append('file', blob, `edited_dispatch_${Date.now()}.xlsx`);
       
-      // Save the file
-      const response = await fetch('/api/upload', {
+      // Save the file with formatting preservation
+      const response = await fetch('/api/save-dispatch-sheet', {
         method: 'POST',
         body: formData,
       });
@@ -215,7 +215,7 @@ export default function CreateDispatch() {
       
       toast({
         title: "Success",
-        description: "Dispatch sheet saved successfully!",
+        description: "Dispatch sheet saved with formatting preserved!",
       });
       
       setHasUnsavedChanges(false);

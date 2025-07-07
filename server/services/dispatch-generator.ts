@@ -42,20 +42,55 @@ export class DispatchGenerator {
       
       console.log(`Starting to add records at row ${currentRow}`);
 
+      // Store the formatting from the first data row (row 9) to use as template
+      const templateRowIndex = 9;
+      const templateRowFormatting: any[] = [];
+      
+      // Capture formatting from the template row 9 (first data row)
+      for (let col = 1; col <= 8; col++) {
+        const templateCell = worksheet.getCell(templateRowIndex, col);
+        templateRowFormatting[col] = {
+          font: templateCell.font ? { ...templateCell.font } : undefined,
+          fill: templateCell.fill ? { ...templateCell.fill } : undefined,
+          border: templateCell.border ? { ...templateCell.border } : undefined,
+          alignment: templateCell.alignment ? { ...templateCell.alignment } : undefined,
+          numFmt: templateCell.numFmt,
+          style: templateCell.style ? { ...templateCell.style } : undefined
+        };
+      }
+
+      console.log('Captured template formatting from row 9');
+
       // Add records to the dispatch file starting from row 9
       for (const record of records) {
-        // Set values directly in the appropriate columns based on headers:
-        // Tour Name, Departure, Return, Adults, Children, Comp, Total Guests, Notes
-        worksheet.getCell(currentRow, 1).value = record.tourName; // Tour Name
-        worksheet.getCell(currentRow, 2).value = record.departure; // Departure
-        worksheet.getCell(currentRow, 3).value = record.returnTime; // Return
-        worksheet.getCell(currentRow, 4).value = record.numAdult; // Adults
-        worksheet.getCell(currentRow, 5).value = record.numChild; // Children
-        worksheet.getCell(currentRow, 6).value = record.comp; // Comp
-        worksheet.getCell(currentRow, 7).value = record.totalGuests; // Total Guests
-        worksheet.getCell(currentRow, 8).value = record.notes || ''; // Notes
+        // Set values and apply preserved formatting to each cell
+        const cells = [
+          { col: 1, value: record.tourName },
+          { col: 2, value: record.departure },
+          { col: 3, value: record.returnTime },
+          { col: 4, value: record.numAdult },
+          { col: 5, value: record.numChild },
+          { col: 6, value: record.comp },
+          { col: 7, value: record.totalGuests },
+          { col: 8, value: record.notes || '' }
+        ];
 
-        console.log(`  → Added record: ${record.tourName} (${record.numAdult} adults, ${record.numChild} children)`);
+        cells.forEach(({ col, value }) => {
+          const cell = worksheet.getCell(currentRow, col);
+          cell.value = value;
+          
+          // Apply the preserved formatting from template row
+          const templateFormat = templateRowFormatting[col];
+          if (templateFormat) {
+            if (templateFormat.font) cell.font = templateFormat.font;
+            if (templateFormat.fill) cell.fill = templateFormat.fill;
+            if (templateFormat.border) cell.border = templateFormat.border;
+            if (templateFormat.alignment) cell.alignment = templateFormat.alignment;
+            if (templateFormat.numFmt) cell.numFmt = templateFormat.numFmt;
+          }
+        });
+
+        console.log(`  → Added record with formatting: ${record.tourName} (${record.numAdult} adults, ${record.numChild} children)`);
         currentRow++;
       }
 

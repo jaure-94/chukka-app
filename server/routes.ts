@@ -486,6 +486,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save edited dispatch sheet with formatting preservation
+  app.post("/api/save-dispatch-sheet", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      console.log(`Saving edited dispatch sheet: ${req.file.originalname}`);
+      
+      // Get the active dispatch template to preserve its formatting
+      const dispatchTemplate = await storage.getActiveDispatchTemplate();
+      if (!dispatchTemplate) {
+        return res.status(404).json({ message: "No active dispatch template found" });
+      }
+
+      const templatePath = path.join(process.cwd(), "uploads", dispatchTemplate.filename);
+      if (!fs.existsSync(templatePath)) {
+        return res.status(404).json({ message: "Dispatch template file not found" });
+      }
+
+      // Create a new dispatch version with formatting preservation
+      const ExcelJS = await import("exceljs");
+      const templateWorkbook = new ExcelJS.Workbook();
+      const editedWorkbook = new ExcelJS.Workbook();
+      
+      await templateWorkbook.xlsx.readFile(templatePath);
+      await editedWorkbook.xlsx.readFile(req.file.path);
+      
+      const templateWorksheet = templateWorkbook.getWorksheet(1);
+      const editedWorksheet = editedWorkbook.getWorksheet(1);
+      
+      if (!templateWorksheet || !editedWorksheet) {
+        return res.status(500).json({ message: "Unable to read worksheet data" });
+      }
+
+      console.log("Preserving formatting from template and copying edited data");
+      
+      // Copy all data from edited sheet while preserving template formatting
+      editedWorksheet.eachRow((row, rowNumber) => {
+        if (rowNumber >= 9) { // Data rows start from row 9
+          row.eachCell((cell, colNumber) => {
+            if (colNumber <= 8) { // Only process columns A-H
+              const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
+              const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
+              
+              // Set the value from edited sheet
+              targetCell.value = cell.value;
+              
+              // Preserve original template formatting
+              if (templateCell.font) targetCell.font = { ...templateCell.font };
+              if (templateCell.fill) targetCell.fill = { ...templateCell.fill };
+              if (templateCell.border) targetCell.border = { ...templateCell.border };
+              if (templateCell.alignment) targetCell.alignment = { ...templateCell.alignment };
+              if (templateCell.numFmt) targetCell.numFmt = templateCell.numFmt;
+            }
+          });
+        }
+      });
+
+      // Save the formatted file with a new filename
+      const timestamp = Date.now();
+      const newFilename = `edited_dispatch_${timestamp}.xlsx`;
+      const outputPath = path.join(process.cwd(), "uploads", newFilename);
+      
+      await templateWorkbook.xlsx.writeFile(outputPath);
+      
+      // Create file record in database
+      const fileData = insertUploadedFileSchema.parse({
+        filename: newFilename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: fs.statSync(outputPath).size,
+      });
+
+      const uploadedFile = await storage.createUploadedFile(fileData);
+
+      // Create dispatch version record
+      const versionCount = await storage.getDispatchVersions(100);
+      const nextVersion = versionCount.length + 1;
+      
+      await storage.createDispatchVersion({
+        filename: newFilename,
+        originalFilename: req.file.originalname,
+        filePath: path.join("uploads", newFilename),
+        version: nextVersion,
+        description: `Formatted dispatch sheet v${nextVersion}`,
+      });
+
+      // Clean up the original uploaded file
+      fs.unlinkSync(req.file.path);
+
+      console.log(`Saved formatted dispatch sheet: ${newFilename}`);
+      
+      res.json({
+        success: true,
+        file: uploadedFile,
+        message: "Dispatch sheet saved with formatting preserved"
+      });
+
+    } catch (error) {
+      console.error("Save dispatch sheet error:", error);
+      res.status(500).json({ message: "Failed to save dispatch sheet with formatting" });
+    }
+  });
+
   // Get all output files with metadata
   app.get("/api/output-files", async (req, res) => {
     try {

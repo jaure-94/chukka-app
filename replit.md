@@ -244,6 +244,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented {{departure_time}} placeholder replacement in EOD reports
   - Updated extractNotes method to include "Incident, accident, cancellation etc." column
   - Enhanced EOD template processing to replace all three delimiters: {{tour_name}}, {{notes}}, {{departure_time}}
+- July 7, 2025: Implemented comprehensive formatting preservation for dispatch sheet generation
+  - Enhanced DispatchGenerator to capture and preserve original template formatting from row 9
+  - Added formatting preservation for font, fill, border, alignment, and number format properties
+  - Created new `/api/save-dispatch-sheet` endpoint for formatting-aware dispatch sheet saving
+  - Updated frontend to use formatting-preserving endpoint instead of basic upload
+  - Enhanced dispatch sheet generation to apply preserved formatting to all newly added records
+  - Ensured generated dispatch files maintain original template appearance and styling
 
 ## User Preferences
 
