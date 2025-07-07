@@ -51,6 +51,11 @@ export default function Reports() {
     queryKey: ["/api/output-files"],
   });
 
+  // Fetch dispatch versions (to get most recent dispatch sheet)
+  const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
+    queryKey: ["/api/dispatch-versions"],
+  });
+
 
 
   const handleDownloadReport = (reportId: number, type: 'dispatch' | 'eod') => {
@@ -101,6 +106,132 @@ export default function Reports() {
         {/* Main Content */}
         <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
 
+          {/* Latest Reports Quick Access */}
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center text-blue-900">
+                <File className="w-5 h-5 mr-2" />
+                Latest Reports - Quick Access
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Most Recent EOD Report */}
+                <div className="bg-white rounded-lg p-6 border border-blue-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                      Latest EOD Report
+                    </h3>
+                    {outputFiles.find(file => file.filename.startsWith('eod_')) && (
+                      <Badge className="bg-green-100 text-green-800">Available</Badge>
+                    )}
+                  </div>
+                  
+                  {(() => {
+                    const latestEOD = outputFiles
+                      .filter(file => file.filename.startsWith('eod_'))
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    
+                    return latestEOD ? (
+                      <div>
+                        <div className="text-sm text-gray-600 mb-3">
+                          <div className="flex items-center mb-1">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Generated: {new Date(latestEOD.createdAt).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 ml-4">
+                            {new Date(latestEOD.createdAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                          onClick={() => window.open(`/api/output/${latestEOD.filename}`, '_blank')}
+                        >
+                          <Download className="w-3 h-3 mr-2" />
+                          Download EOD Report
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <FileText className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 text-sm">No EOD reports generated yet</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Most Recent Dispatch Sheet */}
+                <div className="bg-white rounded-lg p-6 border border-green-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <FileText className="w-4 h-4 mr-2 text-green-600" />
+                      Latest Dispatch Sheet
+                    </h3>
+                    {dispatchVersions.length > 0 && (
+                      <Badge className="bg-blue-100 text-blue-800">Available</Badge>
+                    )}
+                  </div>
+                  
+                  {(() => {
+                    const latestDispatch = dispatchVersions[0]; // Already sorted by most recent
+                    
+                    return latestDispatch ? (
+                      <div>
+                        <div className="text-sm text-gray-600 mb-3">
+                          <div className="flex items-center mb-1">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Saved: {new Date(latestDispatch.createdAt).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 ml-4">
+                            {new Date(latestDispatch.createdAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                            File: {latestDispatch.originalFilename}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="w-full border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
+                        >
+                          <Download className="w-3 h-3 mr-2" />
+                          Download Dispatch
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <FileText className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 text-sm">No dispatch sheets saved yet</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Generated Reports Section */}
           <Card>
