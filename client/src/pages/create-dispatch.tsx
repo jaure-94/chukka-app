@@ -139,19 +139,11 @@ export default function CreateDispatch() {
           }
         });
         
-        const newFile = {
+        setFile({
           name: dispatchTemplate.originalFilename,
           data: completeRows,
           headers: genericHeaders
-        };
-        
-        console.log('Setting file with data:', { 
-          name: newFile.name, 
-          rowCount: newFile.data.length,
-          colCount: newFile.data[0]?.length || 0 
         });
-        
-        setFile(newFile);
       }
     } catch (error) {
       console.error('Error loading dispatch template:', error);
@@ -166,17 +158,12 @@ export default function CreateDispatch() {
   };
 
   const handleEditSpreadsheet = async () => {
-    console.log('Edit button clicked. Current file state:', file);
-    console.log('Dispatch template:', dispatchTemplate);
-    
     // If file is not loaded yet, load the dispatch template first
     if (!file && dispatchTemplate) {
-      console.log('Loading dispatch template...');
       await loadDispatchTemplate();
     }
     
     if (!file) {
-      console.log('No file available after loading attempt');
       toast({
         title: "Error",
         description: "No dispatch template available to edit",
@@ -185,7 +172,6 @@ export default function CreateDispatch() {
       return;
     }
     
-    console.log('Setting editing state with file data:', file.data.length, 'rows');
     setEditedData([...file.data]);
     setIsEditing(true);
     setHasUnsavedChanges(false);
@@ -469,6 +455,77 @@ export default function CreateDispatch() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Spreadsheet Editor */}
+              {isEditing && file && (
+                <Card>
+                  <CardContent className="py-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Dispatch Sheet</h3>
+                    <div className="border rounded-lg overflow-auto w-full max-w-full">
+                      <div className="min-w-full">
+                        <HotTable
+                          ref={hotTableRef}
+                          data={editedData}
+                          colHeaders={file.headers}
+                          rowHeaders={true}
+                          contextMenu={true}
+                          manualRowResize={true}
+                          manualColumnResize={true}
+                          stretchH="none"
+                          width="100%"
+                          height="600"
+                          licenseKey="non-commercial-and-evaluation"
+                          afterChange={handleDataChange}
+                          className="htCenter"
+                          colWidths={function(index) {
+                            if (index === 0) return 360;
+                            return 120;
+                          }}
+                          autoColumnSize={false}
+                          preventOverflow="horizontal"
+                          fillHandle={true}
+                          mergeCells={false}
+                          outsideClickDeselects={false}
+                          allowEmpty={true}
+                          trimWhitespace={false}
+                          minRows={editedData.length}
+                          maxRows={editedData.length + 20}
+                          viewportRowRenderingOffset={50}
+                          viewportColumnRenderingOffset={10}
+                          cells={function(row, col) {
+                            const cellProperties: any = {};
+                            let classNames = [];
+                            
+                            if (col === 0) {
+                              classNames.push('htLeft');
+                            }
+                            
+                            if (row >= 0 && row <= 5) {
+                              classNames.push('bold-cell');
+                            }
+                            
+                            if (col === 1) {
+                              classNames.push('red-font');
+                            }
+                            
+                            if (row === 5) {
+                              classNames.push('bottom-center-cell');
+                              classNames.push('thick-bottom-border');
+                            }
+                            
+                            if (row === 0) {
+                              classNames.push('ship-info-cell');
+                            }
+                            
+                            cellProperties.className = classNames.join(' ');
+                            return cellProperties;
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Version History */}
               <Card>
