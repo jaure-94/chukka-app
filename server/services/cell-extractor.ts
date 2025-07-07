@@ -66,15 +66,23 @@ export class CellExtractor {
       const cellA = this.getCellValue(worksheet, `A${row}`);
       const cellB = this.getCellValue(worksheet, `B${row}`);
       const cellL = this.getCellValue(worksheet, `L${row}`);
+      const cellM = this.getCellValue(worksheet, `M${row}`);
+      const cellN = this.getCellValue(worksheet, `N${row}`);
+      const cellO = this.getCellValue(worksheet, `O${row}`);
       
       // Check if this row contains tour data (starts with "Tour")
       if (cellA && cellA.toLowerCase().startsWith('tour')) {
         console.log(`→ CellExtractor: Found tour record at row ${row}: "${cellA}"`);
+        console.log(`→ CellExtractor: Row ${row} - A="${cellA}", B="${cellB}"`);
+        console.log(`→ CellExtractor: Row ${row} - L="${cellL}", M="${cellM}", N="${cellN}", O="${cellO}"`);
+        
+        // Try to find notes in different columns
+        let notesValue = cellL || cellM || cellN || cellO || '';
         
         records.push({
           cellA8: cellA,
           cellB8: cellB,
-          cellH8: cellL
+          cellH8: notesValue
         });
       }
     }
