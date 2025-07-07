@@ -237,6 +237,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced UI with progress indicators, file validation, and proper error handling
   - Integrated with existing sidebar navigation and responsive design system
   - Added comprehensive workflow: Upload → Edit → Save → Download
+- July 7, 2025: Enhanced EOD processor with comprehensive delimiter replacement system
+  - Step 1: Updated TourData interface to include departure_time field
+  - Added extractDepartureTime method to extract "TOUR TIME + duration" column data
+  - Enhanced data extraction to capture departure time from dispatch sheets
+  - Implemented {{departure_time}} placeholder replacement in EOD reports
+  - Updated extractNotes method to include "Incident, accident, cancellation etc." column
+  - Enhanced EOD template processing to replace all three delimiters: {{tour_name}}, {{notes}}, {{departure_time}}
 
 ## User Preferences
 

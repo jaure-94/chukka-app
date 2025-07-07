@@ -8,6 +8,7 @@ export interface TourData {
   num_adult: number;
   num_chd: number;
   notes: string;
+  departure_time: string;
 }
 
 export interface EODTemplateData {
@@ -41,8 +42,9 @@ export class EODProcessor {
           const adults = this.extractAdultCount(row);
           const children = this.extractChildCount(row);
           const notes = this.extractNotes(row);
+          const departureTime = this.extractDepartureTime(row);
           
-          console.log(`→ EOD: Found tour "${tourName}" with ${adults} adults, ${children} children`);
+          console.log(`→ EOD: Found tour "${tourName}" with ${adults} adults, ${children} children, departure: ${departureTime}`);
           
           if (adults > 0 || children > 0) {
             const existingTour = tours.find(t => t.tour_name === tourName);
@@ -55,12 +57,17 @@ export class EODProcessor {
               } else if (notes) {
                 existingTour.notes = notes;
               }
+              // Update departure time if not already set
+              if (departureTime && !existingTour.departure_time) {
+                existingTour.departure_time = departureTime;
+              }
             } else {
               tours.push({
                 tour_name: tourName,
                 num_adult: adults,
                 num_chd: children,
-                notes: notes
+                notes: notes,
+                departure_time: departureTime
               });
             }
             
@@ -123,7 +130,19 @@ export class EODProcessor {
   }
 
   private extractNotes(row: Record<string, any>): string {
-    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS'];
+    const possibleColumns = ['Notes', 'notes', 'NOTES', 'Note', 'note', 'NOTE', 'Comments', 'comments', 'COMMENTS', 'Comment', 'comment', 'COMMENT', 'Remarks', 'remarks', 'REMARKS', 'Incident, accident, cancellation etc.'];
+    
+    for (const col of possibleColumns) {
+      if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
+        return row[col].trim();
+      }
+    }
+    
+    return '';
+  }
+
+  private extractDepartureTime(row: Record<string, any>): string {
+    const possibleColumns = ['TOUR TIME + duration', 'Tour Time', 'Departure Time', 'departure_time', 'Departure', 'departure', 'DEPARTURE', 'Time'];
     
     for (const col of possibleColumns) {
       if (row[col] && typeof row[col] === 'string' && row[col].trim().length > 0) {
@@ -322,6 +341,9 @@ export class EODProcessor {
             } else if (cellValue === '{{num_chd}}') {
               cell.value = tour.num_chd;
               console.log(`  → Replaced {{num_chd}} with ${tour.num_chd} at row ${currentRowNum}`);
+            } else if (cellValue === '{{departure_time}}') {
+              cell.value = tour.departure_time || '';
+              console.log(`  → Replaced {{departure_time}} with "${tour.departure_time || '(no departure time)'}" at row ${currentRowNum}`);
             } else if (cellValue === '{{notes}}') {
               // Handle notes placeholder with merged cells - replace with actual notes data
               const notesText = tour.notes || '';
