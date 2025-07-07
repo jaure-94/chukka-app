@@ -24,17 +24,17 @@ export class CellExtractor {
 
     console.log(`→ CellExtractor: Processing sheet "${sheetName}"`);
 
-    // Extract specific cells
-    const cellA8 = this.getCellValue(worksheet, 'A8');
-    const cellB8 = this.getCellValue(worksheet, 'B8');
-    const cellH8 = this.getCellValue(worksheet, 'H8');
+    // Extract specific cells - Tour 1 data is in row 8
+    const cellA8 = this.getCellValue(worksheet, 'A8'); // Tour name
+    const cellB8 = this.getCellValue(worksheet, 'B8'); // Departure time
+    const cellL8 = this.getCellValue(worksheet, 'L8'); // Notes column (column L is "Incident, accident, cancellation etc.")
 
-    console.log(`→ CellExtractor: A8="${cellA8}", B8="${cellB8}", H8="${cellH8}"`);
+    console.log(`→ CellExtractor: A8="${cellA8}", B8="${cellB8}", L8="${cellL8}"`);
 
     return {
       cellA8,
       cellB8,
-      cellH8
+      cellH8: cellL8 // Map notes from L8 to H8 field
     };
   }
 
