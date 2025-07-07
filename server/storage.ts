@@ -19,7 +19,10 @@ import {
   type InsertDispatchTemplate,
   type InsertEodTemplate,
   type InsertDispatchRecord,
-  type InsertGeneratedReport
+  type InsertGeneratedReport,
+  dispatchVersions,
+  type DispatchVersion,
+  type InsertDispatchVersion
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -55,6 +58,11 @@ export interface IStorage {
   createGeneratedReport(report: InsertGeneratedReport): Promise<GeneratedReport>;
   getRecentGeneratedReports(limit?: number): Promise<GeneratedReport[]>;
   getGeneratedReport(id: number): Promise<GeneratedReport | undefined>;
+
+  // Dispatch version operations
+  createDispatchVersion(version: InsertDispatchVersion): Promise<DispatchVersion>;
+  getDispatchVersions(limit?: number): Promise<DispatchVersion[]>;
+  getDispatchVersion(id: number): Promise<DispatchVersion | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -226,6 +234,31 @@ export class DatabaseStorage implements IStorage {
       .from(generatedReports)
       .where(eq(generatedReports.id, id));
     return report || undefined;
+  }
+
+  // Dispatch version operations
+  async createDispatchVersion(version: InsertDispatchVersion): Promise<DispatchVersion> {
+    const [newVersion] = await db
+      .insert(dispatchVersions)
+      .values(version)
+      .returning();
+    return newVersion;
+  }
+
+  async getDispatchVersions(limit: number = 10): Promise<DispatchVersion[]> {
+    return await db
+      .select()
+      .from(dispatchVersions)
+      .orderBy(desc(dispatchVersions.createdAt))
+      .limit(limit);
+  }
+
+  async getDispatchVersion(id: number): Promise<DispatchVersion | undefined> {
+    const [version] = await db
+      .select()
+      .from(dispatchVersions)
+      .where(eq(dispatchVersions.id, id));
+    return version || undefined;
   }
 }
 

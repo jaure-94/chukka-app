@@ -95,6 +95,16 @@ export const generatedReports = pgTable("generated_reports", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const dispatchVersions = pgTable("dispatch_versions", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  filePath: text("file_path").notNull(),
+  version: integer("version").notNull().default(1),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
   id: true,
   uploadedAt: true,
@@ -131,6 +141,11 @@ export const insertGeneratedReportSchema = createInsertSchema(generatedReports).
   createdAt: true,
 });
 
+export const insertDispatchVersionSchema = createInsertSchema(dispatchVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
@@ -138,6 +153,7 @@ export type InsertDispatchTemplate = z.infer<typeof insertDispatchTemplateSchema
 export type InsertEodTemplate = z.infer<typeof insertEodTemplateSchema>;
 export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
+export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;
@@ -146,3 +162,4 @@ export type DispatchTemplate = typeof dispatchTemplates.$inferSelect;
 export type EodTemplate = typeof eodTemplates.$inferSelect;
 export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
+export type DispatchVersion = typeof dispatchVersions.$inferSelect;

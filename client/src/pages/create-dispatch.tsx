@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { History, File, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +42,11 @@ export default function CreateDispatch() {
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
     queryKey: ["/api/dispatch-templates"],
+  });
+
+  // Fetch dispatch versions
+  const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
+    queryKey: ["/api/dispatch-versions"],
   });
 
   // Load dispatch template when available
@@ -274,6 +280,69 @@ export default function CreateDispatch() {
     updateEODMutation.mutate();
   };
 
+  // Handle viewing dispatch version
+  const handleViewVersion = async (version: any) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/files/${version.filename}`);
+      if (!response.ok) throw new Error('Failed to fetch version file');
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      
+      const worksheetData: SpreadsheetData = [];
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z100');
+      
+      for (let row = range.s.r; row <= Math.min(range.e.r, 99); row++) {
+        const rowData: any[] = [];
+        for (let col = range.s.c; col <= Math.min(range.e.c, 25); col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          const cell = worksheet[cellAddress];
+          let cellValue = cell ? cell.v : '';
+          
+          if (cell && cell.t === 'n' && cellValue > 0 && cellValue < 1) {
+            const hours = Math.floor(cellValue * 24);
+            const minutes = Math.floor((cellValue * 24 - hours) * 60);
+            cellValue = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          }
+          
+          rowData[col] = cellValue;
+        }
+        worksheetData[row] = rowData;
+      }
+      
+      setFile({
+        id: version.id,
+        name: version.originalFilename,
+        data: worksheetData
+      });
+      setEditedData(worksheetData);
+      setIsEditing(true);
+      setShowUpdateEOD(false);
+      
+    } catch (error) {
+      console.error('Error loading version:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dispatch version",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle downloading dispatch version
+  const handleDownloadVersion = (version: any) => {
+    const link = document.createElement('a');
+    link.href = `/api/files/${version.filename}`;
+    link.download = version.originalFilename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <SidebarNavigation />
@@ -370,6 +439,76 @@ export default function CreateDispatch() {
                   {hasUnsavedChanges && (
                     <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-sm text-amber-800">⚠️ You have unsaved changes</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Version History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Dispatch Sheet Versions
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    View and manage previously saved dispatch sheet versions
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingVersions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : dispatchVersions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <File className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No saved versions yet</p>
+                      <p className="text-sm">Save an edited dispatch sheet to see versions here</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {dispatchVersions.map((version: any) => (
+                        <div key={version.id} className="border rounded-lg p-4 hover:border-blue-300 transition-colors">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="font-medium text-gray-900 truncate">
+                                {version.originalFilename}
+                              </h4>
+                              <p className="text-sm text-gray-500">Version {version.version}</p>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {new Date(version.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                          
+                          {version.description && (
+                            <p className="text-sm text-gray-600 mb-3">{version.description}</p>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewVersion(version)}
+                              disabled={isLoading}
+                              className="flex-1"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownloadVersion(version)}
+                              className="flex-1"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>

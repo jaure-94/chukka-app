@@ -101,6 +101,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       }, null, 2));
 
+      // Create a dispatch version record for tracking edited files
+      const versionCount = await storage.getDispatchVersions(100);
+      const nextVersion = versionCount.length + 1;
+      
+      await storage.createDispatchVersion({
+        filename: uploadedFile.filename,
+        originalFilename: uploadedFile.originalName,
+        filePath: path.join("uploads", uploadedFile.filename),
+        version: nextVersion,
+        description: `Edited dispatch sheet v${nextVersion}`,
+      });
+
       res.json({
         file: uploadedFile,
         preview: {
@@ -420,6 +432,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Generated reports fetch error:", error);
       res.status(500).json({ message: "Failed to fetch generated reports" });
+    }
+  });
+
+  // Get dispatch versions
+  app.get("/api/dispatch-versions", async (req, res) => {
+    try {
+      const versions = await storage.getDispatchVersions(20);
+      res.json(versions);
+    } catch (error) {
+      console.error("Dispatch versions fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch versions" });
+    }
+  });
+
+  // Get specific dispatch version
+  app.get("/api/dispatch-versions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const version = await storage.getDispatchVersion(parseInt(id));
+      
+      if (!version) {
+        return res.status(404).json({ message: "Dispatch version not found" });
+      }
+      
+      res.json(version);
+    } catch (error) {
+      console.error("Dispatch version fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch version" });
     }
   });
 
