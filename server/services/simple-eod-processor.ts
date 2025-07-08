@@ -181,39 +181,53 @@ export class SimpleEODProcessor {
    * Apply delimiter replacements for a specific record at given row offset
    */
   private applyDelimiterReplacements(worksheet: ExcelJS.Worksheet, record: any, startRow: number): void {
-    // Replace {{tour_name}} in B17 (offset: startRow + 0) and merge cells B to I
+    // Debug: Check what's actually in the tour name cell
     const tourNameCell = worksheet.getCell(startRow, 2); // Column B
-    tourNameCell.value = record.cellA8;
-    tourNameCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    console.log(`→ SimpleEOD: DEBUG - Tour name cell B${startRow} value: "${tourNameCell.value}"`);
     
-    // Merge cells B through I for tour name (safely)
-    this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
-    console.log(`→ SimpleEOD: Set row ${startRow} col B (tour_name) = "${record.cellA8}" and merged B:I`);
+    // Replace {{tour_name}} in B17 (offset: startRow + 0) and merge cells B to I
+    if (tourNameCell.value && String(tourNameCell.value).includes('{{tour_name}}')) {
+      tourNameCell.value = record.cellA8;
+      tourNameCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      
+      // Merge cells B through I for tour name (safely)
+      this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
+      console.log(`→ SimpleEOD: Set row ${startRow} col B (tour_name) = "${record.cellA8}" and merged B:I`);
+    } else {
+      console.log(`→ SimpleEOD: WARNING - No {{tour_name}} delimiter found in B${startRow}`);
+    }
     
     // Replace {{departure_time}} in I22 (offset: startRow + 5)
     const departureTimeCell = worksheet.getCell(startRow + 5, 9); // Column I
-    departureTimeCell.value = record.cellB8;
-    console.log(`→ SimpleEOD: Set row ${startRow + 5} col I (departure_time) = "${record.cellB8}"`);
+    if (departureTimeCell.value && String(departureTimeCell.value).includes('{{departure_time}}')) {
+      departureTimeCell.value = record.cellB8;
+      console.log(`→ SimpleEOD: Set row ${startRow + 5} col I (departure_time) = "${record.cellB8}"`);
+    }
     
     // Handle Comments/Notes subheading - merge cells B through I (offset: startRow + 3)
     const commentsSubheadingRow = startRow + 3;
     const commentsCell = worksheet.getCell(commentsSubheadingRow, 2); // Column B
-    if (commentsCell.value && typeof commentsCell.value === 'string' && 
-        (commentsCell.value.toLowerCase().includes('comment') || commentsCell.value.toLowerCase().includes('note'))) {
+    if (commentsCell.value && (String(commentsCell.value).toLowerCase().includes('comment') || 
+        String(commentsCell.value).toLowerCase().includes('note'))) {
       commentsCell.alignment = { horizontal: 'left', vertical: 'middle' };
       this.safeMergeCells(worksheet, `B${commentsSubheadingRow}:I${commentsSubheadingRow}`);
       console.log(`→ SimpleEOD: Merged comments subheading row ${commentsSubheadingRow} B:I`);
     }
     
-    // Replace {{notes}} in B21 (offset: startRow + 4) and merge cells B through I
+    // Debug: Check what's actually in the notes cell
     const notesCell = worksheet.getCell(startRow + 4, 2); // Column B
-    if (notesCell.value && typeof notesCell.value === 'string' && notesCell.value.includes('{{notes}}')) {
+    console.log(`→ SimpleEOD: DEBUG - Notes cell B${startRow + 4} value: "${notesCell.value}"`);
+    
+    // Replace {{notes}} in B21 (offset: startRow + 4) and merge cells B through I
+    if (notesCell.value && String(notesCell.value).includes('{{notes}}')) {
       notesCell.value = record.cellH8;
       notesCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
       
       // Merge cells B through I for notes (safely)
       this.safeMergeCells(worksheet, `B${startRow + 4}:I${startRow + 4}`);
       console.log(`→ SimpleEOD: Set row ${startRow + 4} col B (notes) = "${record.cellH8}" and merged B:I`);
+    } else {
+      console.log(`→ SimpleEOD: WARNING - No {{notes}} delimiter found in B${startRow + 4}`);
     }
     
     // NEW: Replace guest count delimiters with actual data from dispatch
