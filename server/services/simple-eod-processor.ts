@@ -115,6 +115,9 @@ export class SimpleEODProcessor {
         // Apply delimiter replacements for this record
         this.applyDelimiterReplacements(worksheet, record, startRow);
         
+        // Also search for {{notes}} in the entire worksheet (not just the replicated section)
+        this.searchAndReplaceNotesGlobally(worksheet, record.cellH8);
+        
         // Store this record in database
         await storage.createExtractedDispatchData({
           dispatchFileId: dispatchFileId,
@@ -260,6 +263,48 @@ export class SimpleEODProcessor {
     if (compCountCell.value && String(compCountCell.value).includes('{{num_comp}}')) {
       compCountCell.value = record.cellN8 || 0;
       console.log(`→ SimpleEOD: Set row ${startRow + 8} col E (num_comp) = ${record.cellN8}`);
+    }
+  }
+
+  /**
+   * Search for {{notes}} delimiter across the entire worksheet
+   */
+  private searchAndReplaceNotesGlobally(worksheet: ExcelJS.Worksheet, notesValue: string): void {
+    console.log(`→ SimpleEOD: Searching for {{notes}} delimiter globally in entire worksheet`);
+    
+    let notesFound = false;
+    
+    // Search through all rows and columns in the worksheet
+    worksheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell, colNumber) => {
+        if (cell.value) {
+          const cellValueStr = String(cell.value);
+          
+          if (cellValueStr.includes('{{notes}}')) {
+            cell.value = notesValue;
+            cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+            console.log(`→ SimpleEOD: Found and replaced {{notes}} at ${cell.address} = "${notesValue}"`);
+            
+            // Check if this is in a merged cell area that needs to be expanded
+            const cellAddress = cell.address;
+            const rowNum = rowNumber;
+            const colNum = colNumber;
+            
+            // Try to merge cells A through H for notes (common pattern)
+            if (colNum >= 1 && colNum <= 8) {
+              const mergeRange = `A${rowNum}:H${rowNum}`;
+              this.safeMergeCells(worksheet, mergeRange);
+              console.log(`→ SimpleEOD: Applied merged cells ${mergeRange} for notes`);
+            }
+            
+            notesFound = true;
+          }
+        }
+      });
+    });
+    
+    if (!notesFound) {
+      console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found anywhere in the worksheet`);
     }
   }
 
