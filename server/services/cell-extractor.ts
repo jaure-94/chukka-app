@@ -70,8 +70,8 @@ export class CellExtractor {
 
     const records: CellData[] = [];
     
-    // Start from row 8 and check each row for "Tour..." data
-    for (let row = 8; row <= 20; row++) { // Reasonable limit to avoid infinite loop
+    // Start from row 8 and check each row for tour data
+    for (let row = 8; row <= 30; row++) { // Expanded range to capture more tours
       const cellA = this.getCellValue(worksheet, `A${row}`);
       const cellB = this.getCellValue(worksheet, `B${row}`);
       const cellL = this.getCellValue(worksheet, `L${row}`);
@@ -79,8 +79,10 @@ export class CellExtractor {
       const cellN = this.getCellValue(worksheet, `N${row}`);
       const cellO = this.getCellValue(worksheet, `O${row}`);
       
-      // Check if this row contains tour data (starts with "Tour")
-      if (cellA && cellA.toLowerCase().startsWith('tour')) {
+      console.log(`→ CellExtractor: Checking row ${row} - A="${cellA}", B="${cellB}", L="${cellL}", M="${cellM}", N="${cellN}"`);
+      
+      // Check if this row contains tour data (starts with "Tour" or has significant data)
+      if (cellA && (cellA.toLowerCase().startsWith('tour') || cellA.trim().length > 0)) {
         console.log(`→ CellExtractor: Found tour record at row ${row}: "${cellA}"`);
         console.log(`→ CellExtractor: Row ${row} - A="${cellA}", B="${cellB}"`);
         
@@ -100,6 +102,9 @@ export class CellExtractor {
           cellM8: childCount,
           cellN8: compCount
         });
+      } else if (cellA && cellA.trim().length > 0) {
+        // Log non-tour rows that have data for debugging
+        console.log(`→ CellExtractor: Non-tour row ${row} with data: "${cellA}"`);
       }
     }
 
