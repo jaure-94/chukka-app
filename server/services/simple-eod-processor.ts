@@ -55,29 +55,29 @@ export class SimpleEODProcessor {
       worksheet.model.merges.forEach(merge => {
         const mergeStart = worksheet.getCell(merge).row;
         const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
-        if (mergeStart >= 17 && mergeEnd <= 25) {
+        if (mergeStart >= 23 && mergeEnd <= 38) {
           templateMergedCells.push(merge);
         }
       });
       
-      for (let rowNum = 17; rowNum <= 25; rowNum++) {
+      for (let rowNum = 23; rowNum <= 38; rowNum++) {
         const row = worksheet.getRow(rowNum);
         templateRows.push(this.copyRowData(row));
       }
       
-      console.log('→ SimpleEOD: Template section (rows 17-25) stored for replication');
+      console.log('→ SimpleEOD: Template section (rows 23-38) stored for replication');
       
       // Process each record
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
         const record = multipleData.records[recordIndex];
-        const startRow = 17 + (recordIndex * 9); // Each record takes 9 rows (17-25)
+        const startRow = 23 + (recordIndex * 16); // Each record takes 16 rows (23-38)
         
         console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
         
         // Insert template rows for this record
         if (recordIndex > 0) {
           // Insert new rows for this record
-          worksheet.spliceRows(startRow, 0, 9); // Insert 9 empty rows
+          worksheet.spliceRows(startRow, 0, 16); // Insert 16 empty rows
           
           // Copy template data to new rows
           for (let i = 0; i < templateRows.length; i++) {
@@ -101,7 +101,7 @@ export class SimpleEODProcessor {
             const endRowTemplate = parseInt(endCell.match(/\d+/)[0]);
             
             // Calculate offset for new record
-            const rowOffset = recordIndex * 9;
+            const rowOffset = recordIndex * 16;
             
             const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
               const rowNum = parseInt(match);
@@ -217,8 +217,8 @@ export class SimpleEODProcessor {
     let tourNameFound = false;
     let notesFound = false;
     
-    // Search through the entire template section (9 rows) for delimiters
-    for (let rowOffset = 0; rowOffset < 9; rowOffset++) {
+    // Search through the entire template section (16 rows) for delimiters
+    for (let rowOffset = 0; rowOffset < 16; rowOffset++) {
       const currentRow = startRow + rowOffset;
       
       // Check each column in this row
@@ -263,33 +263,33 @@ export class SimpleEODProcessor {
     
     // Apply merged cells for tour name (assuming it's in the first row of the section)
     if (tourNameFound) {
-      this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
-      console.log(`→ SimpleEOD: Applied merged cells B${startRow}:I${startRow} for tour name`);
+      this.safeMergeCells(worksheet, `B${startRow}:H${startRow}`);
+      console.log(`→ SimpleEOD: Applied merged cells B${startRow}:H${startRow} for tour name`);
     }
     
     // NEW: Replace guest count delimiters with actual data from dispatch
     // From the template analysis: {{num_adult}} at C25, {{num_chd}} at D25, {{num_comp}} at E25
-    // In the replicated template: startRow=17, so guest counts are at startRow + 8 = 25
+    // In the new 23-38 template structure: startRow=23, so guest counts are at startRow + 2 = 25
     
-    // Replace {{num_adult}} in guest count cells (offset: startRow + 8)
-    const adultCountCell = worksheet.getCell(startRow + 8, 3); // Column C
+    // Replace {{num_adult}} in guest count cells (offset: startRow + 2)
+    const adultCountCell = worksheet.getCell(startRow + 2, 3); // Column C
     if (adultCountCell.value && String(adultCountCell.value).includes('{{num_adult}}')) {
       adultCountCell.value = record.cellL8 || 0;
-      console.log(`→ SimpleEOD: Set row ${startRow + 8} col C (num_adult) = ${record.cellL8}`);
+      console.log(`→ SimpleEOD: Set row ${startRow + 2} col C (num_adult) = ${record.cellL8}`);
     }
     
-    // Replace {{num_chd}} in guest count cells (offset: startRow + 8)
-    const childCountCell = worksheet.getCell(startRow + 8, 4); // Column D
+    // Replace {{num_chd}} in guest count cells (offset: startRow + 2)
+    const childCountCell = worksheet.getCell(startRow + 2, 4); // Column D
     if (childCountCell.value && String(childCountCell.value).includes('{{num_chd}}')) {
       childCountCell.value = record.cellM8 || 0;
-      console.log(`→ SimpleEOD: Set row ${startRow + 8} col D (num_chd) = ${record.cellM8}`);
+      console.log(`→ SimpleEOD: Set row ${startRow + 2} col D (num_chd) = ${record.cellM8}`);
     }
     
-    // Replace {{num_comp}} in guest count cells (offset: startRow + 8)
-    const compCountCell = worksheet.getCell(startRow + 8, 5); // Column E
+    // Replace {{num_comp}} in guest count cells (offset: startRow + 2)
+    const compCountCell = worksheet.getCell(startRow + 2, 5); // Column E
     if (compCountCell.value && String(compCountCell.value).includes('{{num_comp}}')) {
       compCountCell.value = record.cellN8 || 0;
-      console.log(`→ SimpleEOD: Set row ${startRow + 8} col E (num_comp) = ${record.cellN8}`);
+      console.log(`→ SimpleEOD: Set row ${startRow + 2} col E (num_comp) = ${record.cellN8}`);
     }
   }
 
