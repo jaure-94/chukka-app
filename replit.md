@@ -254,6 +254,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - **Template Structure**: Two main tour sections (rows 23-32 and 36-45) with totals at row 44
   - **Tour Names**: {{tour_name}} appears across merged cells B23-H23 for tour identification
   - **Implementation Ready**: All delimiter coordinates documented for future EOD processing enhancement
+- July 8, 2025: Updated dispatch template structure with new guest count columns
+  - **New Columns Added**: ADULT (Column L/12), CHD (Column M/13), COMP (Column N/14)
+  - **Row 6 Sub-headings**: New sub-headings structure with guest count categories
+  - **Enhanced Data Structure**: Dispatch template now includes dedicated guest count columns matching EOD template structure
+  - **Column Mapping**: L=ADULT, M=CHD, N=COMP for seamless data extraction to EOD reports
+  - **Notes Column**: Maintained "Incident, accident, cancellation etc." column for notes extraction
+  - **Implementation Ready**: New column structure documented for enhanced EOD processing with guest counts
 - July 7, 2025: Implemented comprehensive formatting preservation for dispatch sheet generation
   - Enhanced DispatchGenerator to capture and preserve original template formatting from row 9
   - Added formatting preservation for font, fill, border, alignment, and number format properties
