@@ -130,6 +130,9 @@ export class SimpleEODProcessor {
         // Also search for {{notes}} in the entire worksheet (not just the replicated section)
         this.searchAndReplaceNotesGlobally(worksheet, record.cellH8);
         
+        // Add thick black border to right edge of this tour section
+        this.addRightBorderToTourSection(worksheet, startRow);
+        
         // Store this record in database
         await storage.createExtractedDispatchData({
           dispatchFileId: dispatchFileId,
@@ -160,6 +163,9 @@ export class SimpleEODProcessor {
           }
         });
       }
+      
+      // Fix the SUM formula in cell F44 (now at the totals section)
+      this.fixSumFormula(worksheet, totalsSectionStartRow);
       
       // Calculate totals for all records
       const totalAdults = multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
@@ -367,6 +373,40 @@ export class SimpleEODProcessor {
     if (!notesFound) {
       console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found anywhere in the worksheet`);
     }
+  }
+
+  /**
+   * Add thick black border to right edge of tour section
+   */
+  private addRightBorderToTourSection(worksheet: ExcelJS.Worksheet, startRow: number): void {
+    // Add thick black border to right edge of columns A through I for the tour section (16 rows)
+    for (let rowOffset = 0; rowOffset < 16; rowOffset++) {
+      const currentRow = startRow + rowOffset;
+      
+      // Add thick black border to column I (right edge of tour section)
+      const rightEdgeCell = worksheet.getCell(currentRow, 9); // Column I
+      rightEdgeCell.border = {
+        ...rightEdgeCell.border,
+        right: { style: 'thick', color: { argb: 'FF000000' } }
+      };
+    }
+    
+    console.log(`→ SimpleEOD: Added thick black right border to tour section starting at row ${startRow}`);
+  }
+
+  /**
+   * Fix the SUM formula in cell F44 (now at totals section)
+   */
+  private fixSumFormula(worksheet: ExcelJS.Worksheet, totalsSectionStartRow: number): void {
+    // Find the cell F44 equivalent in the totals section (row offset 3 from totals start)
+    const formulaRowOffset = 3; // F44 is at row 44, which is offset 3 from row 41
+    const formulaRow = totalsSectionStartRow + formulaRowOffset;
+    const formulaCell = worksheet.getCell(formulaRow, 6); // Column F
+    
+    // Set the SUM formula to reference the current row's C, D, E columns
+    formulaCell.value = { formula: `SUM(C${formulaRow}:E${formulaRow})` };
+    
+    console.log(`→ SimpleEOD: Fixed SUM formula at F${formulaRow} = SUM(C${formulaRow}:E${formulaRow})`);
   }
 
   /**
