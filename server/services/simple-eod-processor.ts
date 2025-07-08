@@ -168,15 +168,42 @@ export class SimpleEODProcessor {
    * Check if a range is already merged
    */
   private isMerged(worksheet: ExcelJS.Worksheet, range: string): boolean {
-    return worksheet.model.merges.some(merge => merge === range);
+    try {
+      // Check if this exact range is already merged
+      if (worksheet.model.merges.some(merge => merge === range)) {
+        return true;
+      }
+      
+      // Also check if any cell in the range is part of a merged cell
+      const [start, end] = range.split(':');
+      if (start && end) {
+        const startCell = worksheet.getCell(start);
+        const endCell = worksheet.getCell(end);
+        
+        // If either cell is already merged, consider the range merged
+        if (startCell.isMerged || endCell.isMerged) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      // If we can't determine, assume it's not merged
+      return false;
+    }
   }
 
   /**
    * Safely merge cells only if not already merged
    */
   private safeMergeCells(worksheet: ExcelJS.Worksheet, range: string): void {
-    if (!this.isMerged(worksheet, range)) {
-      worksheet.mergeCells(range);
+    try {
+      if (!this.isMerged(worksheet, range)) {
+        worksheet.mergeCells(range);
+      }
+    } catch (error) {
+      // If merge fails, it's likely already merged - ignore the error
+      console.log(`→ SimpleEOD: Merge skipped for ${range} (likely already merged)`);
     }
   }
 
