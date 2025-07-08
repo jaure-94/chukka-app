@@ -47,41 +47,49 @@ export class SimpleEODProcessor {
         throw new Error('Could not find worksheet in EOD template');
       }
       
-      // Store original template section (rows 17-25) for replication
-      const templateRows = [];
+      // Store template sections separately: individual tour template (23-38) and totals section (41-44)
+      const tourTemplateRows = [];
+      const totalsTemplateRows = [];
       const templateMergedCells = [];
       
-      // Store merged cells in the template section
+      // Store merged cells for tour template section (23-38)
       worksheet.model.merges.forEach(merge => {
         const mergeStart = worksheet.getCell(merge).row;
         const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
-        if (mergeStart >= 23 && mergeEnd <= 44) {
+        if (mergeStart >= 23 && mergeEnd <= 38) {
           templateMergedCells.push(merge);
         }
       });
       
-      for (let rowNum = 23; rowNum <= 44; rowNum++) {
+      // Store individual tour template (rows 23-38)
+      for (let rowNum = 23; rowNum <= 38; rowNum++) {
         const row = worksheet.getRow(rowNum);
-        templateRows.push(this.copyRowData(row));
+        tourTemplateRows.push(this.copyRowData(row));
       }
       
-      console.log('→ SimpleEOD: Template section (rows 23-44) stored for replication including totals section');
+      // Store totals section template (rows 41-44)  
+      for (let rowNum = 41; rowNum <= 44; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        totalsTemplateRows.push(this.copyRowData(row));
+      }
       
-      // Process each record
+      console.log('→ SimpleEOD: Tour template (rows 23-38) and totals template (rows 41-44) stored separately');
+      
+      // Process each record using tour template only
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
         const record = multipleData.records[recordIndex];
-        const startRow = 23 + (recordIndex * 23); // Each record takes 23 rows (23-44 + 1 blank row)
+        const startRow = 23 + (recordIndex * 17); // Each record takes 17 rows (16 for tour template + 1 blank)
         
         console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
         
-        // Insert template rows for this record
+        // Insert tour template rows for this record
         if (recordIndex > 0) {
           // Insert new rows for this record
-          worksheet.spliceRows(startRow, 0, 23); // Insert 23 empty rows (22 for template + 1 blank)
+          worksheet.spliceRows(startRow, 0, 17); // Insert 17 empty rows (16 for tour template + 1 blank)
           
-          // Copy template data to new rows (first 22 rows are template, last row is blank)
-          for (let i = 0; i < templateRows.length; i++) {
-            const templateRow = templateRows[i];
+          // Copy tour template data to new rows
+          for (let i = 0; i < tourTemplateRows.length; i++) {
+            const templateRow = tourTemplateRows[i];
             const newRow = worksheet.getRow(startRow + i);
             
             // Copy each cell from template
@@ -94,8 +102,8 @@ export class SimpleEODProcessor {
             });
           }
           
-          // Add blank row at the end (row 22 + 1 = 23rd row is blank)
-          const blankRow = worksheet.getRow(startRow + templateRows.length);
+          // Add blank row at the end (row 16 + 1 = 17th row is blank)
+          const blankRow = worksheet.getRow(startRow + tourTemplateRows.length);
           blankRow.height = 20; // Set a default height for the blank row
           
           // Copy merged cells for this record (safely)
@@ -105,7 +113,7 @@ export class SimpleEODProcessor {
             const endRowTemplate = parseInt(endCell.match(/\d+/)[0]);
             
             // Calculate offset for new record
-            const rowOffset = recordIndex * 23;
+            const rowOffset = recordIndex * 17;
             
             const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
               const rowNum = parseInt(match);
@@ -116,7 +124,7 @@ export class SimpleEODProcessor {
           });
         }
         
-        // Apply delimiter replacements for this record
+        // Apply delimiter replacements for this record (tour template only)
         this.applyDelimiterReplacements(worksheet, record, startRow);
         
         // Also search for {{notes}} in the entire worksheet (not just the replicated section)
@@ -131,6 +139,28 @@ export class SimpleEODProcessor {
         });
       }
       
+      // Add totals section at the end (after all tour records)
+      const totalsSectionStartRow = 23 + (multipleData.records.length * 17);
+      console.log(`→ SimpleEOD: Adding totals section starting at row ${totalsSectionStartRow}`);
+      
+      // Insert rows for totals section
+      worksheet.spliceRows(totalsSectionStartRow, 0, 4); // Insert 4 empty rows for totals section
+      
+      // Copy totals template data
+      for (let i = 0; i < totalsTemplateRows.length; i++) {
+        const templateRow = totalsTemplateRows[i];
+        const newRow = worksheet.getRow(totalsSectionStartRow + i);
+        
+        // Copy each cell from template
+        templateRow.forEach((cellData: any, colIndex: number) => {
+          if (cellData && colIndex > 0) {
+            const cell = newRow.getCell(colIndex);
+            cell.value = cellData.value;
+            cell.style = cellData.style;
+          }
+        });
+      }
+      
       // Calculate totals for all records
       const totalAdults = multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
       const totalChildren = multipleData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0);
@@ -138,8 +168,8 @@ export class SimpleEODProcessor {
       
       console.log(`→ SimpleEOD: Calculated totals - Adults: ${totalAdults}, Children: ${totalChildren}, Comp: ${totalComp}`);
       
-      // Apply totals to {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters
-      this.applyTotalDelimiters(worksheet, totalAdults, totalChildren, totalComp);
+      // Apply totals to {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters in the totals section
+      this.applyTotalDelimiters(worksheet, totalAdults, totalChildren, totalComp, totalsSectionStartRow);
       
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
@@ -221,8 +251,8 @@ export class SimpleEODProcessor {
     let tourNameFound = false;
     let notesFound = false;
     
-    // Search through the entire template section (22 rows: 23-44) for delimiters
-    for (let rowOffset = 0; rowOffset < 22; rowOffset++) {
+    // Search through the tour template section (16 rows: 23-38) for delimiters
+    for (let rowOffset = 0; rowOffset < 16; rowOffset++) {
       const currentRow = startRow + rowOffset;
       
       // Check each column in this row
@@ -340,11 +370,14 @@ export class SimpleEODProcessor {
   }
 
   /**
-   * Apply total count delimiters to the EOD template
+   * Apply total count delimiters to the EOD template totals section
    */
-  private applyTotalDelimiters(worksheet: ExcelJS.Worksheet, totalAdults: number, totalChildren: number, totalComp: number): void {
-    // Find and replace {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters
-    worksheet.eachRow((row, rowNumber) => {
+  private applyTotalDelimiters(worksheet: ExcelJS.Worksheet, totalAdults: number, totalChildren: number, totalComp: number, totalsSectionStartRow: number): void {
+    // Find and replace {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters only in the totals section
+    for (let rowOffset = 0; rowOffset < 4; rowOffset++) {
+      const currentRow = totalsSectionStartRow + rowOffset;
+      const row = worksheet.getRow(currentRow);
+      
       row.eachCell((cell, colNumber) => {
         if (cell.value) {
           const cellValueStr = String(cell.value);
@@ -363,7 +396,7 @@ export class SimpleEODProcessor {
           }
         }
       });
-    });
+    }
   }
 
   /**
