@@ -244,6 +244,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Implemented {{departure_time}} placeholder replacement in EOD reports
   - Updated extractNotes method to include "Incident, accident, cancellation etc." column
   - Enhanced EOD template processing to replace all three delimiters: {{tour_name}}, {{notes}}, {{departure_time}}
+- July 8, 2025: Analyzed new EOD template structure and identified delimiter locations
+  - **{{num_adult}} Delimiter**: Found at C25 (Row 25, Column C) and C38 (Row 38, Column C)
+  - **Template Structure**: Shows guest count sections with Adult/Child/Comp columns
+  - **Additional Delimiters**: {{num_chd}} (D25, D38), {{num_comp}} (E25, E38), {{total_adult}} (C44), {{total_chd}} (D44), {{total_comp}} (E44)
+  - **Notes Structure**: {{notes}} spans multiple cells A28-H32 for expanded notes section
+  - **Tour Names**: {{tour_name}} appears across merged cells B23-H23 for tour identification
+  - **Template Sections**: Two main tour sections at rows 23-32 and 36-45 with totals at row 44
 - July 7, 2025: Implemented comprehensive formatting preservation for dispatch sheet generation
   - Enhanced DispatchGenerator to capture and preserve original template formatting from row 9
   - Added formatting preservation for font, fill, border, alignment, and number format properties
