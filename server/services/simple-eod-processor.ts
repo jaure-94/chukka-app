@@ -55,31 +55,31 @@ export class SimpleEODProcessor {
       worksheet.model.merges.forEach(merge => {
         const mergeStart = worksheet.getCell(merge).row;
         const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
-        if (mergeStart >= 23 && mergeEnd <= 38) {
+        if (mergeStart >= 23 && mergeEnd <= 44) {
           templateMergedCells.push(merge);
         }
       });
       
-      for (let rowNum = 23; rowNum <= 38; rowNum++) {
+      for (let rowNum = 23; rowNum <= 44; rowNum++) {
         const row = worksheet.getRow(rowNum);
         templateRows.push(this.copyRowData(row));
       }
       
-      console.log('→ SimpleEOD: Template section (rows 23-38) stored for replication');
+      console.log('→ SimpleEOD: Template section (rows 23-44) stored for replication including totals section');
       
       // Process each record
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
         const record = multipleData.records[recordIndex];
-        const startRow = 23 + (recordIndex * 16); // Each record takes 16 rows (23-38)
+        const startRow = 23 + (recordIndex * 23); // Each record takes 23 rows (23-44 + 1 blank row)
         
         console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
         
         // Insert template rows for this record
         if (recordIndex > 0) {
           // Insert new rows for this record
-          worksheet.spliceRows(startRow, 0, 16); // Insert 16 empty rows
+          worksheet.spliceRows(startRow, 0, 23); // Insert 23 empty rows (22 for template + 1 blank)
           
-          // Copy template data to new rows
+          // Copy template data to new rows (first 22 rows are template, last row is blank)
           for (let i = 0; i < templateRows.length; i++) {
             const templateRow = templateRows[i];
             const newRow = worksheet.getRow(startRow + i);
@@ -94,6 +94,10 @@ export class SimpleEODProcessor {
             });
           }
           
+          // Add blank row at the end (row 22 + 1 = 23rd row is blank)
+          const blankRow = worksheet.getRow(startRow + templateRows.length);
+          blankRow.height = 20; // Set a default height for the blank row
+          
           // Copy merged cells for this record (safely)
           templateMergedCells.forEach(mergeRange => {
             const [startCell, endCell] = mergeRange.split(':');
@@ -101,7 +105,7 @@ export class SimpleEODProcessor {
             const endRowTemplate = parseInt(endCell.match(/\d+/)[0]);
             
             // Calculate offset for new record
-            const rowOffset = recordIndex * 16;
+            const rowOffset = recordIndex * 23;
             
             const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
               const rowNum = parseInt(match);
@@ -217,8 +221,8 @@ export class SimpleEODProcessor {
     let tourNameFound = false;
     let notesFound = false;
     
-    // Search through the entire template section (16 rows) for delimiters
-    for (let rowOffset = 0; rowOffset < 16; rowOffset++) {
+    // Search through the entire template section (22 rows: 23-44) for delimiters
+    for (let rowOffset = 0; rowOffset < 22; rowOffset++) {
       const currentRow = startRow + rowOffset;
       
       // Check each column in this row
