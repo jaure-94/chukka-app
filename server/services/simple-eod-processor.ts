@@ -222,21 +222,21 @@ export class SimpleEODProcessor {
     
     // Replace {{num_adult}} in guest count cells (offset: startRow + 8)
     const adultCountCell = worksheet.getCell(startRow + 8, 3); // Column C
-    if (adultCountCell.value && typeof adultCountCell.value === 'string' && adultCountCell.value.includes('{{num_adult}}')) {
+    if (adultCountCell.value && String(adultCountCell.value).includes('{{num_adult}}')) {
       adultCountCell.value = record.cellL8 || 0;
       console.log(`→ SimpleEOD: Set row ${startRow + 8} col C (num_adult) = ${record.cellL8}`);
     }
     
     // Replace {{num_chd}} in guest count cells (offset: startRow + 8)
     const childCountCell = worksheet.getCell(startRow + 8, 4); // Column D
-    if (childCountCell.value && typeof childCountCell.value === 'string' && childCountCell.value.includes('{{num_chd}}')) {
+    if (childCountCell.value && String(childCountCell.value).includes('{{num_chd}}')) {
       childCountCell.value = record.cellM8 || 0;
       console.log(`→ SimpleEOD: Set row ${startRow + 8} col D (num_chd) = ${record.cellM8}`);
     }
     
     // Replace {{num_comp}} in guest count cells (offset: startRow + 8)
     const compCountCell = worksheet.getCell(startRow + 8, 5); // Column E
-    if (compCountCell.value && typeof compCountCell.value === 'string' && compCountCell.value.includes('{{num_comp}}')) {
+    if (compCountCell.value && String(compCountCell.value).includes('{{num_comp}}')) {
       compCountCell.value = record.cellN8 || 0;
       console.log(`→ SimpleEOD: Set row ${startRow + 8} col E (num_comp) = ${record.cellN8}`);
     }
@@ -249,16 +249,18 @@ export class SimpleEODProcessor {
     // Find and replace {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters
     worksheet.eachRow((row, rowNumber) => {
       row.eachCell((cell, colNumber) => {
-        if (cell.value && typeof cell.value === 'string') {
-          if (cell.value.includes('{{total_adult}}')) {
+        if (cell.value) {
+          const cellValueStr = String(cell.value);
+          
+          if (cellValueStr.includes('{{total_adult}}')) {
             cell.value = totalAdults;
             console.log(`→ SimpleEOD: Set ${cell.address} (total_adult) = ${totalAdults}`);
           }
-          if (cell.value.includes('{{total_chd}}')) {
+          if (cellValueStr.includes('{{total_chd}}')) {
             cell.value = totalChildren;
             console.log(`→ SimpleEOD: Set ${cell.address} (total_chd) = ${totalChildren}`);
           }
-          if (cell.value.includes('{{total_comp}}')) {
+          if (cellValueStr.includes('{{total_comp}}')) {
             cell.value = totalComp;
             console.log(`→ SimpleEOD: Set ${cell.address} (total_comp) = ${totalComp}`);
           }
