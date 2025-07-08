@@ -379,19 +379,19 @@ export class SimpleEODProcessor {
    * Add thick black border to right edge of tour section
    */
   private addRightBorderToTourSection(worksheet: ExcelJS.Worksheet, startRow: number): void {
-    // Add thick black border to right edge of columns A through I for the tour section (16 rows)
+    // Add thick black border to right edge of column H for the tour section (16 rows)
     for (let rowOffset = 0; rowOffset < 16; rowOffset++) {
       const currentRow = startRow + rowOffset;
       
-      // Add thick black border to column I (right edge of tour section)
-      const rightEdgeCell = worksheet.getCell(currentRow, 9); // Column I
+      // Add thick black border to column H (right edge of tour section)
+      const rightEdgeCell = worksheet.getCell(currentRow, 8); // Column H
       rightEdgeCell.border = {
         ...rightEdgeCell.border,
         right: { style: 'thick', color: { argb: 'FF000000' } }
       };
     }
     
-    console.log(`→ SimpleEOD: Added thick black right border to tour section starting at row ${startRow}`);
+    console.log(`→ SimpleEOD: Added thick black right border to column H for tour section starting at row ${startRow}`);
   }
 
   /**
