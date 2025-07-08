@@ -47,7 +47,7 @@ export class SimpleEODProcessor {
         throw new Error('Could not find worksheet in EOD template');
       }
       
-      // Store original template section (rows 23-38) for replication
+      // Store original template section (rows 17-25) for replication
       const templateRows = [];
       const templateMergedCells = [];
       
@@ -55,46 +55,34 @@ export class SimpleEODProcessor {
       worksheet.model.merges.forEach(merge => {
         const mergeStart = worksheet.getCell(merge).row;
         const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
-        if (mergeStart >= 23 && mergeEnd <= 38) {
+        if (mergeStart >= 17 && mergeEnd <= 25) {
           templateMergedCells.push(merge);
         }
       });
       
-      for (let rowNum = 23; rowNum <= 38; rowNum++) {
+      for (let rowNum = 17; rowNum <= 25; rowNum++) {
         const row = worksheet.getRow(rowNum);
         templateRows.push(this.copyRowData(row));
       }
       
-      console.log('→ SimpleEOD: Template section (rows 23-38) stored for replication');
+      console.log('→ SimpleEOD: Template section (rows 17-25) stored for replication');
       
-      // Process each record - rows 23-38 represent one dispatch entry (16 rows)
+      // Process each record
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
         const record = multipleData.records[recordIndex];
+        const startRow = 17 + (recordIndex * 9); // Each record takes 9 rows (17-25)
         
-        if (recordIndex === 0) {
-          // First record uses the original template section (rows 23-38)
-          console.log(`→ SimpleEOD: Processing record 1: "${record.cellA8}" using original template section (rows 23-38)`);
-          const startRow = 23;
+        console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
+        
+        // Insert template rows for this record
+        if (recordIndex > 0) {
+          // Insert new rows for this record
+          worksheet.spliceRows(startRow, 0, 9); // Insert 9 empty rows
           
-          // Apply delimiter replacements for the first record
-          this.applyDelimiterReplacements(worksheet, record, startRow);
-          
-          // Search for {{notes}} globally for the first record
-          this.searchAndReplaceNotesGlobally(worksheet, record.cellH8);
-          
-        } else {
-          // For subsequent records, replicate the template section between row 39 and 40
-          const insertionRow = 39 + ((recordIndex - 1) * 16); // Each section is 16 rows
-          console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" - replicating template section at row ${insertionRow}`);
-          
-          // Insert 16 rows at the insertion point to make space for the new section
-          worksheet.insertRows(insertionRow, 16);
-          console.log(`→ SimpleEOD: Inserted 16 rows at position ${insertionRow}`);
-          
-          // Copy the stored template section (rows 23-38) to the new location
+          // Copy template data to new rows
           for (let i = 0; i < templateRows.length; i++) {
             const templateRow = templateRows[i];
-            const newRow = worksheet.getRow(insertionRow + i);
+            const newRow = worksheet.getRow(startRow + i);
             
             // Copy each cell from template
             templateRow.forEach((cellData: any, colIndex: number) => {
@@ -106,14 +94,14 @@ export class SimpleEODProcessor {
             });
           }
           
-          // Copy merged cells for this replicated section
+          // Copy merged cells for this record (safely)
           templateMergedCells.forEach(mergeRange => {
             const [startCell, endCell] = mergeRange.split(':');
             const startRowTemplate = parseInt(startCell.match(/\d+/)[0]);
             const endRowTemplate = parseInt(endCell.match(/\d+/)[0]);
             
-            // Calculate offset for new record (insertionRow - 23 gives us the row offset)
-            const rowOffset = insertionRow - 23;
+            // Calculate offset for new record
+            const rowOffset = recordIndex * 9;
             
             const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
               const rowNum = parseInt(match);
@@ -122,13 +110,13 @@ export class SimpleEODProcessor {
             
             this.safeMergeCells(worksheet, newMergeRange);
           });
-          
-          // Apply delimiter replacements for this record in the replicated section
-          this.applyDelimiterReplacements(worksheet, record, insertionRow);
-          
-          // Search for {{notes}} globally for this record
-          this.searchAndReplaceNotesGlobally(worksheet, record.cellH8);
         }
+        
+        // Apply delimiter replacements for this record
+        this.applyDelimiterReplacements(worksheet, record, startRow);
+        
+        // Also search for {{notes}} in the entire worksheet (not just the replicated section)
+        this.searchAndReplaceNotesGlobally(worksheet, record.cellH8);
         
         // Store this record in database
         await storage.createExtractedDispatchData({
