@@ -14,6 +14,155 @@ export class SimpleEODProcessor {
   }
 
   /**
+   * Append new records to an existing EOD report
+   */
+  async appendToExistingReport(
+    existingReportPath: string,
+    dispatchFileId: number,
+    dispatchFilePath: string,
+    outputPath: string
+  ): Promise<string> {
+    try {
+      console.log('→ SimpleEOD: Appending records to existing EOD report');
+      
+      // Extract new dispatch records
+      const multipleData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+      
+      if (multipleData.records.length === 0) {
+        throw new Error('No tour records found in dispatch file');
+      }
+      
+      console.log(`→ SimpleEOD: Found ${multipleData.records.length} new tour records to append`);
+      
+      // Load existing EOD report instead of template
+      if (!fs.existsSync(existingReportPath)) {
+        throw new Error(`Existing EOD report not found: ${existingReportPath}`);
+      }
+      
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(existingReportPath);
+      const worksheet = workbook.getWorksheet(1);
+      
+      if (!worksheet) {
+        throw new Error('Could not find worksheet in existing EOD report');
+      }
+      
+      // Find the current totals section (it should be at the end)
+      const currentTotalsSectionRow = this.findTotalsSectionRow(worksheet);
+      console.log(`→ SimpleEOD: Found existing totals section at row ${currentTotalsSectionRow}`);
+      
+      // Store the tour template from the existing report (use first tour section as template)
+      const tourTemplateRows = [];
+      const templateMergedCells = [];
+      
+      // Extract tour template from rows 23-38 (first tour section)
+      for (let rowNum = 23; rowNum <= 38; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        tourTemplateRows.push(this.copyRowData(row));
+      }
+      
+      // Store existing merged cells pattern
+      worksheet.model.merges.forEach(merge => {
+        const mergeStart = worksheet.getCell(merge).row;
+        const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
+        if (mergeStart >= 23 && mergeEnd <= 38) {
+          templateMergedCells.push(merge);
+        }
+      });
+      
+      // Calculate where to insert new records (before totals section)
+      const insertionPoint = currentTotalsSectionRow;
+      
+      // Insert new tour records before the totals section
+      for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
+        const record = multipleData.records[recordIndex];
+        const startRow = insertionPoint + (recordIndex * 17); // Each record takes 17 rows
+        
+        console.log(`→ SimpleEOD: Appending record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
+        
+        // Insert rows for this new record
+        worksheet.spliceRows(startRow, 0, 17); // Insert 17 empty rows
+        
+        // Copy tour template data to new rows
+        for (let i = 0; i < tourTemplateRows.length; i++) {
+          const templateRow = tourTemplateRows[i];
+          const newRow = worksheet.getRow(startRow + i);
+          
+          // Copy each cell from template
+          templateRow.forEach((cellData: any, colIndex: number) => {
+            if (cellData && colIndex > 0) {
+              const cell = newRow.getCell(colIndex);
+              cell.value = cellData.value;
+              cell.style = cellData.style;
+            }
+          });
+        }
+        
+        // Add blank row at the end
+        const blankRow = worksheet.getRow(startRow + tourTemplateRows.length);
+        blankRow.height = 20;
+        
+        // Copy merged cells for this record
+        templateMergedCells.forEach(mergeRange => {
+          const [startCell, endCell] = mergeRange.split(':');
+          const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
+            const rowNum = parseInt(match);
+            const offsetFromTemplate = rowNum - 23; // Original template started at row 23
+            return (startRow + offsetFromTemplate).toString();
+          });
+          
+          this.safeMergeCells(worksheet, newMergeRange);
+        });
+        
+        // Apply delimiter replacements for this record
+        this.applyDelimiterReplacements(worksheet, record, startRow);
+        
+        // Add right border to this tour section
+        this.addRightBorderToTourSection(worksheet, startRow);
+        
+        // Store this record in database
+        await storage.createExtractedDispatchData({
+          dispatchFileId: dispatchFileId,
+          cellA8Value: record.cellA8,
+          cellB8Value: record.cellB8,
+          cellH8Value: record.cellH8
+        });
+      }
+      
+      // Recalculate totals including new records
+      const newTotalsSectionRow = insertionPoint + (multipleData.records.length * 17);
+      const allRecordsData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+      
+      // Get existing totals and add new records
+      const existingTotals = this.getExistingTotals(worksheet, currentTotalsSectionRow);
+      const newTotals = {
+        adults: existingTotals.adults + allRecordsData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0),
+        children: existingTotals.children + allRecordsData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0),
+        comp: existingTotals.comp + allRecordsData.records.reduce((sum, record) => sum + (record.cellN8 || 0), 0)
+      };
+      
+      console.log(`→ SimpleEOD: Updated totals - Adults: ${newTotals.adults}, Children: ${newTotals.children}, Comp: ${newTotals.comp}`);
+      
+      // Update totals section with new values
+      this.applyTotalDelimiters(worksheet, newTotals.adults, newTotals.children, newTotals.comp, newTotalsSectionRow);
+      
+      // Fix SUM formula in totals section
+      this.fixSumFormula(worksheet, newTotalsSectionRow);
+      
+      // Save the updated report
+      await workbook.xlsx.writeFile(outputPath);
+      
+      console.log(`→ SimpleEOD: Appended ${multipleData.records.length} records to existing report and saved to ${outputPath}`);
+      
+      return outputPath;
+      
+    } catch (error) {
+      console.error('→ SimpleEOD: Error appending to existing report:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Process multiple dispatch records - replicate rows 17-25 for each record
    */
   async processMultipleRecords(
@@ -373,6 +522,63 @@ export class SimpleEODProcessor {
     if (!notesFound) {
       console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found anywhere in the worksheet`);
     }
+  }
+
+  /**
+   * Find the totals section row in existing EOD report
+   */
+  private findTotalsSectionRow(worksheet: ExcelJS.Worksheet): number {
+    // Search for {{total_adult}} delimiter to find totals section
+    let totalsSectionRow = -1;
+    
+    worksheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell, colNumber) => {
+        if (cell.value && String(cell.value).includes('{{total_adult}}')) {
+          totalsSectionRow = rowNumber;
+          return false; // Stop iteration
+        }
+      });
+      if (totalsSectionRow !== -1) return false; // Stop row iteration
+    });
+    
+    // If delimiter not found, search for existing totals pattern
+    if (totalsSectionRow === -1) {
+      worksheet.eachRow((row, rowNumber) => {
+        const cellC = row.getCell(3); // Column C
+        const cellD = row.getCell(4); // Column D
+        const cellE = row.getCell(5); // Column E
+        
+        // Look for numerical values in C, D, E columns (likely totals)
+        if (cellC.value && cellD.value && cellE.value &&
+            typeof cellC.value === 'number' && 
+            typeof cellD.value === 'number' && 
+            typeof cellE.value === 'number') {
+          // Check if this looks like a totals row (higher values)
+          const total = cellC.value + cellD.value + cellE.value;
+          if (total > 10) { // Reasonable threshold for totals
+            totalsSectionRow = rowNumber;
+            return false;
+          }
+        }
+      });
+    }
+    
+    return totalsSectionRow > 0 ? totalsSectionRow : 77; // Default fallback
+  }
+
+  /**
+   * Get existing totals from the current report
+   */
+  private getExistingTotals(worksheet: ExcelJS.Worksheet, totalsSectionRow: number): { adults: number, children: number, comp: number } {
+    const adultsCell = worksheet.getCell(totalsSectionRow, 3); // Column C
+    const childrenCell = worksheet.getCell(totalsSectionRow, 4); // Column D
+    const compCell = worksheet.getCell(totalsSectionRow, 5); // Column E
+    
+    return {
+      adults: (typeof adultsCell.value === 'number') ? adultsCell.value : 0,
+      children: (typeof childrenCell.value === 'number') ? childrenCell.value : 0,
+      comp: (typeof compCell.value === 'number') ? compCell.value : 0
+    };
   }
 
   /**

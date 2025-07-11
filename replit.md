@@ -268,6 +268,14 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Updated frontend to use formatting-preserving endpoint instead of basic upload
   - Enhanced dispatch sheet generation to apply preserved formatting to all newly added records
   - Ensured generated dispatch files maintain original template appearance and styling
+- July 11, 2025: Enhanced EOD report processing with incremental record addition capability
+  - Fixed totals section to appear only once at the bottom of EOD reports instead of after each tour entry
+  - Added thick black border to right edge of column H for each tour section
+  - Implemented dynamic SUM formula adjustment in F44 to reference correct row positions
+  - Created appendToExistingReport method for adding new records to existing EOD reports
+  - Added /api/append-to-eod-report endpoint for incremental report updates
+  - Enhanced totals calculation to accumulate existing and new record counts
+  - Improved report continuity allowing multiple dispatch files to contribute to single EOD report
 
 ## User Preferences
 

@@ -667,6 +667,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Append new records to existing EOD report
+  app.post("/api/append-to-eod-report", async (req, res) => {
+    try {
+      const { dispatchFileId, existingReportFilename } = req.body;
+      
+      if (!dispatchFileId || !existingReportFilename) {
+        return res.status(400).json({ message: "Dispatch file ID and existing report filename are required" });
+      }
+
+      // Get the uploaded dispatch file
+      const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+      if (!dispatchFile) {
+        return res.status(404).json({ message: "Dispatch file not found" });
+      }
+
+      // Check if existing report exists
+      const existingReportPath = path.join(process.cwd(), "output", existingReportFilename);
+      if (!fs.existsSync(existingReportPath)) {
+        return res.status(404).json({ message: "Existing EOD report not found" });
+      }
+
+      // Generate timestamp for updated report
+      const timestamp = Date.now();
+      const updatedReportPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
+      
+      // Append new records to existing report
+      const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
+      await simpleEODProcessor.appendToExistingReport(
+        existingReportPath,
+        parseInt(dispatchFileId),
+        dispatchFilePath,
+        updatedReportPath
+      );
+
+      // Create new dispatch version record
+      await storage.createDispatchVersion({
+        filename: `edited_dispatch_${timestamp}.xlsx`,
+        originalFilename: dispatchFile.originalName,
+        filePath: dispatchFilePath,
+        recordCount: 1, // We'll update this based on actual records
+        processingStatus: "completed"
+      });
+
+      res.json({
+        success: true,
+        message: "Records appended to existing EOD report successfully",
+        dispatchFileId: dispatchFile.id,
+        updatedReportPath: updatedReportPath,
+        updatedReportFilename: `eod_${timestamp}.xlsx`
+      });
+
+    } catch (error) {
+      console.error("Append to EOD report error:", error);
+      res.status(500).json({ 
+        message: "Failed to append to EOD report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Process EOD report from dispatch file
   app.post("/api/process-eod-from-dispatch", async (req, res) => {
     try {
