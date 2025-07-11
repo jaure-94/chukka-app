@@ -71,6 +71,7 @@ export class SimpleEODProcessor {
       });
       
       // Calculate where to insert new records (before totals section)
+      // We need to insert BEFORE the totals section, not at the totals section row
       const insertionPoint = currentTotalsSectionRow;
       
       // Insert new tour records before the totals section
@@ -80,8 +81,8 @@ export class SimpleEODProcessor {
         
         console.log(`→ SimpleEOD: Appending record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
         
-        // Insert rows for this new record
-        worksheet.spliceRows(startRow, 0, 17); // Insert 17 empty rows
+        // Insert 17 empty rows at the insertion point (this pushes totals section down)
+        worksheet.spliceRows(startRow, 0, 17);
         
         // Copy tour template data to new rows
         for (let i = 0; i < tourTemplateRows.length; i++) {
@@ -129,22 +130,29 @@ export class SimpleEODProcessor {
         });
       }
       
-      // Recalculate totals including new records
+      // Calculate the new totals section row (after inserting new records)
       const newTotalsSectionRow = insertionPoint + (multipleData.records.length * 17);
-      const allRecordsData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
       
-      // Get existing totals and add new records
+      // Get existing totals and add the new records from this dispatch file
       const existingTotals = this.getExistingTotals(worksheet, currentTotalsSectionRow);
-      const newTotals = {
-        adults: existingTotals.adults + allRecordsData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0),
-        children: existingTotals.children + allRecordsData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0),
-        comp: existingTotals.comp + allRecordsData.records.reduce((sum, record) => sum + (record.cellN8 || 0), 0)
+      const newRecordTotals = {
+        adults: multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0),
+        children: multipleData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0),
+        comp: multipleData.records.reduce((sum, record) => sum + (record.cellN8 || 0), 0)
       };
       
-      console.log(`→ SimpleEOD: Updated totals - Adults: ${newTotals.adults}, Children: ${newTotals.children}, Comp: ${newTotals.comp}`);
+      const updatedTotals = {
+        adults: existingTotals.adults + newRecordTotals.adults,
+        children: existingTotals.children + newRecordTotals.children,
+        comp: existingTotals.comp + newRecordTotals.comp
+      };
       
-      // Update totals section with new values
-      this.applyTotalDelimiters(worksheet, newTotals.adults, newTotals.children, newTotals.comp, newTotalsSectionRow);
+      console.log(`→ SimpleEOD: Existing totals - Adults: ${existingTotals.adults}, Children: ${existingTotals.children}, Comp: ${existingTotals.comp}`);
+      console.log(`→ SimpleEOD: New record totals - Adults: ${newRecordTotals.adults}, Children: ${newRecordTotals.children}, Comp: ${newRecordTotals.comp}`);
+      console.log(`→ SimpleEOD: Updated totals - Adults: ${updatedTotals.adults}, Children: ${updatedTotals.children}, Comp: ${updatedTotals.comp}`);
+      
+      // Update totals section with new values (now at the new row position)
+      this.applyTotalDelimiters(worksheet, updatedTotals.adults, updatedTotals.children, updatedTotals.comp, newTotalsSectionRow);
       
       // Fix SUM formula in totals section
       this.fixSumFormula(worksheet, newTotalsSectionRow);
@@ -530,21 +538,35 @@ export class SimpleEODProcessor {
   private findTotalsSectionRow(worksheet: ExcelJS.Worksheet): number {
     console.log(`→ SimpleEOD: Looking for totals section in existing report`);
     
-    // Search for {{total_adult}} delimiter first (in case it's still a template)
+    // Search for "Additional notes" heading first (typical EOD totals section marker)
     let totalsSectionRow = -1;
     
     worksheet.eachRow((row, rowNumber) => {
       row.eachCell((cell, colNumber) => {
-        if (cell.value && String(cell.value).includes('{{total_adult}}')) {
+        if (cell.value && String(cell.value).toLowerCase().includes('additional notes')) {
           totalsSectionRow = rowNumber;
-          console.log(`→ SimpleEOD: Found {{total_adult}} delimiter at row ${rowNumber}`);
+          console.log(`→ SimpleEOD: Found "Additional notes" heading at row ${rowNumber}`);
           return false; // Stop iteration
         }
       });
       if (totalsSectionRow !== -1) return false; // Stop row iteration
     });
     
-    // If delimiter not found, search for existing totals pattern
+    // If "Additional notes" not found, search for {{total_adult}} delimiter
+    if (totalsSectionRow === -1) {
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          if (cell.value && String(cell.value).includes('{{total_adult}}')) {
+            totalsSectionRow = rowNumber;
+            console.log(`→ SimpleEOD: Found {{total_adult}} delimiter at row ${rowNumber}`);
+            return false; // Stop iteration
+          }
+        });
+        if (totalsSectionRow !== -1) return false; // Stop row iteration
+      });
+    }
+    
+    // If neither found, search for existing totals pattern
     if (totalsSectionRow === -1) {
       console.log(`→ SimpleEOD: No delimiter found, searching for numerical totals pattern`);
       
