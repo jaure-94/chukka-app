@@ -114,6 +114,18 @@ export const extractedDispatchData = pgTable("extracted_dispatch_data", {
   extractedAt: timestamp("extracted_at").defaultNow().notNull(),
 });
 
+export const cumulativeEodReports = pgTable("cumulative_eod_reports", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  filePath: text("file_path").notNull(),
+  version: integer("version").notNull().default(1),
+  isActive: boolean("is_active").notNull().default(false),
+  tourCount: integer("tour_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
   id: true,
   uploadedAt: true,
@@ -160,6 +172,12 @@ export const insertExtractedDispatchDataSchema = createInsertSchema(extractedDis
   extractedAt: true,
 });
 
+export const insertCumulativeEodReportSchema = createInsertSchema(cumulativeEodReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
@@ -169,6 +187,7 @@ export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
+export type InsertCumulativeEodReport = z.infer<typeof insertCumulativeEodReportSchema>;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;
@@ -179,3 +198,4 @@ export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
 export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;
+export type CumulativeEodReport = typeof cumulativeEodReports.$inferSelect;
