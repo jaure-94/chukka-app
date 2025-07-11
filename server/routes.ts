@@ -690,6 +690,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!eodTemplate) {
         return res.status(400).json({ message: "No active EOD template found" });
       }
+      
+      console.log('EOD template object:', eodTemplate);
 
       // Parse dispatch data
       const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
@@ -712,11 +714,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process EOD template with multiple dispatch records
       const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
       const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
+      console.log('EOD template path:', eodTemplatePath);
+      console.log('EOD template file exists:', fs.existsSync(eodTemplatePath));
+      
       await simpleEODProcessor.processMultipleRecords(
-        eodTemplatePath,
-        parseInt(dispatchFileId),
         dispatchFilePath,
-        eodOutputPath
+        eodTemplatePath,
+        parseInt(dispatchFileId)
       );
 
       // Generate dispatch report as well - for now, just copy the original file
