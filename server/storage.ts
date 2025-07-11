@@ -8,7 +8,6 @@ import {
   generatedReports,
   dispatchVersions,
   extractedDispatchData,
-  cumulativeEodReports,
   type UploadedFile, 
   type ExcelData,
   type ProcessingJob,
@@ -18,7 +17,6 @@ import {
   type GeneratedReport,
   type DispatchVersion,
   type ExtractedDispatchData,
-  type CumulativeEodReport,
   type InsertUploadedFile, 
   type InsertExcelData,
   type InsertProcessingJob,
@@ -27,8 +25,7 @@ import {
   type InsertDispatchRecord,
   type InsertGeneratedReport,
   type InsertDispatchVersion,
-  type InsertExtractedDispatchData,
-  type InsertCumulativeEodReport
+  type InsertExtractedDispatchData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -73,13 +70,6 @@ export interface IStorage {
   // Extracted dispatch data operations
   createExtractedDispatchData(data: InsertExtractedDispatchData): Promise<ExtractedDispatchData>;
   getExtractedDispatchData(dispatchFileId: number): Promise<ExtractedDispatchData | undefined>;
-
-  // Cumulative EOD report operations
-  createCumulativeEodReport(report: InsertCumulativeEodReport): Promise<CumulativeEodReport>;
-  getActiveCumulativeEodReport(): Promise<CumulativeEodReport | undefined>;
-  getCumulativeEodReports(limit?: number): Promise<CumulativeEodReport[]>;
-  updateCumulativeEodReport(id: number, updates: Partial<CumulativeEodReport>): Promise<CumulativeEodReport>;
-  setActiveCumulativeEodReport(id: number): Promise<CumulativeEodReport>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -288,63 +278,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(extractedDispatchData.dispatchFileId, dispatchFileId))
       .orderBy(desc(extractedDispatchData.extractedAt))
       .limit(1);
-    return result[0];
-  }
-
-  async createCumulativeEodReport(report: InsertCumulativeEodReport): Promise<CumulativeEodReport> {
-    const result = await db
-      .insert(cumulativeEodReports)
-      .values(report)
-      .returning();
-    
-    return result[0];
-  }
-
-  async getActiveCumulativeEodReport(): Promise<CumulativeEodReport | undefined> {
-    const result = await db
-      .select()
-      .from(cumulativeEodReports)
-      .where(eq(cumulativeEodReports.isActive, true))
-      .orderBy(desc(cumulativeEodReports.createdAt))
-      .limit(1);
-    
-    return result[0];
-  }
-
-  async getCumulativeEodReports(limit: number = 10): Promise<CumulativeEodReport[]> {
-    const result = await db
-      .select()
-      .from(cumulativeEodReports)
-      .orderBy(desc(cumulativeEodReports.createdAt))
-      .limit(limit);
-    
-    return result;
-  }
-
-  async updateCumulativeEodReport(id: number, updates: Partial<CumulativeEodReport>): Promise<CumulativeEodReport> {
-    const result = await db
-      .update(cumulativeEodReports)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(cumulativeEodReports.id, id))
-      .returning();
-    
-    return result[0];
-  }
-
-  async setActiveCumulativeEodReport(id: number): Promise<CumulativeEodReport> {
-    // First, deactivate all existing active reports
-    await db
-      .update(cumulativeEodReports)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(cumulativeEodReports.isActive, true));
-    
-    // Then activate the specified report
-    const result = await db
-      .update(cumulativeEodReports)
-      .set({ isActive: true, updatedAt: new Date() })
-      .where(eq(cumulativeEodReports.id, id))
-      .returning();
-    
     return result[0];
   }
 }
