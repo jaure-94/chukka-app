@@ -10,7 +10,6 @@ import { DropboxService } from "./services/dropbox-service";
 import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
-import { eodAppendService } from "./services/eod-append-service";
 import ExcelJS from "exceljs";
 import { 
   insertUploadedFileSchema, 
@@ -690,8 +689,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!eodTemplate) {
         return res.status(400).json({ message: "No active EOD template found" });
       }
-      
-      console.log('EOD template object:', eodTemplate);
 
       // Parse dispatch data
       const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
@@ -714,13 +711,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process EOD template with multiple dispatch records
       const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
       const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
-      console.log('EOD template path:', eodTemplatePath);
-      console.log('EOD template file exists:', fs.existsSync(eodTemplatePath));
-      
       await simpleEODProcessor.processMultipleRecords(
-        dispatchFilePath,
         eodTemplatePath,
-        parseInt(dispatchFileId)
+        parseInt(dispatchFileId),
+        dispatchFilePath,
+        eodOutputPath
       );
 
       // Generate dispatch report as well - for now, just copy the original file
@@ -892,65 +887,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Report generation error:", error);
     }
   }
-
-  // Append records to existing EOD report
-  app.post("/api/append-to-eod-report", upload.single("file"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No dispatch file uploaded" });
-      }
-
-      console.log(`→ SimpleEOD: Appending records to existing EOD report`);
-      
-      // Get the latest EOD report
-      const latestEODPath = await eodAppendService.getLatestEODReportPath();
-      if (!latestEODPath) {
-        return res.status(404).json({ message: "No existing EOD report found to append to" });
-      }
-
-      console.log(`→ SimpleEOD: Using existing EOD report: ${latestEODPath}`);
-
-      // Generate new output filename
-      const timestamp = Date.now();
-      const outputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
-
-      // Use the new dispatch file path
-      const dispatchFilePath = req.file.path;
-
-      // Append to existing EOD report
-      const result = await eodAppendService.appendToExistingEODReport(
-        latestEODPath,
-        dispatchFilePath,
-        outputPath
-      );
-
-      // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
-
-      if (result.success) {
-        console.log(`→ SimpleEOD: ${result.message}`);
-        res.json({
-          success: true,
-          message: result.message,
-          recordsAdded: result.recordsAdded,
-          outputFile: path.basename(outputPath),
-          outputPath: outputPath
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: result.message
-        });
-      }
-
-    } catch (error) {
-      console.error("→ SimpleEOD: Error appending to EOD report:", error);
-      res.status(500).json({ 
-        message: "Failed to append to EOD report",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;

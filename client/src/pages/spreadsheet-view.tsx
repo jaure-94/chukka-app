@@ -32,7 +32,6 @@ export default function SpreadsheetView() {
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isAppendingToEOD, setIsAppendingToEOD] = useState(false);
   const hotTableRef = useRef(null);
 
   const onDrop = async (acceptedFiles: File[]) => {
@@ -315,66 +314,6 @@ export default function SpreadsheetView() {
     setEditedData(newData);
   };
 
-  const handleAppendToEOD = async () => {
-    if (!file || !editedData.length) {
-      toast({
-        title: "No data to append",
-        description: "Please upload and edit a spreadsheet first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAppendingToEOD(true);
-
-    try {
-      // Create a new workbook with the edited data
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(editedData);
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-      
-      // Generate Excel file
-      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      
-      // Create form data
-      const formData = new FormData();
-      formData.append('file', blob, `dispatch_records_${Date.now()}.xlsx`);
-      
-      // Send to append endpoint
-      const response = await fetch('/api/append-to-eod-report', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to append to EOD report');
-      }
-      
-      const result = await response.json();
-      
-      toast({
-        title: "Records appended successfully",
-        description: `${result.recordsAdded} records added to EOD report. New file: ${result.outputFile}`,
-      });
-      
-      // Reset the file state to allow new uploads
-      setFile(null);
-      setEditedData([]);
-      setIsEditing(false);
-      
-    } catch (error) {
-      console.error('Error appending to EOD report:', error);
-      toast({
-        title: "Append failed",
-        description: "Failed to append records to EOD report. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAppendingToEOD(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Fixed Desktop Sidebar */}
@@ -499,15 +438,6 @@ export default function SpreadsheetView() {
                     <Button onClick={handleSaveChanges} className="flex items-center gap-2">
                       <Save className="w-4 h-4" />
                       Save Changes
-                    </Button>
-                    
-                    <Button 
-                      onClick={handleAppendToEOD}
-                      disabled={isAppendingToEOD}
-                      className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {isAppendingToEOD ? 'Appending...' : 'Append to EOD Report'}
                     </Button>
                     
                     <Button onClick={() => setIsEditing(false)} variant="outline">
