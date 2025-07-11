@@ -528,13 +528,16 @@ export class SimpleEODProcessor {
    * Find the totals section row in existing EOD report
    */
   private findTotalsSectionRow(worksheet: ExcelJS.Worksheet): number {
-    // Search for {{total_adult}} delimiter to find totals section
+    console.log(`→ SimpleEOD: Looking for totals section in existing report`);
+    
+    // Search for {{total_adult}} delimiter first (in case it's still a template)
     let totalsSectionRow = -1;
     
     worksheet.eachRow((row, rowNumber) => {
       row.eachCell((cell, colNumber) => {
         if (cell.value && String(cell.value).includes('{{total_adult}}')) {
           totalsSectionRow = rowNumber;
+          console.log(`→ SimpleEOD: Found {{total_adult}} delimiter at row ${rowNumber}`);
           return false; // Stop iteration
         }
       });
@@ -543,27 +546,64 @@ export class SimpleEODProcessor {
     
     // If delimiter not found, search for existing totals pattern
     if (totalsSectionRow === -1) {
+      console.log(`→ SimpleEOD: No delimiter found, searching for numerical totals pattern`);
+      
+      // Look for the pattern where we have numerical values in C, D, E columns
+      // and the next few rows are mostly empty (typical totals section)
       worksheet.eachRow((row, rowNumber) => {
         const cellC = row.getCell(3); // Column C
         const cellD = row.getCell(4); // Column D
         const cellE = row.getCell(5); // Column E
         
-        // Look for numerical values in C, D, E columns (likely totals)
+        // Check for numerical values in C, D, E columns
         if (cellC.value && cellD.value && cellE.value &&
             typeof cellC.value === 'number' && 
             typeof cellD.value === 'number' && 
             typeof cellE.value === 'number') {
-          // Check if this looks like a totals row (higher values)
+          
+          // Check if this looks like a totals row by examining the row structure
           const total = cellC.value + cellD.value + cellE.value;
-          if (total > 10) { // Reasonable threshold for totals
-            totalsSectionRow = rowNumber;
-            return false;
+          
+          // Look for patterns that indicate this is a totals section
+          // - Has numerical values in C, D, E
+          // - Next few rows are mostly empty
+          // - Usually appears after multiple tour sections
+          
+          if (total > 5 && rowNumber > 40) { // Reasonable threshold and position
+            console.log(`→ SimpleEOD: Found potential totals at row ${rowNumber} - C:${cellC.value}, D:${cellD.value}, E:${cellE.value}`);
+            
+            // Check if the next few rows are mostly empty (confirms this is totals)
+            let isLikelyTotals = true;
+            for (let checkRow = rowNumber + 1; checkRow <= rowNumber + 3; checkRow++) {
+              const nextRow = worksheet.getRow(checkRow);
+              let hasContent = false;
+              nextRow.eachCell((cell) => {
+                if (cell.value && String(cell.value).trim() !== '') {
+                  hasContent = true;
+                }
+              });
+              if (hasContent) {
+                isLikelyTotals = false;
+                break;
+              }
+            }
+            
+            if (isLikelyTotals) {
+              totalsSectionRow = rowNumber;
+              console.log(`→ SimpleEOD: Confirmed totals section at row ${rowNumber}`);
+              return false;
+            }
           }
         }
       });
     }
     
-    return totalsSectionRow > 0 ? totalsSectionRow : 77; // Default fallback
+    if (totalsSectionRow === -1) {
+      console.log(`→ SimpleEOD: No totals section found, using default fallback at row 77`);
+      totalsSectionRow = 77;
+    }
+    
+    return totalsSectionRow;
   }
 
   /**
