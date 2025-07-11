@@ -260,12 +260,6 @@ export default function CreateDispatch() {
     setHasUnsavedChanges(false);
   };
 
-  // Query to get output files to check for existing EOD reports
-  const { data: outputFiles } = useQuery({
-    queryKey: ["/api/output-files"],
-    enabled: showUpdateEOD
-  });
-
   // Update EOD Report mutation
   const updateEODMutation = useMutation({
     mutationFn: async () => {
@@ -273,36 +267,16 @@ export default function CreateDispatch() {
         throw new Error('No saved file ID available');
       }
 
-      // Check if there's already an existing EOD report
-      const eodFiles = outputFiles?.filter((file: any) => file.filename.startsWith('eod_')) || [];
-      const latestEOD = eodFiles
-        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-      let response;
-      if (latestEOD) {
-        // Append to existing EOD report
-        console.log(`Appending to existing EOD report: ${latestEOD.filename}`);
-        response = await apiRequest("POST", "/api/append-to-eod-report", {
-          dispatchFileId: savedFileId,
-          existingReportFilename: latestEOD.filename
-        });
-      } else {
-        // Create new EOD report
-        console.log("Creating new EOD report");
-        response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
-          dispatchFileId: savedFileId
-        });
-      }
+      const response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
+        dispatchFileId: savedFileId
+      });
 
       return response.json();
     },
     onSuccess: (result) => {
-      const isAppending = result.updatedReportFilename;
       toast({
         title: "Success! 🎉",
-        description: isAppending 
-          ? `Records appended to existing EOD report: ${result.updatedReportFilename}`
-          : `EOD report generated successfully! Files: ${result.eodFile} & ${result.dispatchFile}`,
+        description: `EOD report generated successfully! Files: ${result.eodFile} & ${result.dispatchFile}`,
       });
       
       // Invalidate all related caches
