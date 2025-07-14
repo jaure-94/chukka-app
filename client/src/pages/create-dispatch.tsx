@@ -734,36 +734,41 @@ export default function CreateDispatch() {
                           {outputFiles
                             .filter((file: any) => file.filename.startsWith('eod_'))
                             .slice(0, 6)
-                            .map((file: any) => (
-                              <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-green-600" />
+                            .map((file: any) => {
+                              // Check if this is the latest/current saved file
+                              const isCurrentFile = savedFileId && file.filename.includes(savedFileId);
+                              
+                              return (
+                                <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                      <FileText className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">
+                                        {file.filename}
+                                      </h4>
+                                      <p className="text-sm text-gray-500">
+                                        Modified: {new Date(file.lastModified).toLocaleDateString()} at {new Date(file.lastModified).toLocaleTimeString()}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <h4 className="font-medium text-gray-900">
-                                      {file.filename}
-                                    </h4>
-                                    <p className="text-sm text-gray-500">
-                                      Modified: {new Date(file.lastModified).toLocaleDateString()}
-                                    </p>
-                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => successiveDispatchMutation.mutate(file.filename)}
+                                    disabled={successiveDispatchMutation.isPending}
+                                  >
+                                    {successiveDispatchMutation.isPending ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                                    ) : (
+                                      <Plus className="w-4 h-4 mr-1" />
+                                    )}
+                                    Add Entry
+                                  </Button>
                                 </div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => successiveDispatchMutation.mutate(file.filename)}
-                                  disabled={successiveDispatchMutation.isPending}
-                                >
-                                  {successiveDispatchMutation.isPending ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                                  ) : (
-                                    <Plus className="w-4 h-4 mr-1" />
-                                  )}
-                                  Add Entry
-                                </Button>
-                              </div>
-                            ))}
+                              );
+                            })}
                         </div>
                         
                         {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length === 0 && (

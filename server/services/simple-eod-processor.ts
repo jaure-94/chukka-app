@@ -516,10 +516,32 @@ export class SimpleEODProcessor {
       console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found in template section starting at row ${startRow}`);
     }
     
-    // Apply merged cells for tour name (assuming it's in the first row of the section)
+    // Apply merged cells for tour name (B-I in first row of section)
     if (tourNameFound) {
-      this.safeMergeCells(worksheet, `B${startRow}:H${startRow}`);
-      console.log(`→ SimpleEOD: Applied merged cells B${startRow}:H${startRow} for tour name`);
+      this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
+      console.log(`→ SimpleEOD: Applied merged cells B${startRow}:I${startRow} for tour name`);
+    }
+    
+    // Apply merged cells for Comments/Notes subheading (A-I in 5th row of section)
+    const commentsRow = startRow + 4; // 5th row of the section
+    this.safeMergeCells(worksheet, `A${commentsRow}:I${commentsRow}`);
+    console.log(`→ SimpleEOD: Applied merged cells A${commentsRow}:I${commentsRow} for Comments/Notes subheading`);
+    
+    // Apply merged cells for notes block (B-I across rows 6-10 of section)
+    for (let noteRowOffset = 5; noteRowOffset <= 9; noteRowOffset++) { // Rows 6-10 of section
+      const noteRow = startRow + noteRowOffset;
+      this.safeMergeCells(worksheet, `B${noteRow}:I${noteRow}`);
+    }
+    console.log(`→ SimpleEOD: Applied merged cells B${startRow + 5}:I${startRow + 9} for notes block`);
+    
+    // Find and replace {{notes}} in the notes block area
+    if (notesFound) {
+      // Set the notes content in the first row of the notes block
+      const notesStartRow = startRow + 5; // Row 6 of section
+      const notesCell = worksheet.getCell(notesStartRow, 2); // Column B
+      notesCell.value = record.cellH8;
+      notesCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+      console.log(`→ SimpleEOD: Set notes content in merged area at B${notesStartRow} = "${record.cellH8}"`);
     }
     
     // NEW: Replace guest count delimiters with actual data from dispatch
