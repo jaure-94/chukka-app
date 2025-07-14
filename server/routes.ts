@@ -799,6 +799,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add successive dispatch entry to existing EOD report
+  app.post("/api/add-successive-dispatch", async (req, res) => {
+    try {
+      const { dispatchFileId, existingEodFilename } = req.body;
+      
+      if (!dispatchFileId || !existingEodFilename) {
+        return res.status(400).json({ message: "Dispatch file ID and existing EOD filename are required" });
+      }
+
+      // Get the most recent dispatch version (edited file)
+      const dispatchVersions = await storage.getDispatchVersions(1);
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log('Adding successive dispatch from latest version:', latestVersion.filename);
+      } else {
+        return res.status(404).json({ message: "No dispatch versions found" });
+      }
+
+      // Check if existing EOD file exists
+      const existingEodPath = path.join(process.cwd(), "output", existingEodFilename);
+      
+      if (!fs.existsSync(existingEodPath)) {
+        return res.status(404).json({ message: "Existing EOD file not found" });
+      }
+
+      // Create output filenames
+      const timestamp = Date.now();
+      const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
+      const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
+
+      // Add successive dispatch entry to existing EOD
+      await simpleEODProcessor.addSuccessiveDispatchEntry(
+        existingEodPath,
+        dispatchFilePath,
+        eodOutputPath
+      );
+
+      // Copy dispatch file to output
+      fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+
+      // Create a new dispatch version record
+      const dispatchVersion = await storage.createDispatchVersion({
+        filename: path.basename(dispatchFilePath),
+        originalFilename: `dispatch_${timestamp}.xlsx`,
+        filePath: dispatchFilePath,
+        isActive: true
+      });
+
+      res.json({
+        success: true,
+        eodFile: path.basename(eodOutputPath),
+        dispatchFile: path.basename(dispatchOutputPath),
+        message: "Successive dispatch entry added successfully",
+        originalEodFile: existingEodFilename,
+        dispatchVersionId: dispatchVersion.id
+      });
+
+    } catch (error) {
+      console.error("Successive dispatch entry error:", error);
+      res.status(500).json({ 
+        message: "Failed to add successive dispatch entry", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/download-report/:reportId/:type", async (req, res) => {
     try {
       const { reportId, type } = req.params;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { History, File, Eye, Download } from "lucide-react";
+import { History, File, Eye, Download, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +49,11 @@ export default function CreateDispatch() {
   // Fetch dispatch versions
   const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
     queryKey: ["/api/dispatch-versions"],
+  });
+
+  // Fetch output files for successive dispatch
+  const { data: outputFiles = [], isLoading: isLoadingOutputFiles } = useQuery({
+    queryKey: ["/api/output-files"],
   });
 
   // Load dispatch template when available
@@ -302,6 +307,46 @@ export default function CreateDispatch() {
   const handleUpdateEOD = () => {
     updateEODMutation.mutate();
   };
+
+  // Successive dispatch entry mutation
+  const successiveDispatchMutation = useMutation({
+    mutationFn: async (existingEodFilename: string) => {
+      if (!savedFileId) {
+        throw new Error('No saved file ID available');
+      }
+
+      const response = await apiRequest("POST", "/api/add-successive-dispatch", {
+        dispatchFileId: savedFileId,
+        existingEodFilename: existingEodFilename
+      });
+
+      return response.json();
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Success! 🎉",
+        description: `Successive dispatch entry added! New EOD file: ${result.eodFile}`,
+      });
+      
+      // Invalidate all related caches
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      
+      // Redirect to Reports page after a short delay
+      setTimeout(() => {
+        setLocation("/reports");
+      }, 2000);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add successive dispatch entry",
+        variant: "destructive",
+      });
+      console.error("Error adding successive dispatch entry:", error);
+    },
+  });
 
   // Debug mutation to test data extraction
   const debugDataMutation = useMutation({
@@ -665,6 +710,74 @@ export default function CreateDispatch() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Successive Dispatch Entry */}
+              {showUpdateEOD && savedFileId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Add to Existing EOD Report
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Add this dispatch entry to an existing EOD report instead of creating a new one
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingOutputFiles ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {outputFiles
+                            .filter((file: any) => file.filename.startsWith('eod_'))
+                            .slice(0, 6)
+                            .map((file: any) => (
+                              <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <FileText className="w-5 h-5 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">
+                                      {file.filename}
+                                    </h4>
+                                    <p className="text-sm text-gray-500">
+                                      Modified: {new Date(file.lastModified).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => successiveDispatchMutation.mutate(file.filename)}
+                                  disabled={successiveDispatchMutation.isPending}
+                                >
+                                  {successiveDispatchMutation.isPending ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                                  ) : (
+                                    <Plus className="w-4 h-4 mr-1" />
+                                  )}
+                                  Add Entry
+                                </Button>
+                              </div>
+                            ))}
+                        </div>
+                        
+                        {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                            <p>No existing EOD reports found</p>
+                            <p className="text-sm">Create your first EOD report to use successive dispatch entries</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Spreadsheet Editor */}
               {isEditing && file && (
