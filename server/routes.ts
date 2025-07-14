@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Copy all data from edited sheet while preserving template formatting
       editedWorksheet.eachRow((row, rowNumber) => {
-        if (rowNumber >= 9) { // Data rows start from row 9
+        if (rowNumber >= 8) { // Data rows start from row 8 (where tour data begins)
           row.eachCell((cell, colNumber) => {
             if (colNumber <= 15) { // Process columns A-O (1-15) to include notes column
               const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
@@ -638,27 +638,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dispatch file ID is required" });
       }
 
-      const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
-      if (!dispatchFile) {
-        return res.status(404).json({ message: "Dispatch file not found" });
+      // Get the most recent dispatch version (like the EOD processor does)
+      const dispatchVersions = await storage.getDispatchVersions(1);
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log('Debug: Using latest dispatch version:', latestVersion.filename);
+      } else {
+        const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+        if (!dispatchFile) {
+          return res.status(404).json({ message: "Dispatch file not found" });
+        }
+        dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
       }
 
-      const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
-      const dispatchData = await excelParser.parseFile(dispatchFilePath);
+      console.log('Debug: Reading file at path:', dispatchFilePath);
+      console.log('Debug: File exists:', fs.existsSync(dispatchFilePath));
+
+      // Use the same cell extractor that the EOD processor uses
+      const extractedRecords = await cellExtractor.extractMultipleRecords(dispatchFilePath);
       
-      // Extract tour data to see what's being found
-      const extractedData = eodProcessor.extractDispatchData(dispatchData);
+      // Also read the raw Excel data for comparison
+      const workbook = XLSX.readFile(dispatchFilePath);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Get specific cells to debug
+      const cellA8 = worksheet['A8'] ? worksheet['A8'].v : 'undefined';
+      const cellB8 = worksheet['B8'] ? worksheet['B8'].v : 'undefined';
+      const cellL8 = worksheet['L8'] ? worksheet['L8'].v : 'undefined';
+      const cellM8 = worksheet['M8'] ? worksheet['M8'].v : 'undefined';
+      const cellN8 = worksheet['N8'] ? worksheet['N8'].v : 'undefined';
       
       res.json({
-        file: dispatchFile,
-        parsedData: dispatchData,
-        extractedTours: extractedData,
+        filePath: dispatchFilePath,
+        fileExists: fs.existsSync(dispatchFilePath),
+        extractedRecords: extractedRecords,
+        rawCellData: {
+          A8: cellA8,
+          B8: cellB8,
+          L8: cellL8,
+          M8: cellM8,
+          N8: cellN8
+        },
+        sheetName: sheetName,
         debugInfo: {
-          totalSheets: dispatchData.sheets.length,
-          sheetsWithData: dispatchData.sheets.filter(s => s.data.length > 0).length,
-          firstSheetColumns: dispatchData.sheets.length > 0 && dispatchData.sheets[0].data.length > 0 
-            ? Object.keys(dispatchData.sheets[0].data[0]) 
-            : []
+          totalSheets: workbook.SheetNames.length,
+          sheetNames: workbook.SheetNames
         }
       });
     } catch (error) {
