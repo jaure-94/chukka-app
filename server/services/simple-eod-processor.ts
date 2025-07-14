@@ -508,24 +508,33 @@ export class SimpleEODProcessor {
       }
     }
     
-    // Log results
+    // Log results and apply fallback if delimiters not found
     if (!tourNameFound) {
       console.log(`→ SimpleEOD: WARNING - {{tour_name}} delimiter not found in template section starting at row ${startRow}`);
+      // FALLBACK: Set tour name in first row, column B if delimiter not found
+      const tourNameCell = worksheet.getCell(startRow, 2); // Column B, first row of section
+      tourNameCell.value = record.cellA8;
+      tourNameCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      console.log(`→ SimpleEOD: FALLBACK - Set tour name at B${startRow} = "${record.cellA8}"`);
     }
     if (!notesFound) {
       console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found in template section starting at row ${startRow}`);
+      // FALLBACK: Set notes in the notes block area
+      const notesStartRow = startRow + 5; // Row 6 of section
+      const notesCell = worksheet.getCell(notesStartRow, 1); // Column A
+      notesCell.value = record.cellH8;
+      notesCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+      console.log(`→ SimpleEOD: FALLBACK - Set notes at A${notesStartRow} = "${record.cellH8}"`);
     }
     
-    // Apply merged cells for tour name (B-I in first row of section)
-    if (tourNameFound) {
-      this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
-      console.log(`→ SimpleEOD: Applied merged cells B${startRow}:I${startRow} for tour name`);
-    }
+    // Apply merged cells for tour name (B-I in first row of section) - always apply
+    this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
+    console.log(`→ SimpleEOD: Applied merged cells B${startRow}:I${startRow} for tour name`);
     
-    // Apply merged cells for Comments/Notes subheading (A-I in 5th row of section)
+    // Apply merged cells for Comments/Notes subheading (A-H in 5th row of section)
     const commentsRow = startRow + 4; // 5th row of the section
-    this.safeMergeCells(worksheet, `A${commentsRow}:I${commentsRow}`);
-    console.log(`→ SimpleEOD: Applied merged cells A${commentsRow}:I${commentsRow} for Comments/Notes subheading`);
+    this.safeMergeCells(worksheet, `A${commentsRow}:H${commentsRow}`);
+    console.log(`→ SimpleEOD: Applied merged cells A${commentsRow}:H${commentsRow} for Comments/Notes subheading`);
     
     // Apply merged cells for notes block (A-H across rows 6-10 of section, merged vertically)
     const notesStartRow = startRow + 5; // Row 6 of section
