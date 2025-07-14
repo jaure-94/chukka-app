@@ -2,12 +2,16 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp } from "lucide-react";
+import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { HotTable } from "@handsontable/react";
+import "handsontable/dist/handsontable.full.css";
+import * as XLSX from "xlsx";
 
 interface ProcessingJob {
   id: number;
@@ -32,6 +36,12 @@ export default function Reports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAllFiles, setShowAllFiles] = useState(false);
+  const [eodViewerOpen, setEodViewerOpen] = useState(false);
+  const [dispatchViewerOpen, setDispatchViewerOpen] = useState(false);
+  const [eodSpreadsheetData, setEodSpreadsheetData] = useState<(string | number)[][]>([]);
+  const [dispatchSpreadsheetData, setDispatchSpreadsheetData] = useState<(string | number)[][]>([]);
+  const [loadingEod, setLoadingEod] = useState(false);
+  const [loadingDispatch, setLoadingDispatch] = useState(false);
 
   const { isCollapsed } = useSidebar();
 
@@ -61,6 +71,74 @@ export default function Reports() {
 
   const handleDownloadReport = (reportId: number, type: 'dispatch' | 'eod') => {
     window.open(`/api/download-report/${reportId}/${type}`, '_blank');
+  };
+
+  const handleViewEodReport = async (filename: string) => {
+    setLoadingEod(true);
+    try {
+      const response = await fetch(`/api/output/${filename}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch EOD report: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1, 
+        defval: '',
+        blankrows: true,
+        raw: false
+      });
+      
+      setEodSpreadsheetData(jsonData as (string | number)[][]);
+      setEodViewerOpen(true);
+    } catch (error) {
+      console.error('Error loading EOD report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load EOD report for viewing",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingEod(false);
+    }
+  };
+
+  const handleViewDispatchSheet = async (filename: string) => {
+    setLoadingDispatch(true);
+    try {
+      const response = await fetch(`/api/files/${filename}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dispatch sheet: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1, 
+        defval: '',
+        blankrows: true,
+        raw: false
+      });
+      
+      setDispatchSpreadsheetData(jsonData as (string | number)[][]);
+      setDispatchViewerOpen(true);
+    } catch (error) {
+      console.error('Error loading dispatch sheet:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dispatch sheet for viewing",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDispatch(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -173,10 +251,11 @@ export default function Reports() {
                             size="sm" 
                             variant="outline"
                             className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
-                            onClick={() => window.open(`/spreadsheet/eod/${latestEOD.filename}`, '_blank')}
+                            onClick={() => handleViewEodReport(latestEOD.filename)}
+                            disabled={loadingEod}
                           >
                             <FileText className="w-3 h-3 mr-2" />
-                            View
+                            {loadingEod ? 'Loading...' : 'View'}
                           </Button>
                         </div>
                       </div>
@@ -241,10 +320,11 @@ export default function Reports() {
                           <Button 
                             size="sm" 
                             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => window.open(`/spreadsheet/dispatch/${latestDispatch.filename}`, '_blank')}
+                            onClick={() => handleViewDispatchSheet(latestDispatch.filename)}
+                            disabled={loadingDispatch}
                           >
                             <FileText className="w-3 h-3 mr-2" />
-                            View
+                            {loadingDispatch ? 'Loading...' : 'View'}
                           </Button>
                         </div>
                       </div>
@@ -393,6 +473,80 @@ export default function Reports() {
           </div>
         </main>
       </div>
+
+      {/* EOD Report Viewer Modal */}
+      <Dialog open={eodViewerOpen} onOpenChange={setEodViewerOpen}>
+        <DialogContent className="max-w-6xl max-h-[80vh] p-0">
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
+              EOD Report Viewer
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-4 top-4"
+              onClick={() => setEodViewerOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogHeader>
+          <div className="px-6 pb-6 overflow-hidden">
+            <div className="border rounded-lg overflow-hidden">
+              <HotTable
+                data={eodSpreadsheetData}
+                colHeaders={true}
+                rowHeaders={true}
+                readOnly={true}
+                width="100%"
+                height="500px"
+                stretchH="all"
+                autoWrapRow={true}
+                autoWrapCol={true}
+                className="htCore"
+                licenseKey="non-commercial-and-evaluation"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dispatch Sheet Viewer Modal */}
+      <Dialog open={dispatchViewerOpen} onOpenChange={setDispatchViewerOpen}>
+        <DialogContent className="max-w-6xl max-h-[80vh] p-0">
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-green-600" />
+              Dispatch Sheet Viewer
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-4 top-4"
+              onClick={() => setDispatchViewerOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogHeader>
+          <div className="px-6 pb-6 overflow-hidden">
+            <div className="border rounded-lg overflow-hidden">
+              <HotTable
+                data={dispatchSpreadsheetData}
+                colHeaders={true}
+                rowHeaders={true}
+                readOnly={true}
+                width="100%"
+                height="500px"
+                stretchH="all"
+                autoWrapRow={true}
+                autoWrapCol={true}
+                className="htCore"
+                licenseKey="non-commercial-and-evaluation"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
