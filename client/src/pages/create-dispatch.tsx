@@ -644,46 +644,108 @@ export default function CreateDispatch() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {outputFiles
-                            .filter((file: any) => file.filename.startsWith('eod_'))
-                            .slice(0, 6)
-                            .map((file: any) => {
-                              // Only allow adding to EOD files that don't already include current dispatch data
-                              const isAlreadyUsed = file.filename.includes(savedFileId);
-                              
-                              return (
-                                <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+                        {/* Latest EOD Report - Featured */}
+                        {outputFiles
+                          .filter((file: any) => file.filename.startsWith('eod_'))
+                          .slice(0, 1)
+                          .map((file: any) => {
+                            const isAlreadyUsed = file.filename.includes(savedFileId);
+                            
+                            return (
+                              <div
+                                key={file.filename}
+                                className={`p-6 border-2 rounded-lg transition-all ${
+                                  isAlreadyUsed 
+                                    ? 'border-gray-300 bg-gray-50' 
+                                    : 'border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 hover:border-blue-400'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-4">
                                   <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                      <FileText className="w-5 h-5 text-green-600" />
+                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                      <FileText className="h-6 w-6 text-blue-600" />
                                     </div>
                                     <div>
-                                      <h4 className="font-medium text-gray-900">
-                                        {file.filename}
-                                      </h4>
-                                      <p className="text-sm text-gray-500">
-                                        Modified: {new Date(file.lastModified).toLocaleDateString()} at {new Date(file.lastModified).toLocaleTimeString()}
-                                      </p>
+                                      <h3 className="font-semibold text-gray-900">Latest EOD Report</h3>
+                                      <p className="text-sm text-gray-600">{file.filename}</p>
                                     </div>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => successiveDispatchMutation.mutate(file.filename)}
-                                    disabled={successiveDispatchMutation.isPending || isAlreadyUsed}
-                                  >
-                                    {successiveDispatchMutation.isPending ? (
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                                    ) : (
-                                      <Plus className="w-4 h-4 mr-1" />
-                                    )}
-                                    {isAlreadyUsed ? 'Already Added' : 'Add Entry'}
-                                  </Button>
+                                  {isAlreadyUsed && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Already Used
+                                    </Badge>
+                                  )}
                                 </div>
-                              );
-                            })}
-                        </div>
+                                <div className="text-sm text-gray-600 mb-4">
+                                  Modified: {new Date(file.lastModified).toLocaleDateString()} at{" "}
+                                  {new Date(file.lastModified).toLocaleTimeString()}
+                                </div>
+                                <Button
+                                  onClick={() => successiveDispatchMutation.mutate(file.filename)}
+                                  disabled={successiveDispatchMutation.isPending || isAlreadyUsed}
+                                  size="lg"
+                                  className={`w-full ${
+                                    isAlreadyUsed 
+                                      ? 'bg-gray-400 cursor-not-allowed' 
+                                      : 'bg-blue-600 hover:bg-blue-700 text-white font-medium'
+                                  }`}
+                                >
+                                  {successiveDispatchMutation.isPending ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                  ) : (
+                                    <Plus className="w-5 h-5 mr-2" />
+                                  )}
+                                  {isAlreadyUsed ? 'Entry Already Added' : 'Add This Entry to Latest Report'}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        
+                        {/* Other EOD Reports - Collapsed */}
+                        {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length > 1 && (
+                          <div className="border-t pt-4">
+                            <h4 className="font-medium text-gray-900 mb-3">Other EOD Reports</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {outputFiles
+                                .filter((file: any) => file.filename.startsWith('eod_'))
+                                .slice(1, 5)
+                                .map((file: any) => {
+                                  const isAlreadyUsed = file.filename.includes(savedFileId);
+                                  
+                                  return (
+                                    <div key={file.filename} className="flex items-center justify-between p-3 border rounded-lg hover:border-blue-300 transition-colors">
+                                      <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                          <FileText className="w-4 h-4 text-green-600" />
+                                        </div>
+                                        <div>
+                                          <h4 className="font-medium text-gray-900 text-sm">
+                                            {file.filename}
+                                          </h4>
+                                          <p className="text-xs text-gray-500">
+                                            {new Date(file.lastModified).toLocaleDateString()} at {new Date(file.lastModified).toLocaleTimeString()}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => successiveDispatchMutation.mutate(file.filename)}
+                                        disabled={successiveDispatchMutation.isPending || isAlreadyUsed}
+                                      >
+                                        {successiveDispatchMutation.isPending ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                                        ) : (
+                                          <Plus className="w-4 h-4 mr-1" />
+                                        )}
+                                        {isAlreadyUsed ? 'Already Added' : 'Add Entry'}
+                                      </Button>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
                         
                         {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length === 0 && (
                           <div className="text-center py-8 text-gray-500">

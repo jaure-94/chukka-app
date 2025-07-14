@@ -527,9 +527,9 @@ export class SimpleEODProcessor {
       console.log(`→ SimpleEOD: FALLBACK - Set notes at A${notesStartRow} = "${record.cellH8}"`);
     }
     
-    // Apply merged cells for tour name (B-I in first row of section) - always apply
-    this.safeMergeCells(worksheet, `B${startRow}:I${startRow}`);
-    console.log(`→ SimpleEOD: Applied merged cells B${startRow}:I${startRow} for tour name`);
+    // Apply merged cells for tour name (B-H in first row of section) - always apply
+    this.safeMergeCells(worksheet, `B${startRow}:H${startRow}`);
+    console.log(`→ SimpleEOD: Applied merged cells B${startRow}:H${startRow} for tour name`);
     
     // Apply merged cells for Comments/Notes subheading (A-H in 5th row of section)
     const commentsRow = startRow + 4; // 5th row of the section
