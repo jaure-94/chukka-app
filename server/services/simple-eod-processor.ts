@@ -261,15 +261,8 @@ export class SimpleEODProcessor {
       // Fix the SUM formula in cell F44 (now at the totals section)
       this.fixSumFormula(worksheet, totalsSectionStartRow);
       
-      // Calculate totals for all records
-      const totalAdults = multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
-      const totalChildren = multipleData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0);
-      const totalComp = multipleData.records.reduce((sum, record) => sum + (record.cellN8 || 0), 0);
-      
-      console.log(`→ SimpleEOD: Calculated totals - Adults: ${totalAdults}, Children: ${totalChildren}, Comp: ${totalComp}`);
-      
-      // Apply totals to {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters in the totals section
-      this.applyTotalDelimiters(worksheet, totalAdults, totalChildren, totalComp, totalsSectionStartRow);
+      // Calculate totals by reading from all tour sections in the worksheet
+      this.updateTotalsSection(worksheet, totalsSectionStartRow, multipleData.records);
       
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
@@ -449,17 +442,88 @@ export class SimpleEODProcessor {
    * Update totals section with new calculations
    */
   private updateTotalsSection(worksheet: ExcelJS.Worksheet, totalsStartRow: number, allRecords: any[]): void {
-    // Calculate total guest counts from all records
-    const totalAdults = allRecords.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
-    const totalChildren = allRecords.reduce((sum, record) => sum + (record.cellM8 || 0), 0);
-    const totalComp = allRecords.reduce((sum, record) => sum + (record.cellN8 || 0), 0);
+    // Calculate totals by reading actual guest counts from all tour sections in worksheet
+    let totalAdults = 0;
+    let totalChildren = 0;
+    let totalComp = 0;
     
-    // Update totals at the expected positions
-    worksheet.getCell(totalsStartRow + 4, 3).value = totalAdults;  // C column
-    worksheet.getCell(totalsStartRow + 4, 4).value = totalChildren; // D column
-    worksheet.getCell(totalsStartRow + 4, 5).value = totalComp;    // E column
+    console.log(`→ SimpleEOD: Calculating totals by reading all tour sections in worksheet`);
+    
+    // Scan through the worksheet to find all tour sections
+    // Tour sections start at row 23 and repeat every 16 rows, with guest counts at offset +2 (3rd row)
+    let currentRow = 23; // First tour section starts at row 23
+    let sectionCount = 0;
+    
+    while (currentRow < totalsStartRow) {
+      // Check if this is a tour section by looking for guest counts at offset +2 (row 3 of section)
+      const guestCountRow = currentRow + 2;
+      
+      if (guestCountRow < totalsStartRow) {
+        const adultCell = worksheet.getCell(guestCountRow, 3); // Column C
+        const childCell = worksheet.getCell(guestCountRow, 4); // Column D
+        const compCell = worksheet.getCell(guestCountRow, 5);  // Column E
+        
+        // Check if this row contains numeric guest counts
+        const adults = typeof adultCell.value === 'number' ? adultCell.value : 0;
+        const children = typeof childCell.value === 'number' ? childCell.value : 0;
+        const comp = typeof compCell.value === 'number' ? compCell.value : 0;
+        
+        // Only count if we have valid numeric values (indicating this is a tour section)
+        if (adults > 0 || children > 0 || comp > 0) {
+          totalAdults += adults;
+          totalChildren += children;
+          totalComp += comp;
+          sectionCount++;
+          console.log(`→ SimpleEOD: Found tour section at row ${currentRow} - Adults: ${adults}, Children: ${children}, Comp: ${comp}`);
+        }
+      }
+      
+      currentRow += 16; // Move to next potential tour section (16 rows apart)
+    }
+    
+    console.log(`→ SimpleEOD: Processed ${sectionCount} tour sections`);
+    
+    // Update totals at the expected positions using delimiter replacement
+    this.replaceTotalsDelimiters(worksheet, totalsStartRow, totalAdults, totalChildren, totalComp);
     
     console.log(`→ SimpleEOD: Updated totals section at row ${totalsStartRow + 4} - Adults: ${totalAdults}, Children: ${totalChildren}, Comp: ${totalComp}`);
+  }
+  
+  /**
+   * Replace {{total_adult}}, {{total_chd}}, and {{total_comp}} delimiters in totals section
+   */
+  private replaceTotalsDelimiters(worksheet: ExcelJS.Worksheet, totalsStartRow: number, totalAdults: number, totalChildren: number, totalComp: number): void {
+    // Search for delimiters in the totals section (typically 6 rows)
+    for (let rowOffset = 0; rowOffset < 6; rowOffset++) {
+      const currentRow = totalsStartRow + rowOffset;
+      
+      // Check each column in this row
+      for (let col = 1; col <= 9; col++) { // Columns A through I
+        const cell = worksheet.getCell(currentRow, col);
+        
+        if (cell.value) {
+          const cellValueStr = String(cell.value);
+          
+          // Check for {{total_adult}} delimiter
+          if (cellValueStr.includes('{{total_adult}}')) {
+            cell.value = totalAdults;
+            console.log(`→ SimpleEOD: Found and replaced {{total_adult}} at ${cell.address} = ${totalAdults}`);
+          }
+          
+          // Check for {{total_chd}} delimiter
+          if (cellValueStr.includes('{{total_chd}}')) {
+            cell.value = totalChildren;
+            console.log(`→ SimpleEOD: Found and replaced {{total_chd}} at ${cell.address} = ${totalChildren}`);
+          }
+          
+          // Check for {{total_comp}} delimiter
+          if (cellValueStr.includes('{{total_comp}}')) {
+            cell.value = totalComp;
+            console.log(`→ SimpleEOD: Found and replaced {{total_comp}} at ${cell.address} = ${totalComp}`);
+          }
+        }
+      }
+    }
   }
 
   /**
