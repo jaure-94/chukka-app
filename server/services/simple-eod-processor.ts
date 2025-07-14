@@ -447,7 +447,7 @@ export class SimpleEODProcessor {
     let totalChildren = 0;
     let totalComp = 0;
     
-    console.log(`→ SimpleEOD: Calculating totals by reading all tour sections in worksheet`);
+    console.log(`→ SimpleEOD: Calculating totals by reading all tour sections in worksheet (totals start at row ${totalsStartRow})`);
     
     // Scan through the worksheet to find all tour sections
     // Tour sections start at row 23 and repeat every 16 rows, with guest counts at offset +2 (3rd row)
@@ -457,6 +457,8 @@ export class SimpleEODProcessor {
     while (currentRow < totalsStartRow) {
       // Check if this is a tour section by looking for guest counts at offset +2 (row 3 of section)
       const guestCountRow = currentRow + 2;
+      
+      console.log(`→ SimpleEOD: Checking potential tour section at row ${currentRow} (guest count row ${guestCountRow})`);
       
       if (guestCountRow < totalsStartRow) {
         const adultCell = worksheet.getCell(guestCountRow, 3); // Column C
@@ -468,13 +470,17 @@ export class SimpleEODProcessor {
         const children = typeof childCell.value === 'number' ? childCell.value : 0;
         const comp = typeof compCell.value === 'number' ? compCell.value : 0;
         
+        console.log(`→ SimpleEOD: Row ${guestCountRow} values - Adults: ${adults} (${typeof adultCell.value}), Children: ${children} (${typeof childCell.value}), Comp: ${comp} (${typeof compCell.value})`);
+        
         // Only count if we have valid numeric values (indicating this is a tour section)
         if (adults > 0 || children > 0 || comp > 0) {
           totalAdults += adults;
           totalChildren += children;
           totalComp += comp;
           sectionCount++;
-          console.log(`→ SimpleEOD: Found tour section at row ${currentRow} - Adults: ${adults}, Children: ${children}, Comp: ${comp}`);
+          console.log(`→ SimpleEOD: ✓ Found tour section at row ${currentRow} - Adults: ${adults}, Children: ${children}, Comp: ${comp}`);
+        } else {
+          console.log(`→ SimpleEOD: ✗ No valid guest counts found at row ${currentRow}`);
         }
       }
       
