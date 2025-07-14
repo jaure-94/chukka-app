@@ -182,40 +182,11 @@ export class SimpleEODProcessor {
       }
       
       // Update totals section (either add new one or update existing one)
-      if (isExistingEOD) {
-        // For existing EOD, we need to move the totals section to the end
-        const oldTotalsRow = await this.findAndRemoveOldTotalsSection(worksheet);
-        const newTotalsSectionStartRow = insertionPoint + (multipleData.records.length * 17);
-        
-        console.log(`→ SimpleEOD: Moving totals section from row ${oldTotalsRow} to row ${newTotalsSectionStartRow}`);
-        
-        // Insert rows for totals section at the end
-        worksheet.spliceRows(newTotalsSectionStartRow, 0, 4); // Insert 4 empty rows for totals section
-        
-        // Copy totals template data
-        for (let i = 0; i < totalsTemplateRows.length; i++) {
-          const templateRow = totalsTemplateRows[i];
-          const newRow = worksheet.getRow(newTotalsSectionStartRow + i);
-          
-          // Copy each cell from template
-          templateRow.forEach((cellData: any, colIndex: number) => {
-            if (cellData && colIndex > 0) {
-              const cell = newRow.getCell(colIndex);
-              cell.value = cellData.value;
-              cell.style = cellData.style;
-            }
-          });
-        }
-        
-        // Fix the SUM formula in the new totals section
-        this.fixSumFormula(worksheet, newTotalsSectionStartRow);
-        
-        // Update the totals with cumulative values
-        await this.updateExistingTotalsSection(worksheet, multipleData.records);
-      } else {
-        // For fresh template, add totals section at the end
-        const totalsSectionStartRow = insertionPoint + (multipleData.records.length * 17);
-        
+      const totalsSectionStartRow = isExistingEOD ? 
+        await this.updateExistingTotalsSection(worksheet, multipleData.records) :
+        insertionPoint + (multipleData.records.length * 17);
+      
+      if (!isExistingEOD) {
         console.log(`→ SimpleEOD: Adding totals section starting at row ${totalsSectionStartRow}`);
         
         // Insert rows for totals section
@@ -240,7 +211,15 @@ export class SimpleEODProcessor {
         this.fixSumFormula(worksheet, totalsSectionStartRow);
       }
       
-      // Note: Totals are already handled in the respective sections above
+      // Calculate totals for all records
+      const totalAdults = multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
+      const totalChildren = multipleData.records.reduce((sum, record) => sum + (record.cellM8 || 0), 0);
+      const totalComp = multipleData.records.reduce((sum, record) => sum + (record.cellN8 || 0), 0);
+      
+      console.log(`→ SimpleEOD: Calculated totals - Adults: ${totalAdults}, Children: ${totalChildren}, Comp: ${totalComp}`);
+      
+      // Apply totals to {{total_adult}}, {{total_chd}}, {{total_comp}} delimiters in the totals section
+      this.applyTotalDelimiters(worksheet, totalAdults, totalChildren, totalComp, totalsSectionStartRow);
       
       // Save the processed file
       await workbook.xlsx.writeFile(outputPath);
@@ -475,9 +454,8 @@ export class SimpleEODProcessor {
    * Find the insertion point in an existing EOD report (before the totals section)
    */
   private async findInsertionPoint(worksheet: ExcelJS.Worksheet): Promise<number> {
-    // Look for the totals section by searching for the last occurrence of totals
-    // We need to find the LAST totals section, not the first one
-    let lastTotalsRow = null;
+    // Look for the totals section by searching for {{total_adult}}, {{total_chd}}, or actual total values
+    let totalsRowFound = null;
     
     worksheet.eachRow((row, rowNumber) => {
       row.eachCell((cell, colNumber) => {
@@ -486,24 +464,10 @@ export class SimpleEODProcessor {
           // Look for total delimiters or cells that might contain totals
           if (cellValueStr.includes('{{total_adult}}') || 
               cellValueStr.includes('{{total_chd}}') || 
-              cellValueStr.includes('{{total_comp}}')) {
-            // This is a totals section with placeholders
-            if (!lastTotalsRow || rowNumber > lastTotalsRow) {
-              lastTotalsRow = rowNumber;
-            }
-          }
-          // Also look for the actual totals section (numeric values in columns C, D, E)
-          // that appear after tour sections
-          else if (colNumber >= 3 && colNumber <= 5 && typeof cell.value === 'number' && cell.value > 0) {
-            // Check if this might be a totals row by looking for patterns
-            const hasAdjacentNumbers = (colNumber === 3 && row.getCell(4).value && row.getCell(5).value) ||
-                                     (colNumber === 4 && row.getCell(3).value && row.getCell(5).value) ||
-                                     (colNumber === 5 && row.getCell(3).value && row.getCell(4).value);
-            
-            if (hasAdjacentNumbers && rowNumber > 40) { // Totals typically appear after row 40
-              if (!lastTotalsRow || rowNumber > lastTotalsRow) {
-                lastTotalsRow = rowNumber;
-              }
+              cellValueStr.includes('{{total_comp}}') ||
+              (colNumber >= 3 && colNumber <= 5 && typeof cell.value === 'number' && cell.value > 0)) {
+            if (!totalsRowFound || rowNumber < totalsRowFound) {
+              totalsRowFound = rowNumber;
             }
           }
         }
@@ -511,9 +475,9 @@ export class SimpleEODProcessor {
     });
     
     // If totals section found, insert before it; otherwise append to the end
-    if (lastTotalsRow) {
-      console.log(`→ SimpleEOD: Found existing totals section at row ${lastTotalsRow}`);
-      return lastTotalsRow;
+    if (totalsRowFound) {
+      console.log(`→ SimpleEOD: Found existing totals section at row ${totalsRowFound}`);
+      return totalsRowFound;
     }
     
     // If no totals section found, find the last row with content and append after
@@ -535,49 +499,6 @@ export class SimpleEODProcessor {
   }
 
   /**
-   * Find and remove the old totals section from the worksheet
-   */
-  private async findAndRemoveOldTotalsSection(worksheet: ExcelJS.Worksheet): Promise<number> {
-    let oldTotalsRow = null;
-    
-    // First, find the totals section
-    worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
-        if (cell.value) {
-          const cellValueStr = String(cell.value);
-          if (cellValueStr.includes('{{total_adult}}') || 
-              cellValueStr.includes('{{total_chd}}') || 
-              cellValueStr.includes('{{total_comp}}')) {
-            if (!oldTotalsRow || rowNumber > oldTotalsRow) {
-              oldTotalsRow = rowNumber;
-            }
-          }
-          // Also check for numeric totals in the expected columns
-          else if (colNumber >= 3 && colNumber <= 5 && typeof cell.value === 'number' && cell.value > 0) {
-            const hasAdjacentNumbers = (colNumber === 3 && row.getCell(4).value && row.getCell(5).value) ||
-                                     (colNumber === 4 && row.getCell(3).value && row.getCell(5).value) ||
-                                     (colNumber === 5 && row.getCell(3).value && row.getCell(4).value);
-            
-            if (hasAdjacentNumbers && rowNumber > 40) {
-              if (!oldTotalsRow || rowNumber > oldTotalsRow) {
-                oldTotalsRow = rowNumber;
-              }
-            }
-          }
-        }
-      });
-    });
-    
-    // Remove the old totals section (typically 4 rows)
-    if (oldTotalsRow) {
-      console.log(`→ SimpleEOD: Removing old totals section starting at row ${oldTotalsRow}`);
-      worksheet.spliceRows(oldTotalsRow, 4); // Remove 4 rows
-    }
-    
-    return oldTotalsRow || 0;
-  }
-
-  /**
    * Update existing totals section with new cumulative totals
    */
   private async updateExistingTotalsSection(worksheet: ExcelJS.Worksheet, newRecords: any[]): Promise<number> {
@@ -588,45 +509,7 @@ export class SimpleEODProcessor {
     
     console.log(`→ SimpleEOD: New records totals - Adults: ${newTotalAdults}, Children: ${newTotalChildren}, Comp: ${newTotalComp}`);
     
-    // Calculate existing totals by scanning all tour sections
-    let existingTotalAdults = 0;
-    let existingTotalChildren = 0;
-    let existingTotalComp = 0;
-    
-    worksheet.eachRow((row, rowNumber) => {
-      // Look for individual tour counts in columns C, D, E (not the totals section)
-      if (rowNumber >= 23 && rowNumber < 200) { // Tour sections range
-        const cellC = row.getCell(3);
-        const cellD = row.getCell(4);
-        const cellE = row.getCell(5);
-        
-        // Check if this looks like a tour count row (has numbers in all three columns)
-        if (typeof cellC.value === 'number' && cellC.value > 0 &&
-            typeof cellD.value === 'number' && cellD.value >= 0 &&
-            typeof cellE.value === 'number' && cellE.value >= 0) {
-          
-          // Make sure it's not the totals section by checking nearby cells
-          const cellB = row.getCell(2);
-          const cellBValue = String(cellB.value || '');
-          
-          if (!cellBValue.includes('{{total_')) {
-            existingTotalAdults += cellC.value;
-            existingTotalChildren += cellD.value;
-            existingTotalComp += cellE.value;
-            console.log(`→ SimpleEOD: Found tour counts at row ${rowNumber}: ${cellC.value}, ${cellD.value}, ${cellE.value}`);
-          }
-        }
-      }
-    });
-    
-    // Calculate final totals
-    const finalTotalAdults = existingTotalAdults + newTotalAdults;
-    const finalTotalChildren = existingTotalChildren + newTotalChildren;
-    const finalTotalComp = existingTotalComp + newTotalComp;
-    
-    console.log(`→ SimpleEOD: Final totals - Adults: ${finalTotalAdults}, Children: ${finalTotalChildren}, Comp: ${finalTotalComp}`);
-    
-    // Find and update the totals section (should be the last section with totals)
+    // Find and update existing totals
     let totalsRowFound = null;
     
     worksheet.eachRow((row, rowNumber) => {
@@ -634,23 +517,26 @@ export class SimpleEODProcessor {
         if (cell.value) {
           const cellValueStr = String(cell.value);
           
-          // Update total_adult placeholder with final total
-          if (cellValueStr.includes('{{total_adult}}')) {
-            cell.value = finalTotalAdults;
-            console.log(`→ SimpleEOD: Updated {{total_adult}} at ${cell.address} = ${finalTotalAdults}`);
+          // Update total_adult placeholder or add to existing value
+          if (cellValueStr.includes('{{total_adult}}') || (colNumber === 3 && typeof cell.value === 'number')) {
+            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
+            cell.value = currentValue + newTotalAdults;
+            console.log(`→ SimpleEOD: Updated total_adult at ${cell.address} = ${cell.value}`);
             totalsRowFound = rowNumber;
           }
           
-          // Update total_chd placeholder with final total
-          if (cellValueStr.includes('{{total_chd}}')) {
-            cell.value = finalTotalChildren;
-            console.log(`→ SimpleEOD: Updated {{total_chd}} at ${cell.address} = ${finalTotalChildren}`);
+          // Update total_chd placeholder or add to existing value
+          if (cellValueStr.includes('{{total_chd}}') || (colNumber === 4 && typeof cell.value === 'number' && totalsRowFound === rowNumber)) {
+            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
+            cell.value = currentValue + newTotalChildren;
+            console.log(`→ SimpleEOD: Updated total_chd at ${cell.address} = ${cell.value}`);
           }
           
-          // Update total_comp placeholder with final total
-          if (cellValueStr.includes('{{total_comp}}')) {
-            cell.value = finalTotalComp;
-            console.log(`→ SimpleEOD: Updated {{total_comp}} at ${cell.address} = ${finalTotalComp}`);
+          // Update total_comp placeholder or add to existing value
+          if (cellValueStr.includes('{{total_comp}}') || (colNumber === 5 && typeof cell.value === 'number' && totalsRowFound === rowNumber)) {
+            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
+            cell.value = currentValue + newTotalComp;
+            console.log(`→ SimpleEOD: Updated total_comp at ${cell.address} = ${cell.value}`);
           }
         }
       });
