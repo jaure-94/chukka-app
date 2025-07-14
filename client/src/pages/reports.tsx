@@ -160,14 +160,25 @@ export default function Reports() {
                             File: {latestEOD.filename}
                           </div>
                         </div>
-                        <Button 
-                          size="sm" 
-                          className="w-full bg-blue-600 hover:bg-blue-700"
-                          onClick={() => window.open(`/api/output/${latestEOD.filename}`, '_blank')}
-                        >
-                          <Download className="w-3 h-3 mr-2" />
-                          Download EOD Report
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => window.open(`/api/output/${latestEOD.filename}`, '_blank')}
+                          >
+                            <Download className="w-3 h-3 mr-2" />
+                            Download
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
+                            onClick={() => window.open(`/spreadsheet/eod/${latestEOD.filename}`, '_blank')}
+                          >
+                            <FileText className="w-3 h-3 mr-2" />
+                            View
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-4">
@@ -217,15 +228,25 @@ export default function Reports() {
                             File: {latestDispatch.originalFilename}
                           </div>
                         </div>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="w-full border-green-600 text-green-600 hover:bg-green-50"
-                          onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
-                        >
-                          <Download className="w-3 h-3 mr-2" />
-                          Download Dispatch
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
+                            onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
+                          >
+                            <Download className="w-3 h-3 mr-2" />
+                            Download
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => window.open(`/spreadsheet/dispatch/${latestDispatch.filename}`, '_blank')}
+                          >
+                            <FileText className="w-3 h-3 mr-2" />
+                            View
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-4">

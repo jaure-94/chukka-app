@@ -569,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createDispatchVersion({
         filename: newFilename,
         originalFilename: req.file.originalname,
-        filePath: path.join("uploads", newFilename),
+        filePath: outputPath, // Use the complete absolute path
         version: nextVersion,
         description: `Formatted dispatch sheet v${nextVersion}`,
       });
@@ -676,10 +676,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dispatch file ID is required" });
       }
 
-      // Get the uploaded dispatch file
-      const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
-      if (!dispatchFile) {
-        return res.status(404).json({ message: "Dispatch file not found" });
+      // Get the most recent dispatch version (edited file) instead of the original upload
+      const dispatchVersions = await storage.getDispatchVersions(1);
+      let dispatchFile;
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        // Use the latest edited dispatch file
+        const latestVersion = dispatchVersions[0];
+        // The file path is already absolute, use it directly
+        dispatchFilePath = latestVersion.filePath;
+        console.log('Using latest dispatch version:', latestVersion.filename);
+        console.log('Dispatch file path:', dispatchFilePath);
+        
+        // Create a temporary file object for compatibility
+        dispatchFile = {
+          id: parseInt(dispatchFileId),
+          filename: latestVersion.filename,
+          originalName: latestVersion.originalFilename,
+          mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          size: fs.existsSync(dispatchFilePath) ? fs.statSync(dispatchFilePath).size : 0,
+          uploadedAt: new Date()
+        };
+      } else {
+        // Fallback to original uploaded file
+        dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+        if (!dispatchFile) {
+          return res.status(404).json({ message: "Dispatch file not found" });
+        }
+        dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
       }
       
       console.log('Dispatch file object:', dispatchFile);
@@ -690,9 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No active EOD template found" });
       }
 
-      // Parse dispatch data
-      const dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
-      console.log('Dispatch file path:', dispatchFilePath);
+      // Parse dispatch data (dispatchFilePath is already set above)
       console.log('File exists:', fs.existsSync(dispatchFilePath));
       const dispatchData = await excelParser.parseFile(dispatchFilePath);
       console.log('Dispatch data for EOD processing:', JSON.stringify({

@@ -11,6 +11,8 @@ import EditTemplates from "@/pages/edit-templates";
 import Reports from "@/pages/reports";
 import Users from "@/pages/users";
 import SpreadsheetView from "@/pages/spreadsheet-view";
+import SpreadsheetEodView from "@/pages/spreadsheet-eod";
+import SpreadsheetDispatchView from "@/pages/spreadsheet-dispatch";
 import { ManualDispatch } from "@/pages/ManualDispatch";
 import NotFound from "@/pages/not-found";
 
@@ -26,6 +28,8 @@ function Router() {
           <Route path="/reports" component={Reports} />
           <Route path="/users" component={Users} />
           <Route path="/spreadsheet" component={SpreadsheetView} />
+          <Route path="/spreadsheet/eod/:filename" component={SpreadsheetEodView} />
+          <Route path="/spreadsheet/dispatch/:filename" component={SpreadsheetDispatchView} />
           <Route path="/manual" component={ManualDispatch} />
           <Route component={NotFound} />
         </Switch>
