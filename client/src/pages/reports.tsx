@@ -12,6 +12,7 @@ import { useSidebar } from "@/contexts/sidebar-context";
 import { HotTable } from "@handsontable/react";
 import "handsontable/dist/handsontable.full.css";
 import * as XLSX from "xlsx";
+import * as ExcelJS from "exceljs";
 
 interface ProcessingJob {
   id: number;
@@ -40,6 +41,8 @@ export default function Reports() {
   const [dispatchViewerOpen, setDispatchViewerOpen] = useState(false);
   const [eodSpreadsheetData, setEodSpreadsheetData] = useState<(string | number)[][]>([]);
   const [dispatchSpreadsheetData, setDispatchSpreadsheetData] = useState<(string | number)[][]>([]);
+  const [eodCellSettings, setEodCellSettings] = useState<any[]>([]);
+  const [dispatchCellSettings, setDispatchCellSettings] = useState<any[]>([]);
   const [loadingEod, setLoadingEod] = useState(false);
   const [loadingDispatch, setLoadingDispatch] = useState(false);
 
@@ -73,6 +76,89 @@ export default function Reports() {
     window.open(`/api/download-report/${reportId}/${type}`, '_blank');
   };
 
+  const convertExcelJSColorToHex = (color: any): string => {
+    if (!color) return '#000000';
+    if (typeof color === 'string') return color.startsWith('#') ? color : `#${color}`;
+    if (color.argb) {
+      const argb = color.argb.toString(16).padStart(8, '0');
+      return `#${argb.slice(2)}`;
+    }
+    if (color.rgb) {
+      return `#${color.rgb}`;
+    }
+    return '#000000';
+  };
+
+  const parseExcelFileWithFormatting = async (arrayBuffer: ArrayBuffer) => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+    const worksheet = workbook.getWorksheet(1);
+    
+    const data: (string | number)[][] = [];
+    const cellSettings: any[] = [];
+    
+    if (!worksheet) return { data, cellSettings };
+    
+    // Get the actual range of the worksheet
+    const range = worksheet.dimensions;
+    if (!range) return { data, cellSettings };
+    
+    const maxRow = range.bottom;
+    const maxCol = range.right;
+    
+    // Initialize data array
+    for (let row = 1; row <= maxRow; row++) {
+      data[row - 1] = [];
+      for (let col = 1; col <= maxCol; col++) {
+        const cell = worksheet.getCell(row, col);
+        data[row - 1][col - 1] = cell.value ? String(cell.value) : '';
+        
+        // Extract formatting
+        const cellStyle: any = {
+          row: row - 1,
+          col: col - 1
+        };
+        
+        // Background color
+        if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
+          cellStyle.backgroundColor = convertExcelJSColorToHex(cell.fill.fgColor);
+        }
+        
+        // Font styling
+        if (cell.font) {
+          cellStyle.color = convertExcelJSColorToHex(cell.font.color);
+          cellStyle.fontWeight = cell.font.bold ? 'bold' : 'normal';
+          cellStyle.fontStyle = cell.font.italic ? 'italic' : 'normal';
+          cellStyle.fontSize = cell.font.size ? `${cell.font.size}px` : '12px';
+          cellStyle.fontFamily = cell.font.name || 'Arial';
+        }
+        
+        // Borders
+        if (cell.border) {
+          const borders: any = {};
+          if (cell.border.top) borders.borderTop = `1px solid ${convertExcelJSColorToHex(cell.border.top.color) || '#000000'}`;
+          if (cell.border.bottom) borders.borderBottom = `1px solid ${convertExcelJSColorToHex(cell.border.bottom.color) || '#000000'}`;
+          if (cell.border.left) borders.borderLeft = `1px solid ${convertExcelJSColorToHex(cell.border.left.color) || '#000000'}`;
+          if (cell.border.right) borders.borderRight = `1px solid ${convertExcelJSColorToHex(cell.border.right.color) || '#000000'}`;
+          Object.assign(cellStyle, borders);
+        }
+        
+        // Alignment
+        if (cell.alignment) {
+          cellStyle.textAlign = cell.alignment.horizontal || 'left';
+          cellStyle.verticalAlign = cell.alignment.vertical || 'top';
+        }
+        
+        // Only add to cellSettings if there are actual styles
+        if (Object.keys(cellStyle).length > 2) {
+          cellSettings.push(cellStyle);
+        }
+      }
+    }
+    
+    return { data, cellSettings };
+  };
+
   const handleViewEodReport = async (filename: string) => {
     setLoadingEod(true);
     try {
@@ -82,18 +168,10 @@ export default function Reports() {
       }
       
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const { data, cellSettings } = await parseExcelFileWithFormatting(arrayBuffer);
       
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-        header: 1, 
-        defval: '',
-        blankrows: true,
-        raw: false
-      });
-      
-      setEodSpreadsheetData(jsonData as (string | number)[][]);
+      setEodSpreadsheetData(data);
+      setEodCellSettings(cellSettings);
       setEodViewerOpen(true);
     } catch (error) {
       console.error('Error loading EOD report:', error);
@@ -116,18 +194,10 @@ export default function Reports() {
       }
       
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const { data, cellSettings } = await parseExcelFileWithFormatting(arrayBuffer);
       
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-        header: 1, 
-        defval: '',
-        blankrows: true,
-        raw: false
-      });
-      
-      setDispatchSpreadsheetData(jsonData as (string | number)[][]);
+      setDispatchSpreadsheetData(data);
+      setDispatchCellSettings(cellSettings);
       setDispatchViewerOpen(true);
     } catch (error) {
       console.error('Error loading dispatch sheet:', error);
@@ -505,6 +575,7 @@ export default function Reports() {
                 autoWrapCol={true}
                 className="htCore"
                 licenseKey="non-commercial-and-evaluation"
+                cell={eodCellSettings}
               />
             </div>
           </div>
@@ -542,6 +613,7 @@ export default function Reports() {
                 autoWrapCol={true}
                 className="htCore"
                 licenseKey="non-commercial-and-evaluation"
+                cell={dispatchCellSettings}
               />
             </div>
           </div>
