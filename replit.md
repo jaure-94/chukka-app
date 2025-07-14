@@ -268,6 +268,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Updated frontend to use formatting-preserving endpoint instead of basic upload
   - Enhanced dispatch sheet generation to apply preserved formatting to all newly added records
   - Ensured generated dispatch files maintain original template appearance and styling
+- July 14, 2025: Fixed data pipeline reliability and EOD report generation issues
+  - Debugged and resolved dispatch data extraction problems - system now correctly extracts multiple tour records
+  - Fixed totals section rendering - totals now appear correctly at bottom of generated reports with proper calculations
+  - Updated border formatting to use column H instead of column I for tour section right borders
+  - Enhanced SUM formula positioning to dynamically reference correct row in totals section
+  - Verified complete data pipeline: dispatch upload → extraction → EOD processing → totals calculation → report generation
+  - Confirmed multi-tour processing with proper spacing and formatting preservation
 
 ## User Preferences
 
