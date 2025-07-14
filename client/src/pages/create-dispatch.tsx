@@ -625,6 +625,79 @@ export default function CreateDispatch() {
                 </Card>
               )}
 
+              {/* Successive Dispatch Entry */}
+              {showUpdateEOD && savedFileId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Add to Existing EOD Report
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Add this dispatch entry to an existing EOD report instead of creating a new one
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingOutputFiles ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {outputFiles
+                            .filter((file: any) => file.filename.startsWith('eod_'))
+                            .slice(0, 6)
+                            .map((file: any) => {
+                              // Only allow adding to EOD files that don't already include current dispatch data
+                              const isAlreadyUsed = file.filename.includes(savedFileId);
+                              
+                              return (
+                                <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                      <FileText className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">
+                                        {file.filename}
+                                      </h4>
+                                      <p className="text-sm text-gray-500">
+                                        Modified: {new Date(file.lastModified).toLocaleDateString()} at {new Date(file.lastModified).toLocaleTimeString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => successiveDispatchMutation.mutate(file.filename)}
+                                    disabled={successiveDispatchMutation.isPending || isAlreadyUsed}
+                                  >
+                                    {successiveDispatchMutation.isPending ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                                    ) : (
+                                      <Plus className="w-4 h-4 mr-1" />
+                                    )}
+                                    {isAlreadyUsed ? 'Already Added' : 'Add Entry'}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                        </div>
+                        
+                        {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                            <p>No existing EOD reports found</p>
+                            <p className="text-sm">Create your first EOD report to use successive dispatch entries</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Version History */}
               <Card>
                 <CardHeader>
@@ -710,79 +783,6 @@ export default function CreateDispatch() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Successive Dispatch Entry */}
-              {showUpdateEOD && savedFileId && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Plus className="h-5 w-5" />
-                      Add to Existing EOD Report
-                    </CardTitle>
-                    <p className="text-sm text-gray-600">
-                      Add this dispatch entry to an existing EOD report instead of creating a new one
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoadingOutputFiles ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {outputFiles
-                            .filter((file: any) => file.filename.startsWith('eod_'))
-                            .slice(0, 6)
-                            .map((file: any) => {
-                              // Check if this is the latest/current saved file
-                              const isCurrentFile = savedFileId && file.filename.includes(savedFileId);
-                              
-                              return (
-                                <div key={file.filename} className="flex items-center justify-between p-4 border rounded-lg hover:border-blue-300 transition-colors">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                      <FileText className="w-5 h-5 text-green-600" />
-                                    </div>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">
-                                        {file.filename}
-                                      </h4>
-                                      <p className="text-sm text-gray-500">
-                                        Modified: {new Date(file.lastModified).toLocaleDateString()} at {new Date(file.lastModified).toLocaleTimeString()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => successiveDispatchMutation.mutate(file.filename)}
-                                    disabled={successiveDispatchMutation.isPending}
-                                  >
-                                    {successiveDispatchMutation.isPending ? (
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                                    ) : (
-                                      <Plus className="w-4 h-4 mr-1" />
-                                    )}
-                                    Add Entry
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                        </div>
-                        
-                        {outputFiles.filter((file: any) => file.filename.startsWith('eod_')).length === 0 && (
-                          <div className="text-center py-8 text-gray-500">
-                            <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                            <p>No existing EOD reports found</p>
-                            <p className="text-sm">Create your first EOD report to use successive dispatch entries</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Spreadsheet Editor */}
               {isEditing && file && (

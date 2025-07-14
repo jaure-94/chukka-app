@@ -281,6 +281,14 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Verified complete single tour workflow: "Catamaran 2" tour extraction → EOD processing → totals calculation (15 adults, 3 children, 1 comp)
   - Enhanced data synchronization between dispatch extraction and EOD template processing
   - Confirmed reliable single tour processing foundation for future multi-tour expansion
+- July 14, 2025: Enhanced successive dispatch entries with improved cell merging and UI positioning
+  - Fixed notes section cell merging to use columns A-H with vertical merge across rows 6-10 of each tour section
+  - Enhanced tour name merging to span columns B-I in first row of each section
+  - Improved comments/notes subheading to merge columns A-I in 5th row of each section
+  - Moved "Add to Existing EOD Report" section above version history for better user flow
+  - Enhanced "Add Entry" button functionality with "Already Added" state for files that include current dispatch data
+  - Added comprehensive timestamp display (date + time) for all file modification times
+  - Applied cell merging improvements to both new EOD generation and successive dispatch entries
 
 ## User Preferences
 

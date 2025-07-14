@@ -527,21 +527,19 @@ export class SimpleEODProcessor {
     this.safeMergeCells(worksheet, `A${commentsRow}:I${commentsRow}`);
     console.log(`→ SimpleEOD: Applied merged cells A${commentsRow}:I${commentsRow} for Comments/Notes subheading`);
     
-    // Apply merged cells for notes block (B-I across rows 6-10 of section)
-    for (let noteRowOffset = 5; noteRowOffset <= 9; noteRowOffset++) { // Rows 6-10 of section
-      const noteRow = startRow + noteRowOffset;
-      this.safeMergeCells(worksheet, `B${noteRow}:I${noteRow}`);
-    }
-    console.log(`→ SimpleEOD: Applied merged cells B${startRow + 5}:I${startRow + 9} for notes block`);
+    // Apply merged cells for notes block (A-H across rows 6-10 of section, merged vertically)
+    const notesStartRow = startRow + 5; // Row 6 of section
+    const notesEndRow = startRow + 9;   // Row 10 of section
+    this.safeMergeCells(worksheet, `A${notesStartRow}:H${notesEndRow}`);
+    console.log(`→ SimpleEOD: Applied merged cells A${notesStartRow}:H${notesEndRow} for notes block (vertical merge)`);
     
     // Find and replace {{notes}} in the notes block area
     if (notesFound) {
-      // Set the notes content in the first row of the notes block
-      const notesStartRow = startRow + 5; // Row 6 of section
-      const notesCell = worksheet.getCell(notesStartRow, 2); // Column B
+      // Set the notes content in the merged notes block
+      const notesCell = worksheet.getCell(notesStartRow, 1); // Column A
       notesCell.value = record.cellH8;
       notesCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
-      console.log(`→ SimpleEOD: Set notes content in merged area at B${notesStartRow} = "${record.cellH8}"`);
+      console.log(`→ SimpleEOD: Set notes content in merged area at A${notesStartRow} = "${record.cellH8}"`);
     }
     
     // NEW: Replace guest count delimiters with actual data from dispatch
