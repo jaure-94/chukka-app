@@ -437,6 +437,16 @@ export class SimpleEODProcessor {
         }
       });
     }
+    
+    // Apply totals to the final row (row 44 equivalent) - offset 5 from start (row 45 in the layout)
+    const totalRow = worksheet.getRow(totalsSectionStartRow + 5);
+    totalRow.getCell(3).value = totalAdults;  // Column C
+    totalRow.getCell(4).value = totalChildren;  // Column D
+    totalRow.getCell(5).value = totalComp;  // Column E
+    
+    console.log(`→ SimpleEOD: Set C${totalsSectionStartRow + 5} (total_adult) = ${totalAdults}`);
+    console.log(`→ SimpleEOD: Set D${totalsSectionStartRow + 5} (total_chd) = ${totalChildren}`);
+    console.log(`→ SimpleEOD: Set E${totalsSectionStartRow + 5} (total_comp) = ${totalComp}`);
   }
 
   /**
