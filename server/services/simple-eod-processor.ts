@@ -14,7 +14,7 @@ export class SimpleEODProcessor {
   }
 
   /**
-   * Process multiple dispatch records - append new tour data to existing EOD report
+   * Process multiple dispatch records - replicate rows 17-25 for each record
    */
   async processMultipleRecords(
     eodTemplatePath: string,
@@ -34,95 +34,56 @@ export class SimpleEODProcessor {
       
       console.log(`→ SimpleEOD: Found ${multipleData.records.length} tour records to process`);
       
-      // Check if we should use the latest EOD report or the base template
-      const latestEODPath = await this.getLatestEODReportPath();
-      const baseTemplatePath = latestEODPath || eodTemplatePath;
-      
-      console.log(`→ SimpleEOD: Using base template: ${latestEODPath ? 'latest EOD report' : 'original template'}`);
-      console.log(`→ SimpleEOD: Base template path: ${baseTemplatePath}`);
-      
-      // Load base template (either original template or latest EOD report)
-      if (!fs.existsSync(baseTemplatePath)) {
-        throw new Error(`Base template file not found: ${baseTemplatePath}`);
+      // Load EOD template
+      if (!fs.existsSync(eodTemplatePath)) {
+        throw new Error(`EOD template file not found: ${eodTemplatePath}`);
       }
       
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(baseTemplatePath);
+      await workbook.xlsx.readFile(eodTemplatePath);
       const worksheet = workbook.getWorksheet(1);
       
       if (!worksheet) {
-        throw new Error('Could not find worksheet in base template');
+        throw new Error('Could not find worksheet in EOD template');
       }
       
-      // Determine if we're working with an existing EOD report or a fresh template
-      const isExistingEOD = latestEODPath !== null;
-      
-      // Find the insertion point (where to add new tour sections)
-      const insertionPoint = isExistingEOD ? 
-        await this.findInsertionPoint(worksheet) : 
-        23; // Start at row 23 for fresh template
-      
-      console.log(`→ SimpleEOD: Insertion point determined: row ${insertionPoint}`);
-      
-      // Store template sections for new tour entries
+      // Store template sections separately: individual tour template (23-38) and totals section (41-44)
       const tourTemplateRows = [];
       const totalsTemplateRows = [];
       const templateMergedCells = [];
       
-      if (isExistingEOD) {
-        // For existing EOD, extract tour template from the base template file
-        const baseWorkbook = new ExcelJS.Workbook();
-        await baseWorkbook.xlsx.readFile(eodTemplatePath);
-        const baseWorksheet = baseWorkbook.getWorksheet(1);
-        
-        // Store tour template from base template (rows 23-38)
-        for (let rowNum = 23; rowNum <= 38; rowNum++) {
-          const row = baseWorksheet.getRow(rowNum);
-          tourTemplateRows.push(this.copyRowData(row));
+      // Store merged cells for tour template section (23-38)
+      worksheet.model.merges.forEach(merge => {
+        const mergeStart = worksheet.getCell(merge).row;
+        const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
+        if (mergeStart >= 23 && mergeEnd <= 38) {
+          templateMergedCells.push(merge);
         }
-        
-        // Store totals template from base template (rows 41-44)
-        for (let rowNum = 41; rowNum <= 44; rowNum++) {
-          const row = baseWorksheet.getRow(rowNum);
-          totalsTemplateRows.push(this.copyRowData(row));
-        }
-        
-        console.log('→ SimpleEOD: Template sections extracted from base template for appending');
-      } else {
-        // For fresh template, use the current worksheet
-        // Store merged cells for tour template section (23-38)
-        worksheet.model.merges.forEach(merge => {
-          const mergeStart = worksheet.getCell(merge).row;
-          const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
-          if (mergeStart >= 23 && mergeEnd <= 38) {
-            templateMergedCells.push(merge);
-          }
-        });
-        
-        // Store individual tour template (rows 23-38)
-        for (let rowNum = 23; rowNum <= 38; rowNum++) {
-          const row = worksheet.getRow(rowNum);
-          tourTemplateRows.push(this.copyRowData(row));
-        }
-        
-        // Store totals section template (rows 41-44)  
-        for (let rowNum = 41; rowNum <= 44; rowNum++) {
-          const row = worksheet.getRow(rowNum);
-          totalsTemplateRows.push(this.copyRowData(row));
-        }
-        
-        console.log('→ SimpleEOD: Tour template (rows 23-38) and totals template (rows 41-44) stored from fresh template');
+      });
+      
+      // Store individual tour template (rows 23-38)
+      for (let rowNum = 23; rowNum <= 38; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        tourTemplateRows.push(this.copyRowData(row));
       }
       
-      // Process each new record starting from the insertion point
+      // Store totals section template (rows 41-44)  
+      for (let rowNum = 41; rowNum <= 44; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        totalsTemplateRows.push(this.copyRowData(row));
+      }
+      
+      console.log('→ SimpleEOD: Tour template (rows 23-38) and totals template (rows 41-44) stored separately');
+      
+      // Process each record using tour template only
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
         const record = multipleData.records[recordIndex];
-        const startRow = insertionPoint + (recordIndex * 17); // Each record takes 17 rows (16 for tour template + 1 blank)
+        const startRow = 23 + (recordIndex * 17); // Each record takes 17 rows (16 for tour template + 1 blank)
         
         console.log(`→ SimpleEOD: Processing record ${recordIndex + 1}: "${record.cellA8}" starting at row ${startRow}`);
         
-        // Always insert new rows for new records (even the first one when appending to existing EOD)
-        if (recordIndex > 0 || isExistingEOD) {
+        // Insert tour template rows for this record
+        if (recordIndex > 0) {
           // Insert new rows for this record
           worksheet.spliceRows(startRow, 0, 17); // Insert 17 empty rows (16 for tour template + 1 blank)
           
@@ -181,35 +142,30 @@ export class SimpleEODProcessor {
         });
       }
       
-      // Update totals section (either add new one or update existing one)
-      const totalsSectionStartRow = isExistingEOD ? 
-        await this.updateExistingTotalsSection(worksheet, multipleData.records) :
-        insertionPoint + (multipleData.records.length * 17);
+      // Add totals section at the end (after all tour records)
+      const totalsSectionStartRow = 23 + (multipleData.records.length * 17);
+      console.log(`→ SimpleEOD: Adding totals section starting at row ${totalsSectionStartRow}`);
       
-      if (!isExistingEOD) {
-        console.log(`→ SimpleEOD: Adding totals section starting at row ${totalsSectionStartRow}`);
+      // Insert rows for totals section
+      worksheet.spliceRows(totalsSectionStartRow, 0, 4); // Insert 4 empty rows for totals section
+      
+      // Copy totals template data
+      for (let i = 0; i < totalsTemplateRows.length; i++) {
+        const templateRow = totalsTemplateRows[i];
+        const newRow = worksheet.getRow(totalsSectionStartRow + i);
         
-        // Insert rows for totals section
-        worksheet.spliceRows(totalsSectionStartRow, 0, 4); // Insert 4 empty rows for totals section
-        
-        // Copy totals template data
-        for (let i = 0; i < totalsTemplateRows.length; i++) {
-          const templateRow = totalsTemplateRows[i];
-          const newRow = worksheet.getRow(totalsSectionStartRow + i);
-          
-          // Copy each cell from template
-          templateRow.forEach((cellData: any, colIndex: number) => {
-            if (cellData && colIndex > 0) {
-              const cell = newRow.getCell(colIndex);
-              cell.value = cellData.value;
-              cell.style = cellData.style;
-            }
-          });
-        }
-        
-        // Fix the SUM formula in cell F44 (now at the totals section)
-        this.fixSumFormula(worksheet, totalsSectionStartRow);
+        // Copy each cell from template
+        templateRow.forEach((cellData: any, colIndex: number) => {
+          if (cellData && colIndex > 0) {
+            const cell = newRow.getCell(colIndex);
+            cell.value = cellData.value;
+            cell.style = cellData.style;
+          }
+        });
       }
+      
+      // Fix the SUM formula in cell F44 (now at the totals section)
+      this.fixSumFormula(worksheet, totalsSectionStartRow);
       
       // Calculate totals for all records
       const totalAdults = multipleData.records.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
@@ -417,132 +373,6 @@ export class SimpleEODProcessor {
     if (!notesFound) {
       console.log(`→ SimpleEOD: WARNING - {{notes}} delimiter not found anywhere in the worksheet`);
     }
-  }
-
-  /**
-   * Get the path of the latest EOD report file
-   */
-  private async getLatestEODReportPath(): Promise<string | null> {
-    try {
-      const outputDir = path.join(process.cwd(), "output");
-      
-      if (!fs.existsSync(outputDir)) {
-        return null;
-      }
-
-      const files = fs.readdirSync(outputDir)
-        .filter(file => file.startsWith('eod_') && file.endsWith('.xlsx'))
-        .map(filename => {
-          const filePath = path.join(outputDir, filename);
-          const stats = fs.statSync(filePath);
-          return {
-            filename,
-            filePath,
-            createdAt: stats.birthtime
-          };
-        })
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-      return files.length > 0 ? files[0].filePath : null;
-    } catch (error) {
-      console.error('→ SimpleEOD: Error finding latest EOD report:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Find the insertion point in an existing EOD report (before the totals section)
-   */
-  private async findInsertionPoint(worksheet: ExcelJS.Worksheet): Promise<number> {
-    // Look for the totals section by searching for {{total_adult}}, {{total_chd}}, or actual total values
-    let totalsRowFound = null;
-    
-    worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
-        if (cell.value) {
-          const cellValueStr = String(cell.value);
-          // Look for total delimiters or cells that might contain totals
-          if (cellValueStr.includes('{{total_adult}}') || 
-              cellValueStr.includes('{{total_chd}}') || 
-              cellValueStr.includes('{{total_comp}}') ||
-              (colNumber >= 3 && colNumber <= 5 && typeof cell.value === 'number' && cell.value > 0)) {
-            if (!totalsRowFound || rowNumber < totalsRowFound) {
-              totalsRowFound = rowNumber;
-            }
-          }
-        }
-      });
-    });
-    
-    // If totals section found, insert before it; otherwise append to the end
-    if (totalsRowFound) {
-      console.log(`→ SimpleEOD: Found existing totals section at row ${totalsRowFound}`);
-      return totalsRowFound;
-    }
-    
-    // If no totals section found, find the last row with content and append after
-    let lastContentRow = 22; // Default fallback
-    worksheet.eachRow((row, rowNumber) => {
-      let hasContent = false;
-      row.eachCell((cell) => {
-        if (cell.value) {
-          hasContent = true;
-        }
-      });
-      if (hasContent && rowNumber > lastContentRow) {
-        lastContentRow = rowNumber;
-      }
-    });
-    
-    console.log(`→ SimpleEOD: No totals section found, appending after last content at row ${lastContentRow + 1}`);
-    return lastContentRow + 1;
-  }
-
-  /**
-   * Update existing totals section with new cumulative totals
-   */
-  private async updateExistingTotalsSection(worksheet: ExcelJS.Worksheet, newRecords: any[]): Promise<number> {
-    // Calculate totals from new records
-    const newTotalAdults = newRecords.reduce((sum, record) => sum + (record.cellL8 || 0), 0);
-    const newTotalChildren = newRecords.reduce((sum, record) => sum + (record.cellM8 || 0), 0);
-    const newTotalComp = newRecords.reduce((sum, record) => sum + (record.cellN8 || 0), 0);
-    
-    console.log(`→ SimpleEOD: New records totals - Adults: ${newTotalAdults}, Children: ${newTotalChildren}, Comp: ${newTotalComp}`);
-    
-    // Find and update existing totals
-    let totalsRowFound = null;
-    
-    worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
-        if (cell.value) {
-          const cellValueStr = String(cell.value);
-          
-          // Update total_adult placeholder or add to existing value
-          if (cellValueStr.includes('{{total_adult}}') || (colNumber === 3 && typeof cell.value === 'number')) {
-            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
-            cell.value = currentValue + newTotalAdults;
-            console.log(`→ SimpleEOD: Updated total_adult at ${cell.address} = ${cell.value}`);
-            totalsRowFound = rowNumber;
-          }
-          
-          // Update total_chd placeholder or add to existing value
-          if (cellValueStr.includes('{{total_chd}}') || (colNumber === 4 && typeof cell.value === 'number' && totalsRowFound === rowNumber)) {
-            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
-            cell.value = currentValue + newTotalChildren;
-            console.log(`→ SimpleEOD: Updated total_chd at ${cell.address} = ${cell.value}`);
-          }
-          
-          // Update total_comp placeholder or add to existing value
-          if (cellValueStr.includes('{{total_comp}}') || (colNumber === 5 && typeof cell.value === 'number' && totalsRowFound === rowNumber)) {
-            const currentValue = typeof cell.value === 'number' ? cell.value : 0;
-            cell.value = currentValue + newTotalComp;
-            console.log(`→ SimpleEOD: Updated total_comp at ${cell.address} = ${cell.value}`);
-          }
-        }
-      });
-    });
-    
-    return totalsRowFound || 0;
   }
 
   /**
