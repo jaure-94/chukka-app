@@ -33,11 +33,6 @@ export class SimpleEODProcessor {
       
       console.log(`→ SimpleEOD: Found ${multipleData.records.length} new tour records to add`);
       
-      // Process template header delimiters if available
-      if (multipleData.templateHeaders) {
-        this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
-      }
-      
       // Load existing EOD report
       if (!fs.existsSync(existingEodPath)) {
         throw new Error(`Existing EOD report not found: ${existingEodPath}`);
@@ -49,6 +44,11 @@ export class SimpleEODProcessor {
       
       if (!worksheet) {
         throw new Error('Could not find worksheet in existing EOD report');
+      }
+      
+      // Process template header delimiters if available
+      if (multipleData.templateHeaders) {
+        this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
       }
       
       // Step 1: Find where the last tour section ends
