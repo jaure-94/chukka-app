@@ -16,6 +16,11 @@ const dispatchRecordSchema = z.object({
   numAdult: z.number().min(0, "Adult count must be 0 or greater"),
   numChild: z.number().min(0, "Child count must be 0 or greater"),
   notes: z.string().optional(),
+  // Template header fields
+  shipName: z.string().optional(),
+  tourOperator: z.string().optional(),
+  shorexManager: z.string().optional(),
+  shorexAsstManager: z.string().optional(),
 });
 
 type DispatchRecordForm = z.infer<typeof dispatchRecordSchema>;
@@ -35,6 +40,10 @@ export function DispatchForm({ onRecordAdded }: DispatchFormProps) {
       numAdult: 0,
       numChild: 0,
       notes: "",
+      shipName: "",
+      tourOperator: "",
+      shorexManager: "",
+      shorexAsstManager: "",
     },
   });
 

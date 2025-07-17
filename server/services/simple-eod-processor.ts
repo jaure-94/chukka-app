@@ -549,7 +549,7 @@ export class SimpleEODProcessor {
   private processTemplateHeaderDelimiters(worksheet: ExcelJS.Worksheet, templateHeaders: TemplateHeaderData): void {
     console.log(`→ SimpleEOD: Processing template header delimiters`);
     
-    // Process specific delimiter locations
+    // Process specific delimiter locations (corrected mapping)
     const delimiterMappings = [
       { cell: 'C4', delimiter: '{{ship_name}}', value: templateHeaders.shipName },
       { cell: 'C5', delimiter: '{{tour_operator}}', value: templateHeaders.tourOperator },

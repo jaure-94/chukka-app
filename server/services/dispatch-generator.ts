@@ -37,6 +37,27 @@ export class DispatchGenerator {
 
       console.log(`Adding ${records.length} dispatch records to template`);
 
+      // Populate template header fields if available in the first record
+      if (records.length > 0) {
+        const firstRecord = records[0];
+        if (firstRecord.shipName) {
+          worksheet.getCell('B1').value = firstRecord.shipName;
+          console.log(`Set ship name at B1: ${firstRecord.shipName}`);
+        }
+        if (firstRecord.tourOperator) {
+          worksheet.getCell('B2').value = firstRecord.tourOperator;
+          console.log(`Set tour operator at B2: ${firstRecord.tourOperator}`);
+        }
+        if (firstRecord.shorexManager) {
+          worksheet.getCell('B5').value = firstRecord.shorexManager;
+          console.log(`Set shorex manager at B5: ${firstRecord.shorexManager}`);
+        }
+        if (firstRecord.shorexAsstManager) {
+          worksheet.getCell('B6').value = firstRecord.shorexAsstManager;
+          console.log(`Set shorex assistant manager at B6: ${firstRecord.shorexAsstManager}`);
+        }
+      }
+
       // Start from row 9 as per the dispatch template structure (where data begins)
       let currentRow = 9;
       

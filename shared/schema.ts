@@ -83,6 +83,11 @@ export const dispatchRecords = pgTable("dispatch_records", {
   totalGuests: integer("total_guests").default(0),
   notes: text("notes"),
   tourDate: text("tour_date"),
+  // Template header fields
+  shipName: text("ship_name"),
+  tourOperator: text("tour_operator"),
+  shorexManager: text("shorex_manager"),
+  shorexAsstManager: text("shorex_asst_manager"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
