@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
-import { cellExtractor } from "./cell-extractor";
+import { cellExtractor, TemplateHeaderData } from "./cell-extractor";
 import { storage } from "../storage";
 
 export class SimpleEODProcessor {
@@ -32,6 +32,11 @@ export class SimpleEODProcessor {
       }
       
       console.log(`→ SimpleEOD: Found ${multipleData.records.length} new tour records to add`);
+      
+      // Process template header delimiters if available
+      if (multipleData.templateHeaders) {
+        this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
+      }
       
       // Load existing EOD report
       if (!fs.existsSync(existingEodPath)) {
@@ -168,6 +173,11 @@ export class SimpleEODProcessor {
       }
       
       console.log('→ SimpleEOD: Tour template (rows 23-38) and totals template (rows 41-44) stored separately');
+      
+      // Process template header delimiters first
+      if (multipleData.templateHeaders) {
+        this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
+      }
       
       // Process each record using tour template only
       for (let recordIndex = 0; recordIndex < multipleData.records.length; recordIndex++) {
@@ -530,6 +540,32 @@ export class SimpleEODProcessor {
         }
       }
     }
+  }
+
+  /**
+   * Process template header delimiters in EOD report
+   * C4 -> {{ship_name}}, C5 -> {{tour_operator}}, C8 -> {{shorex_manager}}, C9 -> {{shorex_asst_manager}}
+   */
+  private processTemplateHeaderDelimiters(worksheet: ExcelJS.Worksheet, templateHeaders: TemplateHeaderData): void {
+    console.log(`→ SimpleEOD: Processing template header delimiters`);
+    
+    // Process specific delimiter locations
+    const delimiterMappings = [
+      { cell: 'C4', delimiter: '{{ship_name}}', value: templateHeaders.shipName },
+      { cell: 'C5', delimiter: '{{tour_operator}}', value: templateHeaders.tourOperator },
+      { cell: 'C8', delimiter: '{{shorex_manager}}', value: templateHeaders.shorexManager },
+      { cell: 'C9', delimiter: '{{shorex_asst_manager}}', value: templateHeaders.shorexAsstManager }
+    ];
+    
+    delimiterMappings.forEach(({ cell, delimiter, value }) => {
+      const targetCell = worksheet.getCell(cell);
+      if (targetCell.value && String(targetCell.value).includes(delimiter)) {
+        targetCell.value = value;
+        console.log(`→ SimpleEOD: Replaced ${delimiter} at ${cell} = "${value}"`);
+      } else {
+        console.log(`→ SimpleEOD: WARNING - ${delimiter} not found at ${cell}, current value: "${targetCell.value}"`);
+      }
+    });
   }
 
   /**

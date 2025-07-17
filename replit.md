@@ -289,6 +289,11 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced "Add Entry" button functionality with "Already Added" state for files that include current dispatch data
   - Added comprehensive timestamp display (date + time) for all file modification times
   - Applied cell merging improvements to both new EOD generation and successive dispatch entries
+- July 17, 2025: Updated template structure with new delimiters and data extraction points
+  - **New EOD Template Delimiters**: C4 ({{ship_name}}), C5 ({{tour_operator}}), C8 ({{shorex_manager}}), C9 ({{shorex_asst_manager}})
+  - **New Dispatch Template Data**: B1 (Ship Name: "Carnival Liberty"), B2 (Tour Operator: "CHUKKA CARIBBEAN ADVENTURES - GRAND TURK"), B5 (Shorex Manager: "FRED HAMMOND"), B6 (Shorex Assistant Manager: "ANDRES STEFANO")
+  - **Template Analysis**: Confirmed delimiter locations and data extraction points for future processing enhancement
+  - **Implementation Ready**: All new delimiter coordinates and data sources documented for system integration
 
 ## User Preferences
 

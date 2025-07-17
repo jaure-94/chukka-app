@@ -10,8 +10,16 @@ export interface CellData {
   cellN8: number;  // Comp count (Column N)
 }
 
+export interface TemplateHeaderData {
+  shipName: string;        // B1 - Ship Name
+  tourOperator: string;    // B2 - Tour Operator
+  shorexManager: string;   // B5 - Shorex Manager
+  shorexAsstManager: string; // B6 - Shorex Assistant Manager
+}
+
 export interface MultipleRecordData {
   records: CellData[];
+  templateHeaders?: TemplateHeaderData;
 }
 
 export class CellExtractor {
@@ -109,7 +117,30 @@ export class CellExtractor {
     }
 
     console.log(`→ CellExtractor: Extracted ${records.length} tour records`);
-    return { records };
+    
+    // Extract template header data
+    const templateHeaders = this.extractTemplateHeaders(worksheet);
+    console.log(`→ CellExtractor: Template headers - Ship: "${templateHeaders.shipName}", Operator: "${templateHeaders.tourOperator}", Manager: "${templateHeaders.shorexManager}", Assistant: "${templateHeaders.shorexAsstManager}"`);
+    
+    return { records, templateHeaders };
+  }
+
+  /**
+   * Extract template header data from dispatch file
+   * B1 -> Ship Name, B2 -> Tour Operator, B5 -> Shorex Manager, B6 -> Shorex Assistant Manager
+   */
+  private extractTemplateHeaders(worksheet: any): TemplateHeaderData {
+    const shipName = this.getCellValue(worksheet, 'B1');
+    const tourOperator = this.getCellValue(worksheet, 'B2');
+    const shorexManager = this.getCellValue(worksheet, 'B5');
+    const shorexAsstManager = this.getCellValue(worksheet, 'B6');
+    
+    return {
+      shipName,
+      tourOperator,
+      shorexManager,
+      shorexAsstManager
+    };
   }
 
   private getCellValue(worksheet: any, cellAddress: string): string {
