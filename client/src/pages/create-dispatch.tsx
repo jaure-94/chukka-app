@@ -615,6 +615,26 @@ export default function CreateDispatch() {
                               classNames.push('ship-info-cell');
                             }
                             
+                            // Add dropdown for Ship Name cell (B1 = row 0, col 1)
+                            if (row === 0 && col === 1) {
+                              cellProperties.type = 'dropdown';
+                              cellProperties.source = [
+                                'MARDI GRAS',
+                                'ESCAPE',
+                                'ENCHANTED PRINCESS', 
+                                'SUNSHINE',
+                                'LIBERTY OTS',
+                                'CELEBRATION',
+                                'VISTA',
+                                'AQUA',
+                                'WORLD AMERICA',
+                                'ISLAND PRINCESS',
+                                'SYMPHONY OTS'
+                              ];
+                              cellProperties.strict = false; // Allow custom values
+                              cellProperties.allowInvalid = true; // Allow typing custom values
+                            }
+                            
                             cellProperties.className = classNames.join(' ');
                             return cellProperties;
                           }}
