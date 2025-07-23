@@ -48,7 +48,10 @@ export class SimpleEODProcessor {
       
       // Process template header delimiters if available
       if (multipleData.templateHeaders) {
+        console.log(`→ SimpleEOD: Processing template headers for successive dispatch - Ship: "${multipleData.templateHeaders.shipName}"`);
         this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
+      } else {
+        console.log('→ SimpleEOD: WARNING - No template headers found for successive dispatch entry');
       }
       
       // Step 1: Find where the last tour section ends
