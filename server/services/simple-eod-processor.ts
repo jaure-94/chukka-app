@@ -74,7 +74,7 @@ export class SimpleEODProcessor {
       
       // Insert rows and move totals section down
       for (let i = 0; i < totalNewRows; i++) {
-        worksheet.insertRow(lastTourSectionEnd + 1 + i, 1);
+        worksheet.insertRow(lastTourSectionEnd + 1 + i);
       }
       
       // Step 5: Add new tour sections using the template
@@ -152,12 +152,12 @@ export class SimpleEODProcessor {
       // Store template sections separately: individual tour template (23-38) and totals section (41-44)
       const tourTemplateRows = [];
       const totalsTemplateRows = [];
-      const templateMergedCells: string[] = [];
+      const templateMergedCells = [];
       
       // Store merged cells for tour template section (23-38)
-      worksheet.model.merges.forEach((merge: string) => {
-        const mergeStart = Number(worksheet.getCell(merge).row);
-        const mergeEnd = Number(worksheet.getCell(merge.split(':')[1]).row);
+      worksheet.model.merges.forEach(merge => {
+        const mergeStart = worksheet.getCell(merge).row;
+        const mergeEnd = worksheet.getCell(merge.split(':')[1]).row;
         if (mergeStart >= 23 && mergeEnd <= 38) {
           templateMergedCells.push(merge);
         }
@@ -192,7 +192,7 @@ export class SimpleEODProcessor {
         // Insert tour template rows for this record
         if (recordIndex > 0) {
           // Insert new rows for this record
-          worksheet.spliceRows(startRow, 0, Array(17).fill([])); // Insert 17 empty rows (16 for tour template + 1 blank)
+          worksheet.spliceRows(startRow, 0, 17); // Insert 17 empty rows (16 for tour template + 1 blank)
           
           // Copy tour template data to new rows
           for (let i = 0; i < tourTemplateRows.length; i++) {
@@ -222,7 +222,7 @@ export class SimpleEODProcessor {
             // Calculate offset for new record
             const rowOffset = recordIndex * 17;
             
-            const newMergeRange = mergeRange.replace(/\d+/g, (match: string) => {
+            const newMergeRange = mergeRange.replace(/\d+/g, (match) => {
               const rowNum = parseInt(match);
               return (rowNum + rowOffset).toString();
             });
