@@ -179,7 +179,10 @@ export class SimpleEODProcessor {
       
       // Process template header delimiters first
       if (multipleData.templateHeaders) {
+        console.log(`→ SimpleEOD: Processing template headers for initial EOD generation - Ship: "${multipleData.templateHeaders.shipName}", Operator: "${multipleData.templateHeaders.tourOperator}"`);
         this.processTemplateHeaderDelimiters(worksheet, multipleData.templateHeaders);
+      } else {
+        console.log('→ SimpleEOD: WARNING - No template headers found for initial EOD generation');
       }
       
       // Process each record using tour template only
