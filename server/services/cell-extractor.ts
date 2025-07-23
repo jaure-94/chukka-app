@@ -64,15 +64,20 @@ export class CellExtractor {
    * Reads all rows with "Tour..." data starting from row 8
    */
   async extractMultipleRecords(filePath: string): Promise<MultipleRecordData> {
-    console.log(`→ CellExtractor: Reading multiple records from ${filePath}`);
+    console.log(`→ CellExtractor: *** STARTING extractMultipleRecords for ${filePath} ***`);
+    console.log(`→ CellExtractor: File exists: ${fs.existsSync(filePath)}`);
     
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }
 
+    console.log(`→ CellExtractor: Loading workbook...`);
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0]; // Use first sheet
     const worksheet = workbook.Sheets[sheetName];
+    console.log(`→ CellExtractor: Processing sheet "${sheetName}"`);
+    console.log(`→ CellExtractor: Available sheets: ${workbook.SheetNames.join(', ')}`);
+    console.log(`→ CellExtractor: Worksheet loaded successfully`);
 
     console.log(`→ CellExtractor: Processing sheet "${sheetName}" for multiple records`);
 
