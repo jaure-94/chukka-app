@@ -126,9 +126,22 @@ export class SimpleEODProcessor {
   ): Promise<string> {
     try {
       console.log('→ SimpleEOD: Processing multiple dispatch records');
+      console.log(`→ SimpleEOD: About to call cellExtractor.extractMultipleRecords with path: ${dispatchFilePath}`);
+      console.log(`→ SimpleEOD: File exists at path: ${fs.existsSync(dispatchFilePath)}`);
       
       // Extract all dispatch records
-      const multipleData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+      let multipleData;
+      try {
+        multipleData = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+        console.log(`→ SimpleEOD: Successfully extracted ${multipleData.records.length} records`);
+        console.log(`→ SimpleEOD: Template headers present: ${multipleData.templateHeaders ? 'YES' : 'NO'}`);
+        if (multipleData.templateHeaders) {
+          console.log(`→ SimpleEOD: Template headers - Ship: "${multipleData.templateHeaders.shipName}"`);
+        }
+      } catch (extractError) {
+        console.error('→ SimpleEOD: ERROR in cellExtractor.extractMultipleRecords:', extractError);
+        throw extractError;
+      }
       
       if (multipleData.records.length === 0) {
         throw new Error('No tour records found in dispatch file');
