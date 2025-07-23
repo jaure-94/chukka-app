@@ -759,13 +759,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate timestamp for unique filenames
       const timestamp = Date.now();
       
-      // Process EOD template with multiple dispatch records
+      // Process EOD template with dispatch data
       const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
       const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
-      await simpleEODProcessor.processMultipleRecords(
+      const eodProcessor = new EODProcessor();
+      await eodProcessor.processEODTemplate(
         eodTemplatePath,
-        parseInt(dispatchFileId),
-        dispatchFilePath,
+        dispatchData,
         eodOutputPath
       );
 

@@ -11,10 +11,18 @@ export interface TourData {
   departure_time: string;
 }
 
+export interface TemplateHeaderData {
+  shipName: string;        // B1 - Ship Name
+  tourOperator: string;    // B2 - Tour Operator
+  shorexManager: string;   // B5 - Shorex Manager
+  shorexAsstManager: string; // B6 - Shorex Assistant Manager
+}
+
 export interface EODTemplateData {
   tours: TourData[];
   total_adult: number;
   total_chd: number;
+  templateHeaders?: TemplateHeaderData;
 }
 
 export class EODProcessor {
@@ -32,6 +40,9 @@ export class EODProcessor {
     let totalChildren = 0;
 
     console.log(`→ EOD: Processing ${dispatchData.sheets.length} sheets for EOD data extraction`);
+    
+    // Extract template headers first
+    const templateHeaders = this.extractTemplateHeaders(dispatchData);
 
     for (const sheet of dispatchData.sheets) {
       console.log(`→ EOD: Processing sheet: ${sheet.name} with ${sheet.data.length} rows`);
@@ -90,7 +101,8 @@ export class EODProcessor {
     return {
       tours,
       total_adult: totalAdults,
-      total_chd: totalChildren
+      total_chd: totalChildren,
+      templateHeaders
     };
   }
 
@@ -251,6 +263,107 @@ export class EODProcessor {
     return '';
   }
 
+  /**
+   * Extract template header data from dispatch file
+   * Read directly from the first sheet using cell addresses
+   */
+  private extractTemplateHeaders(dispatchData: ParsedExcelData): TemplateHeaderData | null {
+    console.log('→ EOD: Starting template header extraction from dispatch file...');
+    
+    // Get the first sheet (should be the dispatch sheet)
+    if (dispatchData.sheets.length === 0) {
+      console.log('→ EOD: No sheets found in dispatch file');
+      return null;
+    }
+    
+    const firstSheet = dispatchData.sheets[0];
+    console.log(`→ EOD: Extracting headers from sheet: ${firstSheet.name}`);
+    
+    // Look for header data in first few rows
+    // The data should be in raw format before conversion to column-based structure
+    let shipName = '';
+    let tourOperator = '';
+    let shorexManager = '';
+    let shorexAsstManager = '';
+    
+    // Try to find the headers in the first 10 rows
+    for (let i = 0; i < Math.min(10, firstSheet.data.length); i++) {
+      const row = firstSheet.data[i];
+      
+      // Check if this row contains header information
+      // Look for patterns like "Ship Name:", "SUNSHINE", etc.
+      if (row['B'] && typeof row['B'] === 'string') {
+        const cellB = row['B'].toString().trim();
+        
+        // Check for ship names (B1 in Excel = row 0, column B)
+        if (i === 0 && cellB.length > 0 && !cellB.toLowerCase().includes('ship')) {
+          shipName = cellB;
+          console.log(`→ EOD: Found ship name at row ${i + 1}, column B: "${shipName}"`);
+        }
+        
+        // Check for tour operator (B2 in Excel = row 1, column B)
+        if (i === 1 && cellB.length > 0) {
+          tourOperator = cellB;
+          console.log(`→ EOD: Found tour operator at row ${i + 1}, column B: "${tourOperator}"`);
+        }
+        
+        // Check for shorex manager (B5 in Excel = row 4, column B)
+        if (i === 4 && cellB.length > 0) {
+          shorexManager = cellB;
+          console.log(`→ EOD: Found shorex manager at row ${i + 1}, column B: "${shorexManager}"`);
+        }
+        
+        // Check for shorex assistant manager (B6 in Excel = row 5, column B)
+        if (i === 5 && cellB.length > 0) {
+          shorexAsstManager = cellB;
+          console.log(`→ EOD: Found shorex assistant manager at row ${i + 1}, column B: "${shorexAsstManager}"`);
+        }
+      }
+    }
+    
+    // Return extracted headers
+    const headers = {
+      shipName,
+      tourOperator,
+      shorexManager,
+      shorexAsstManager
+    };
+    
+    console.log(`→ EOD: Template headers extracted - Ship: "${shipName}", Operator: "${tourOperator}", Manager: "${shorexManager}", Assistant: "${shorexAsstManager}"`);
+    
+    return headers;
+  }
+
+  /**
+   * Process template header delimiters in EOD report
+   * B1→C4, B2→C5, B5→C8, B6→C9 mapping
+   */
+  private processTemplateHeaderDelimiters(worksheet: ExcelJS.Worksheet, templateHeaders: TemplateHeaderData): void {
+    console.log(`→ EOD: Processing template header delimiters with B1→C4, B2→C5, B5→C8, B6→C9 mapping`);
+    
+    // Define the exact mapping as specified by user
+    const delimiterMappings = [
+      { cell: 'C4', delimiter: '{{ship_name}}', value: templateHeaders.shipName },
+      { cell: 'C5', delimiter: '{{tour_operator}}', value: templateHeaders.tourOperator },
+      { cell: 'C8', delimiter: '{{shorex_manager}}', value: templateHeaders.shorexManager },
+      { cell: 'C9', delimiter: '{{shorex_asst_manager}}', value: templateHeaders.shorexAsstManager }
+    ];
+    
+    delimiterMappings.forEach(({ cell, delimiter, value }) => {
+      const targetCell = worksheet.getCell(cell);
+      const currentValue = targetCell.value ? String(targetCell.value) : '';
+      
+      if (currentValue.includes(delimiter)) {
+        targetCell.value = value || '';
+        console.log(`→ EOD: ✓ Replaced ${delimiter} at ${cell} = "${value}"`);
+      } else {
+        // Still set the value even if delimiter not found, as it might be a direct replacement
+        targetCell.value = value || '';
+        console.log(`→ EOD: ⚠ Set ${cell} = "${value}" (delimiter ${delimiter} not found, current: "${currentValue}")`);
+      }
+    });
+  }
+
   async processEODTemplate(
     eodTemplatePath: string,
     dispatchData: ParsedExcelData,
@@ -290,7 +403,13 @@ export class EODProcessor {
         }
       }
 
-
+      // Process template headers (B1→C4, B2→C5, B5→C8, B6→C9 mapping)
+      if (templateData.templateHeaders) {
+        console.log('→ EOD: Processing template headers for EOD report');
+        this.processTemplateHeaderDelimiters(worksheet, templateData.templateHeaders);
+      } else {
+        console.log('→ EOD: WARNING - No template headers found for EOD processing');
+      }
 
       // Template section definition (rows 17-25)
       const templateStartRow = 17;
