@@ -130,10 +130,26 @@ export class CellExtractor {
    * B1 -> Ship Name, B2 -> Tour Operator, B5 -> Shorex Manager, B6 -> Shorex Assistant Manager
    */
   private extractTemplateHeaders(worksheet: any): TemplateHeaderData {
+    console.log('→ CellExtractor: Starting template header extraction...');
+    
+    // Debug: Check all cells in first few rows
+    console.log('→ CellExtractor: Debugging first 10 rows...');
+    for (let row = 1; row <= 10; row++) {
+      for (let col of ['A', 'B', 'C']) {
+        const cellAddress = `${col}${row}`;
+        const cellValue = this.getCellValue(worksheet, cellAddress);
+        if (cellValue) {
+          console.log(`→ CellExtractor: ${cellAddress} = "${cellValue}"`);
+        }
+      }
+    }
+    
     const shipName = this.getCellValue(worksheet, 'B1');
     const tourOperator = this.getCellValue(worksheet, 'B2');
     const shorexManager = this.getCellValue(worksheet, 'B5');
     const shorexAsstManager = this.getCellValue(worksheet, 'B6');
+    
+    console.log(`→ CellExtractor: Extracted template headers - B1(Ship): "${shipName}", B2(Operator): "${tourOperator}", B5(Manager): "${shorexManager}", B6(Assistant): "${shorexAsstManager}"`);
     
     return {
       shipName,
