@@ -554,6 +554,32 @@ export default function CreateDispatch() {
                 </CardContent>
               </Card>
 
+              {/* PAX Template Card - Only show when file is saved */}
+              {showUpdateEOD && savedFileId && (
+                <Card>
+                  <CardContent className="py-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">PAX Template</h3>
+                        <p className="text-sm text-gray-600">Generate PAX reports from dispatch data</p>
+                      </div>
+                      <div className="flex space-x-3">
+                        <Button 
+                          onClick={() => {
+                            // TODO: Implement PAX report functionality
+                            console.log('PAX Report functionality will be implemented later');
+                          }}
+                          disabled={false}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Update PAX Report
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Spreadsheet Editor */}
               {isEditing && file && (
                 <Card>
