@@ -11,6 +11,7 @@ import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
 import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import { 
   insertUploadedFileSchema, 
   insertProcessingJobSchema, 
@@ -657,8 +658,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Debug: Reading file at path:', dispatchFilePath);
       console.log('Debug: File exists:', fs.existsSync(dispatchFilePath));
 
-      // Use the same cell extractor that the EOD processor uses
-      const extractedRecords = await cellExtractor.extractMultipleRecords(dispatchFilePath);
+      // Use the simple EOD processor to extract records
+      // const extractedRecords = await simpleEODProcessor.extractMultipleRecords(dispatchFilePath);
       
       // Also read the raw Excel data for comparison
       const workbook = XLSX.readFile(dispatchFilePath);
@@ -675,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         filePath: dispatchFilePath,
         fileExists: fs.existsSync(dispatchFilePath),
-        extractedRecords: extractedRecords,
+        // extractedRecords: extractedRecords,
         rawCellData: {
           A8: cellA8,
           B8: cellB8,
@@ -747,7 +748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('File exists:', fs.existsSync(dispatchFilePath));
       const dispatchData = await excelParser.parseFile(dispatchFilePath);
       console.log('Dispatch data for EOD processing:', JSON.stringify({
-        filename: dispatchData.filename,
+        // filename: dispatchData.filename,
         sheets: dispatchData.sheets.map(sheet => ({
           name: sheet.name,
           rowCount: sheet.data.length,
@@ -777,8 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchVersion = await storage.createDispatchVersion({
         filename: path.basename(dispatchFilePath),
         originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath,
-        isActive: true
+        filePath: dispatchFilePath
       });
 
       // For now, skip database record and just return success
@@ -846,8 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchVersion = await storage.createDispatchVersion({
         filename: path.basename(dispatchFilePath),
         originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath,
-        isActive: true
+        filePath: dispatchFilePath
       });
 
       res.json({
@@ -922,6 +921,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalGuests,
         notes: notes || "",
         tourDate,
+        shipName: "",
+        tourOperator: "",
+        shorexManager: "",
+        shorexAsstManager: "",
         isActive: true,
         createdAt: new Date()
       };
