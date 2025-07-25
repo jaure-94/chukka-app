@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
-import { HotTable } from "@handsontable/react";
+import { HotTable, HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
 import "handsontable/dist/handsontable.full.min.css";
 import * as XLSX from "xlsx";
@@ -24,16 +24,13 @@ interface SpreadsheetFile {
   data: SpreadsheetData;
   headers: string[];
 }
-  data: SpreadsheetData;
-  headers: string[];
-}
 
 export default function CreateDispatch() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
-  const hotTableRef = useRef<HotTable>(null);
+  const hotTableRef = useRef<HotTableClass>(null);
 
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
@@ -895,82 +892,7 @@ export default function CreateDispatch() {
                 </CardContent>
               </Card>
 
-              {/* Spreadsheet Editor */}
-              {isEditing && file && (
-                <Card>
-                  <CardContent className="py-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Dispatch Sheet</h3>
-                    <div className="border rounded-lg overflow-auto w-full max-w-full">
-                      <div className="min-w-full">
-                        <HotTable
-                          ref={hotTableRef}
-                          data={editedData}
-                          colHeaders={file.headers}
-                          rowHeaders={true}
-                          contextMenu={true}
-                          manualRowResize={true}
-                          manualColumnResize={true}
-                          stretchH="none"
-                          width="100%"
-                          height="600"
-                          licenseKey="non-commercial-and-evaluation"
-                          afterChange={handleDataChange}
-                          className="htCenter"
-                          colWidths={function(index) {
-                            if (index === 0) return 360;
-                            return 120;
-                          }}
-                          autoColumnSize={false}
-                          preventOverflow="horizontal"
-                          fillHandle={true}
-                          mergeCells={false}
-                          outsideClickDeselects={false}
-                          allowEmpty={true}
-                          trimWhitespace={false}
-                          minRows={editedData.length}
-                          maxRows={editedData.length + 20}
-                          viewportRowRenderingOffset={50}
-                          viewportColumnRenderingOffset={10}
-                          cells={function(row, col) {
-                            const cellProperties: any = {};
-                            let classNames = [];
-                            
-                            if (col === 0) {
-                              classNames.push('htLeft');
-                            }
-                            
-                            if (row >= 0 && row <= 5) {
-                              classNames.push('bold-cell');
-                            }
-                            
-                            if (col === 1) {
-                              classNames.push('red-font');
-                            }
-                            
-                            if (row === 5) {
-                              classNames.push('bottom-center-cell');
-                              classNames.push('thick-bottom-border');
-                            }
-                            
-                            if (row === 0) {
-                              classNames.push('thin-bottom-border');
-                            }
-                            
-                            if (col === 0 && editedData[row] && editedData[row][0] && 
-                                typeof editedData[row][0] === 'string' && 
-                                editedData[row][0].includes('Tour')) {
-                              classNames.push('bold-cell');
-                            }
-                            
-                            cellProperties.className = classNames.join(' ');
-                            return cellProperties;
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
             </div>
           )}
         </div>
