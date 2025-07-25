@@ -39,7 +39,7 @@ export function FileUpload({ onFileUploaded, onReset }: FileUploadProps) {
       }
 
       const data: UploadResponse = await response.json();
-      onFileUploaded(data);
+      onFileUploaded(data, 'dispatch');
       
       toast({
         title: "File uploaded successfully",

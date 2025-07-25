@@ -44,17 +44,17 @@ export default function CreateDispatch() {
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
     queryKey: ["/api/dispatch-templates"],
-  });
+  }) as { data: any; isLoading: boolean };
 
   // Fetch dispatch versions
   const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
     queryKey: ["/api/dispatch-versions"],
-  });
+  }) as { data: any[]; isLoading: boolean };
 
   // Fetch output files for successive dispatch
   const { data: outputFiles = [], isLoading: isLoadingOutputFiles } = useQuery({
     queryKey: ["/api/output-files"],
-  });
+  }) as { data: any[]; isLoading: boolean };
 
   // Load dispatch template when available
   useEffect(() => {
@@ -415,7 +415,6 @@ export default function CreateDispatch() {
       }
       
       setFile({
-        id: version.id,
         name: version.originalFilename,
         data: worksheetData
       });
