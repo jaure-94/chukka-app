@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { HotTable } from "@handsontable/react";
+import type { HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
 import "handsontable/dist/handsontable.full.min.css";
 import * as XLSX from "xlsx";
@@ -24,16 +25,13 @@ interface SpreadsheetFile {
   data: SpreadsheetData;
   headers: string[];
 }
-  data: SpreadsheetData;
-  headers: string[];
-}
 
 export default function CreateDispatch() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
-  const hotTableRef = useRef<HotTable>(null);
+  const hotTableRef = useRef<HotTableClass>(null);
 
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
