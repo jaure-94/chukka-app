@@ -24,6 +24,9 @@ interface SpreadsheetFile {
   data: SpreadsheetData;
   headers: string[];
 }
+  data: SpreadsheetData;
+  headers: string[];
+}
 
 export default function CreateDispatch() {
   const [, setLocation] = useLocation();
@@ -416,7 +419,8 @@ export default function CreateDispatch() {
       
       setFile({
         name: version.originalFilename,
-        data: worksheetData
+        data: worksheetData,
+        headers: []
       });
       setEditedData(worksheetData);
       setIsEditing(true);
