@@ -397,8 +397,23 @@ export default function CreateDispatch() {
     const columnsToScroll = getColumnsToScroll();
     const newScrollColumn = Math.max(0, currentScrollColumn - columnsToScroll);
     
-    // Use Handsontable's scrollViewportTo method to scroll horizontally
-    hotTableRef.current.hotInstance.scrollViewportTo(undefined, newScrollColumn);
+    const hot = hotTableRef.current.hotInstance;
+    
+    try {
+      // Method 1: Select a cell to force scrolling
+      hot.selectCell(0, newScrollColumn);
+      
+      // Method 2: Scroll to show the selected column
+      hot.scrollViewportTo(0, newScrollColumn);
+      
+      // Method 3: Force render refresh
+      hot.render();
+      
+      console.log(`Scrolled left to column ${newScrollColumn}, total columns: ${getTotalColumns()}`);
+    } catch (error) {
+      console.error('Error scrolling left:', error);
+    }
+    
     setCurrentScrollColumn(newScrollColumn);
   };
 
@@ -406,16 +421,37 @@ export default function CreateDispatch() {
     if (!hotTableRef.current?.hotInstance || !file) return;
     
     const columnsToScroll = getColumnsToScroll();
-    const totalColumns = file.headers.length;
+    const totalColumns = file.headers.length || editedData[0]?.length || 0;
     const newScrollColumn = Math.min(totalColumns - 1, currentScrollColumn + columnsToScroll);
     
-    // Use Handsontable's scrollViewportTo method to scroll horizontally
-    hotTableRef.current.hotInstance.scrollViewportTo(undefined, newScrollColumn);
+    const hot = hotTableRef.current.hotInstance;
+    
+    try {
+      // Method 1: Select a cell to force scrolling
+      hot.selectCell(0, newScrollColumn);
+      
+      // Method 2: Scroll to show the selected column
+      hot.scrollViewportTo(0, newScrollColumn);
+      
+      // Method 3: Force render refresh
+      hot.render();
+      
+      console.log(`Scrolled right to column ${newScrollColumn}, total columns: ${getTotalColumns()}`);
+    } catch (error) {
+      console.error('Error scrolling right:', error);
+    }
+    
     setCurrentScrollColumn(newScrollColumn);
   };
 
+  const getTotalColumns = () => {
+    if (file?.headers.length) return file.headers.length;
+    if (editedData[0]?.length) return editedData[0].length;
+    return 0;
+  };
+
   const canScrollLeft = currentScrollColumn > 0;
-  const canScrollRight = file ? currentScrollColumn < file.headers.length - getColumnsToScroll() : false;
+  const canScrollRight = currentScrollColumn < Math.max(0, getTotalColumns() - getColumnsToScroll());
 
   // Handle viewing dispatch version
   const handleViewVersion = async (version: any) => {
