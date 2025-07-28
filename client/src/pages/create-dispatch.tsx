@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { History, File, Eye, Download, Plus, FileText } from "lucide-react";
+import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,7 @@ export default function CreateDispatch() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savedFileId, setSavedFileId] = useState<string | null>(null);
   const [showUpdateEOD, setShowUpdateEOD] = useState(false);
+  const [currentScrollColumn, setCurrentScrollColumn] = useState(0);
 
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -383,6 +384,39 @@ export default function CreateDispatch() {
     debugDataMutation.mutate();
   };
 
+  // Horizontal scrolling functions
+  const getColumnsToScroll = () => {
+    // Check if screen is smaller (mobile/tablet)
+    const screenWidth = window.innerWidth;
+    return screenWidth < 1024 ? 4 : 7; // 4 columns for smaller screens, 7 for larger
+  };
+
+  const handleScrollLeft = () => {
+    if (!hotTableRef.current?.hotInstance) return;
+    
+    const columnsToScroll = getColumnsToScroll();
+    const newScrollColumn = Math.max(0, currentScrollColumn - columnsToScroll);
+    
+    // Use Handsontable's scrollViewportTo method to scroll horizontally
+    hotTableRef.current.hotInstance.scrollViewportTo(undefined, newScrollColumn);
+    setCurrentScrollColumn(newScrollColumn);
+  };
+
+  const handleScrollRight = () => {
+    if (!hotTableRef.current?.hotInstance || !file) return;
+    
+    const columnsToScroll = getColumnsToScroll();
+    const totalColumns = file.headers.length;
+    const newScrollColumn = Math.min(totalColumns - 1, currentScrollColumn + columnsToScroll);
+    
+    // Use Handsontable's scrollViewportTo method to scroll horizontally
+    hotTableRef.current.hotInstance.scrollViewportTo(undefined, newScrollColumn);
+    setCurrentScrollColumn(newScrollColumn);
+  };
+
+  const canScrollLeft = currentScrollColumn > 0;
+  const canScrollRight = file ? currentScrollColumn < file.headers.length - getColumnsToScroll() : false;
+
   // Handle viewing dispatch version
   const handleViewVersion = async (version: any) => {
     setIsLoading(true);
@@ -585,7 +619,37 @@ export default function CreateDispatch() {
               {isEditing && file && (
                 <Card>
                   <CardContent className="py-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Dispatch Sheet</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Edit Dispatch Sheet</h3>
+                      
+                      {/* Horizontal Scroll Controls */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 mr-2">
+                          Scroll by {getColumnsToScroll()} columns:
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleScrollLeft}
+                          disabled={!canScrollLeft}
+                          className="flex items-center space-x-1"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="hidden sm:inline">Left</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleScrollRight}
+                          disabled={!canScrollRight}
+                          className="flex items-center space-x-1"
+                        >
+                          <span className="hidden sm:inline">Right</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="border rounded-lg overflow-auto w-full max-w-full">
                       <div className="min-w-full">
                         <HotTable
@@ -897,7 +961,37 @@ export default function CreateDispatch() {
               {isEditing && file && (
                 <Card>
                   <CardContent className="py-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Dispatch Sheet</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Edit Dispatch Sheet</h3>
+                      
+                      {/* Horizontal Scroll Controls */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 mr-2">
+                          Scroll by {getColumnsToScroll()} columns:
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleScrollLeft}
+                          disabled={!canScrollLeft}
+                          className="flex items-center space-x-1"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="hidden sm:inline">Left</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleScrollRight}
+                          disabled={!canScrollRight}
+                          className="flex items-center space-x-1"
+                        >
+                          <span className="hidden sm:inline">Right</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
                     <div className="border rounded-lg overflow-auto w-full max-w-full">
                       <div className="min-w-full">
                         <HotTable
