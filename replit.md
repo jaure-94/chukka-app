@@ -297,9 +297,24 @@ This is a full-stack web application for uploading, processing, and exporting Ex
   - Enhanced debugging capabilities with console logging for scroll operations
 - July 17, 2025: Updated template structure with new delimiters and data extraction points
   - **New EOD Template Delimiters**: C4 ({{ship_name}}), C5 ({{tour_operator}}), C8 ({{shorex_manager}}), C9 ({{shorex_asst_manager}})
-  - **New Dispatch Template Data**: B1 (Ship Name: "Carnival Liberty"), B2 (Tour Operator: "CHUKKA CARIBBEAN ADVENTURES - GRAND TURK"), B5 (Shorex Manager: "FRED HAMMOND"), B6 (Shorex Assistant Manager: "ANDRES STEFANO")
+  - **Old Dispatch Template Data**: B1 (Ship Name: "Carnival Liberty"), B2 (Tour Operator: "CHUKKA CARIBBEAN ADVENTURES - GRAND TURK"), B5 (Shorex Manager: "FRED HAMMOND"), B6 (Shorex Assistant Manager: "ANDRES STEFANO")
   - **Template Analysis**: Confirmed delimiter locations and data extraction points for future processing enhancement
   - **Implementation Ready**: All new delimiter coordinates and data sources documented for system integration
+- July 30, 2025: Updated dispatch template structure with new row insertion and column changes
+  - **New Row Structure**: Inserted new row 1 with cruise line information (A1: "Cruise Line:", B1: cruise line name)
+  - **Updated Data Extraction Points**: 
+    - Ship Name: moved from B1 to B2
+    - Tour Operator: moved from B2 to B3  
+    - Shorex Manager: moved from B5 to B6
+    - Shorex Assistant Manager: moved from B6 to B7
+    - Subheadings: moved from row 7 to row 8
+  - **Column Header Updates**:
+    - Column I: changed from "ALLOC." to "ALLOTMENT"
+    - Column K: changed from "ACTUAL" to "SOLD" 
+    - Column R: new "PAX ON BOARD" subheading
+    - Column S: new "PAX ON TOUR" subheading
+  - **Row Offset Impact**: All content shifted down by 1 row due to new cruise line row insertion
+  - **Implementation Note**: These changes will require updates to EOD report generation data extraction logic
 
 ## User Preferences
 
