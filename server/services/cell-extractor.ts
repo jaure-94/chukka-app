@@ -11,10 +11,11 @@ export interface CellData {
 }
 
 export interface TemplateHeaderData {
-  shipName: string;        // B1 - Ship Name
-  tourOperator: string;    // B2 - Tour Operator
-  shorexManager: string;   // B5 - Shorex Manager
-  shorexAsstManager: string; // B6 - Shorex Assistant Manager
+  cruiseLine: string;      // B1 - Cruise Line (NEW)
+  shipName: string;        // B2 - Ship Name (moved from B1)
+  tourOperator: string;    // B3 - Tour Operator (moved from B2)
+  shorexManager: string;   // B6 - Shorex Manager (moved from B5)
+  shorexAsstManager: string; // B7 - Shorex Assistant Manager (moved from B6)
 }
 
 export interface MultipleRecordData {
@@ -25,6 +26,7 @@ export interface MultipleRecordData {
 export class CellExtractor {
   /**
    * Extract specific cell values from a dispatch Excel file (single record - legacy)
+   * Updated for new template structure: data now starts from row 9
    */
   async extractCells(filePath: string): Promise<CellData> {
     console.log(`→ CellExtractor: Reading file ${filePath}`);
@@ -39,29 +41,29 @@ export class CellExtractor {
 
     console.log(`→ CellExtractor: Processing sheet "${sheetName}"`);
 
-    // Extract specific cells - Tour 1 data is in row 8
-    const cellA8 = this.getCellValue(worksheet, 'A8'); // Tour name
-    const cellB8 = this.getCellValue(worksheet, 'B8'); // Departure time
-    const cellL8 = this.getNumericCellValue(worksheet, 'L8'); // Adult count
-    const cellM8 = this.getNumericCellValue(worksheet, 'M8'); // Child count
-    const cellN8 = this.getNumericCellValue(worksheet, 'N8'); // Comp count
-    const cellO8 = this.getCellValue(worksheet, 'O8'); // Notes column (column O is "Incident, accident, cancellation etc.")
+    // Extract specific cells - Tour 1 data is now in row 9 (updated for new template structure)
+    const cellA9 = this.getCellValue(worksheet, 'A9'); // Tour name
+    const cellB9 = this.getCellValue(worksheet, 'B9'); // Departure time
+    const cellL9 = this.getNumericCellValue(worksheet, 'L9'); // Adult count
+    const cellM9 = this.getNumericCellValue(worksheet, 'M9'); // Child count
+    const cellN9 = this.getNumericCellValue(worksheet, 'N9'); // Comp count
+    const cellO9 = this.getCellValue(worksheet, 'O9'); // Notes column (column O is "Incident, accident, cancellation etc.")
 
-    console.log(`→ CellExtractor: A8="${cellA8}", B8="${cellB8}", L8=${cellL8}, M8=${cellM8}, N8=${cellN8}, O8="${cellO8}"`);
+    console.log(`→ CellExtractor: A9="${cellA9}", B9="${cellB9}", L9=${cellL9}, M9=${cellM9}, N9=${cellN9}, O9="${cellO9}"`);
 
     return {
-      cellA8,
-      cellB8,
-      cellH8: cellO8, // Map notes from O8 to H8 field
-      cellL8,
-      cellM8,
-      cellN8
+      cellA8: cellA9, // Map A9 to A8 field for backward compatibility
+      cellB8: cellB9, // Map B9 to B8 field for backward compatibility
+      cellH8: cellO9, // Map notes from O9 to H8 field
+      cellL8: cellL9, // Map L9 to L8 field for backward compatibility
+      cellM8: cellM9, // Map M9 to M8 field for backward compatibility
+      cellN8: cellN9  // Map N9 to N8 field for backward compatibility
     };
   }
 
   /**
    * Extract multiple dispatch records from Excel file
-   * Reads all rows with "Tour..." data starting from row 8
+   * Reads all rows with "Tour..." data starting from row 9 (updated for new template structure)
    */
   async extractMultipleRecords(filePath: string): Promise<MultipleRecordData> {
     console.log(`→ CellExtractor: *** STARTING extractMultipleRecords for ${filePath} ***`);
@@ -83,8 +85,8 @@ export class CellExtractor {
 
     const records: CellData[] = [];
     
-    // Start from row 8 and check each row for tour data
-    for (let row = 8; row <= 30; row++) { // Expanded range to capture more tours
+    // Start from row 9 and check each row for tour data (updated for new template structure)
+    for (let row = 9; row <= 31; row++) { // Updated to start from row 9 and expanded range
       const cellA = this.getCellValue(worksheet, `A${row}`);
       const cellB = this.getCellValue(worksheet, `B${row}`);
       const cellL = this.getCellValue(worksheet, `L${row}`);
@@ -132,7 +134,7 @@ export class CellExtractor {
 
   /**
    * Extract template header data from dispatch file
-   * B1 -> Ship Name, B2 -> Tour Operator, B5 -> Shorex Manager, B6 -> Shorex Assistant Manager
+   * B1 -> Cruise Line (NEW), B2 -> Ship Name, B3 -> Tour Operator, B6 -> Shorex Manager, B7 -> Shorex Assistant Manager
    */
   private extractTemplateHeaders(worksheet: any): TemplateHeaderData {
     console.log('→ CellExtractor: Starting template header extraction...');
@@ -149,14 +151,16 @@ export class CellExtractor {
       }
     }
     
-    const shipName = this.getCellValue(worksheet, 'B1');
-    const tourOperator = this.getCellValue(worksheet, 'B2');
-    const shorexManager = this.getCellValue(worksheet, 'B5');
-    const shorexAsstManager = this.getCellValue(worksheet, 'B6');
+    const cruiseLine = this.getCellValue(worksheet, 'B1');     // NEW - Cruise Line
+    const shipName = this.getCellValue(worksheet, 'B2');       // Moved from B1
+    const tourOperator = this.getCellValue(worksheet, 'B3');   // Moved from B2
+    const shorexManager = this.getCellValue(worksheet, 'B6');  // Moved from B5
+    const shorexAsstManager = this.getCellValue(worksheet, 'B7'); // Moved from B6
     
-    console.log(`→ CellExtractor: Extracted template headers - B1(Ship): "${shipName}", B2(Operator): "${tourOperator}", B5(Manager): "${shorexManager}", B6(Assistant): "${shorexAsstManager}"`);
+    console.log(`→ CellExtractor: Extracted template headers - B1(Cruise Line): "${cruiseLine}", B2(Ship): "${shipName}", B3(Operator): "${tourOperator}", B6(Manager): "${shorexManager}", B7(Assistant): "${shorexAsstManager}"`);
     
     return {
+      cruiseLine,
       shipName,
       tourOperator,
       shorexManager,

@@ -575,13 +575,15 @@ export class SimpleEODProcessor {
 
   /**
    * Process template header delimiters in EOD report
-   * C4 -> {{ship_name}}, C5 -> {{tour_operator}}, C8 -> {{shorex_manager}}, C9 -> {{shorex_asst_manager}}
+   * Updated for new template structure with cruise line field
+   * C3 -> {{cruise_line}} (NEW), C4 -> {{ship_name}}, C5 -> {{tour_operator}}, C8 -> {{shorex_manager}}, C9 -> {{shorex_asst_manager}}
    */
   private processTemplateHeaderDelimiters(worksheet: ExcelJS.Worksheet, templateHeaders: TemplateHeaderData): void {
     console.log(`→ SimpleEOD: Processing template header delimiters`);
     
-    // Process specific delimiter locations (corrected mapping)
+    // Process specific delimiter locations (updated mapping with cruise line)
     const delimiterMappings = [
+      { cell: 'C3', delimiter: '{{cruise_line}}', value: templateHeaders.cruiseLine },
       { cell: 'C4', delimiter: '{{ship_name}}', value: templateHeaders.shipName },
       { cell: 'C5', delimiter: '{{tour_operator}}', value: templateHeaders.tourOperator },
       { cell: 'C8', delimiter: '{{shorex_manager}}', value: templateHeaders.shorexManager },
