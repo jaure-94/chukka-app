@@ -4,6 +4,7 @@ import {
   processingJobs,
   dispatchTemplates,
   eodTemplates,
+  paxTemplates,
   dispatchRecords,
   generatedReports,
   dispatchVersions,
@@ -13,6 +14,7 @@ import {
   type ProcessingJob,
   type DispatchTemplate,
   type EodTemplate,
+  type PaxTemplate,
   type DispatchRecord,
   type GeneratedReport,
   type DispatchVersion,
@@ -22,6 +24,7 @@ import {
   type InsertProcessingJob,
   type InsertDispatchTemplate,
   type InsertEodTemplate,
+  type InsertPaxTemplate,
   type InsertDispatchRecord,
   type InsertGeneratedReport,
   type InsertDispatchVersion,
@@ -51,6 +54,8 @@ export interface IStorage {
   getActiveDispatchTemplate(): Promise<DispatchTemplate | undefined>;
   createEodTemplate(template: InsertEodTemplate): Promise<EodTemplate>;
   getActiveEodTemplate(): Promise<EodTemplate | undefined>;
+  createPaxTemplate(template: InsertPaxTemplate): Promise<PaxTemplate>;
+  getActivePaxTemplate(): Promise<PaxTemplate | undefined>;
 
   // Dispatch record operations
   createDispatchRecord(record: InsertDispatchRecord): Promise<DispatchRecord>;
@@ -189,6 +194,27 @@ export class DatabaseStorage implements IStorage {
       .from(eodTemplates)
       .where(eq(eodTemplates.isActive, true))
       .orderBy(desc(eodTemplates.createdAt))
+      .limit(1);
+    return template || undefined;
+  }
+
+  async createPaxTemplate(template: InsertPaxTemplate): Promise<PaxTemplate> {
+    // Deactivate existing templates
+    await db.update(paxTemplates).set({ isActive: false });
+    
+    const [newTemplate] = await db
+      .insert(paxTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async getActivePaxTemplate(): Promise<PaxTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(paxTemplates)
+      .where(eq(paxTemplates.isActive, true))
+      .orderBy(desc(paxTemplates.createdAt))
       .limit(1);
     return template || undefined;
   }

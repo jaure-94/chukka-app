@@ -72,6 +72,15 @@ export const eodTemplates = pgTable("eod_templates", {
   isActive: boolean("is_active").default(true).notNull(),
 });
 
+export const paxTemplates = pgTable("pax_templates", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  filePath: text("file_path").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
 export const dispatchRecords = pgTable("dispatch_records", {
   id: serial("id").primaryKey(),
   tourName: text("tour_name").notNull(),
@@ -145,6 +154,11 @@ export const insertEodTemplateSchema = createInsertSchema(eodTemplates).omit({
   createdAt: true,
 });
 
+export const insertPaxTemplateSchema = createInsertSchema(paxTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertDispatchRecordSchema = createInsertSchema(dispatchRecords).omit({
   id: true,
   createdAt: true,
@@ -170,6 +184,7 @@ export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
 export type InsertDispatchTemplate = z.infer<typeof insertDispatchTemplateSchema>;
 export type InsertEodTemplate = z.infer<typeof insertEodTemplateSchema>;
+export type InsertPaxTemplate = z.infer<typeof insertPaxTemplateSchema>;
 export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
@@ -180,6 +195,7 @@ export type ExcelData = typeof excelData.$inferSelect;
 export type ProcessingJob = typeof processingJobs.$inferSelect;
 export type DispatchTemplate = typeof dispatchTemplates.$inferSelect;
 export type EodTemplate = typeof eodTemplates.$inferSelect;
+export type PaxTemplate = typeof paxTemplates.$inferSelect;
 export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;

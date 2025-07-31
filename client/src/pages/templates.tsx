@@ -32,9 +32,14 @@ function Templates() {
     enabled: true,
   });
 
+  const { data: paxTemplate } = useQuery<Template>({
+    queryKey: ["/api/pax-templates"],
+    enabled: true,
+  });
 
 
-  const handleDownloadTemplate = (type: 'dispatch' | 'eod') => {
+
+  const handleDownloadTemplate = (type: 'dispatch' | 'eod' | 'pax') => {
     window.open(`/api/templates/${type}/download`, '_blank');
   };
 
@@ -58,7 +63,7 @@ function Templates() {
                 <div className="ml-4 md:ml-0">
                   <h1 className="text-3xl font-bold text-gray-900">Templates</h1>
                   <p className="mt-2 text-gray-600">
-                    Manage your dispatch and EOD template documents
+                    Manage your dispatch, EOD, and PAX template documents
                   </p>
                 </div>
               </div>
@@ -73,8 +78,8 @@ function Templates() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {/* Dispatch Template Card */}
             <Card className="h-fit">
               <CardHeader>
@@ -195,6 +200,71 @@ function Templates() {
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 mb-4">No EOD template uploaded</p>
+                    <Link href="/templates/edit">
+                      <Button variant="outline" size="sm">
+                        Upload Template
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* PAX Report Template Card */}
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <FileText className="w-5 h-5 mr-2 text-purple-600" />
+                  PAX Report Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {paxTemplate ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Status:</span>
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        Active
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Filename:</span>
+                      <span className="text-sm text-gray-600 truncate max-w-48">
+                        {paxTemplate.originalFilename || "pax_template.xlsx"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Upload Date:</span>
+                      <span className="text-sm text-gray-600 flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {paxTemplate.createdAt 
+                          ? new Date(paxTemplate.createdAt).toLocaleDateString()
+                          : "Recently uploaded"
+                        }
+                      </span>
+                    </div>
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 mb-3">
+                        This template generates passenger (PAX) reports with detailed guest information 
+                        and tour participation data from dispatch records.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadTemplate('pax')}
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Template
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FileText className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 mb-4">No PAX report template uploaded</p>
                     <Link href="/templates/edit">
                       <Button variant="outline" size="sm">
                         Upload Template

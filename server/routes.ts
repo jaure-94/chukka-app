@@ -10,12 +10,15 @@ import { DropboxService } from "./services/dropbox-service";
 import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
+import { cellExtractor } from "./services/cell-extractor";
+import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { 
   insertUploadedFileSchema, 
   insertProcessingJobSchema, 
   insertDispatchTemplateSchema,
   insertEodTemplateSchema,
+  insertPaxTemplateSchema,
   insertDispatchRecordSchema
 } from "@shared/schema";
 
@@ -420,6 +423,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("EOD template creation error:", error);
       res.status(500).json({ message: "Failed to create EOD template" });
+    }
+  });
+
+  // Get PAX templates
+  app.get("/api/pax-templates", async (req, res) => {
+    try {
+      const template = await storage.getActivePaxTemplate();
+      console.log("PAX template query result:", template);
+      res.json(template || {});
+    } catch (error) {
+      console.error("PAX template fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch PAX template" });
+    }
+  });
+
+  // Download PAX template
+  app.get("/api/templates/pax/download", async (req, res) => {
+    try {
+      const template = await storage.getActivePaxTemplate();
+      if (!template || !template.filePath) {
+        return res.status(404).json({ message: "PAX template not found" });
+      }
+
+      const filePath = path.resolve(template.filePath);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Template file not found" });
+      }
+
+      res.download(filePath, template.originalFilename || "pax_template.xlsx");
+    } catch (error) {
+      console.error("PAX template download error:", error);
+      res.status(500).json({ message: "Failed to download PAX template" });
+    }
+  });
+
+  // Create PAX template from already uploaded file
+  app.post("/api/templates/pax/create", async (req, res) => {
+    try {
+      const templateData = insertPaxTemplateSchema.parse(req.body);
+      const template = await storage.createPaxTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("PAX template creation error:", error);
+      res.status(500).json({ message: "Failed to create PAX template" });
     }
   });
 

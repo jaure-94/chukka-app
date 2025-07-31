@@ -31,6 +31,7 @@ export default function EditTemplatesPage() {
   
   const [dispatchUpload, setDispatchUpload] = useState<FileUpload | null>(null);
   const [eodUpload, setEodUpload] = useState<FileUpload | null>(null);
+  const [paxUpload, setPaxUpload] = useState<FileUpload | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch current templates
@@ -42,7 +43,11 @@ export default function EditTemplatesPage() {
     queryKey: ['/api/eod-templates'],
   });
 
-  const handleFileUpload = (file: File, type: 'dispatch' | 'eod') => {
+  const { data: paxTemplate, isLoading: paxLoading } = useQuery<Template>({
+    queryKey: ['/api/pax-templates'],
+  });
+
+  const handleFileUpload = (file: File, type: 'dispatch' | 'eod' | 'pax') => {
     const upload: FileUpload = {
       file,
       preview: file.name
@@ -50,12 +55,14 @@ export default function EditTemplatesPage() {
     
     if (type === 'dispatch') {
       setDispatchUpload(upload);
-    } else {
+    } else if (type === 'eod') {
       setEodUpload(upload);
+    } else {
+      setPaxUpload(upload);
     }
   };
 
-  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'dispatch' | 'eod') => {
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'dispatch' | 'eod' | 'pax') => {
     const file = event.target.files?.[0];
     if (file) {
       handleFileUpload(file, type);
@@ -64,9 +71,12 @@ export default function EditTemplatesPage() {
 
   const downloadTemplate = async (template: Template) => {
     try {
-      const endpoint = template.id === dispatchTemplate?.id 
-        ? '/api/templates/dispatch/download' 
-        : '/api/templates/eod/download';
+      let endpoint = '/api/templates/eod/download'; // default
+      if (template.id === dispatchTemplate?.id) {
+        endpoint = '/api/templates/dispatch/download';
+      } else if (template.id === paxTemplate?.id) {
+        endpoint = '/api/templates/pax/download';
+      }
       
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error('Download failed');
@@ -95,7 +105,7 @@ export default function EditTemplatesPage() {
   };
 
   const saveAndReplaceTemplates = async () => {
-    if (!dispatchUpload && !eodUpload) {
+    if (!dispatchUpload && !eodUpload && !paxUpload) {
       toast({
         title: "No Changes",
         description: "Please select at least one template to replace.",
@@ -167,10 +177,41 @@ export default function EditTemplatesPage() {
         
         if (!templateResponse.ok) throw new Error('Failed to create EOD template');
       }
+
+      if (paxUpload) {
+        const formData = new FormData();
+        formData.append('file', paxUpload.file);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!uploadResponse.ok) throw new Error('Failed to upload PAX file');
+        const uploadResult = await uploadResponse.json();
+        
+        // Create new PAX template
+        const templateData = {
+          filename: uploadResult.file.filename,
+          originalFilename: uploadResult.file.originalName,
+          filePath: `uploads/${uploadResult.file.filename}`,
+        };
+        
+        const templateResponse = await fetch('/api/templates/pax/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(templateData),
+        });
+        
+        if (!templateResponse.ok) throw new Error('Failed to create PAX template');
+      }
       
       // Invalidate cache to refresh data
       await queryClient.invalidateQueries({ queryKey: ['/api/dispatch-templates'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/eod-templates'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/pax-templates'] });
       
       toast({
         title: "Templates Updated",
@@ -180,6 +221,7 @@ export default function EditTemplatesPage() {
       // Reset upload states
       setDispatchUpload(null);
       setEodUpload(null);
+      setPaxUpload(null);
       
       // Redirect back to Templates page after a short delay to show the success message
       setTimeout(() => {
@@ -197,7 +239,7 @@ export default function EditTemplatesPage() {
     }
   };
 
-  if (dispatchLoading || eodLoading) {
+  if (dispatchLoading || eodLoading || paxLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex">
         <div className="hidden md:block fixed left-0 top-0 h-full z-10">
@@ -250,8 +292,8 @@ export default function EditTemplatesPage() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
             {/* Dispatch Template */}
             <Card className="border-2 border-blue-200">
               <CardHeader>
@@ -413,13 +455,94 @@ export default function EditTemplatesPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* PAX Report Template */}
+            <Card className="border-2 border-purple-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-purple-700">
+                  <FileText className="w-5 h-5" />
+                  PAX Report Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {paxTemplate && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-purple-700">Current Template:</span>
+                        <Badge variant="default" className="bg-purple-100 text-purple-800">
+                          Active
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-purple-700">Filename:</span>
+                        <span className="text-sm text-purple-600 truncate max-w-48">
+                          {paxTemplate.originalFilename}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-purple-700">Uploaded:</span>
+                        <span className="text-sm text-purple-600">
+                          {new Date(paxTemplate.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Button
+                        onClick={() => downloadTemplate(paxTemplate)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Current
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="border-2 border-dashed border-purple-300 rounded-lg p-6 text-center">
+                    {paxUpload ? (
+                      <div className="space-y-3">
+                        <FileText className="w-12 h-12 text-purple-500 mx-auto" />
+                        <p className="text-sm font-medium text-purple-700">
+                          New file selected: {paxUpload.preview}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPaxUpload(null)}
+                        >
+                          Clear Selection
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Upload className="w-12 h-12 text-purple-400 mx-auto" />
+                        <p className="text-sm text-purple-600">
+                          Select a new PAX report template file
+                        </p>
+                        <label className="block cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls"
+                            onChange={(e) => handleFileInputChange(e, 'pax')}
+                            className="hidden"
+                          />
+                          <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                            <span>Replace Document</span>
+                          </Button>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Save Button */}
           <div className="flex justify-center">
             <Button
               onClick={saveAndReplaceTemplates}
-              disabled={isSubmitting || (!dispatchUpload && !eodUpload)}
+              disabled={isSubmitting || (!dispatchUpload && !eodUpload && !paxUpload)}
               size="lg"
               className="bg-blue-600 hover:bg-blue-700 text-white px-8"
             >
