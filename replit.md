@@ -315,6 +315,13 @@ This is a full-stack web application for uploading, processing, and exporting Ex
     - Column S: new "PAX ON TOUR" subheading
   - **Row Offset Impact**: All content shifted down by 1 row due to new cruise line row insertion
   - **Implementation Note**: These changes will require updates to EOD report generation data extraction logic
+- July 31, 2025: Updated dispatch template with cruise line and ship name dropdown modifications
+  - **B1 Cell (Cruise Line)**: Removed dropdown functionality and set fixed text value "CCL"
+  - **B2 Cell (Ship Name)**: Added comprehensive dropdown with 24 ship name options
+  - **Ship Name Options**: LIBERTY, VISTA, FREEDOM, CONQUEST, GLORY, ELATION, PRIDE, MARDI GRAS, CELEBRATION, HORIZON, DREAM, SUNRISE, VENEZIA, MAGIC, PANORAMA, SUNSHINE, SPLENDOR, LEGEND, JUBILEE, MIRACLE, FIRENZE, LUMINOSA, RADIANCE, SENSATION
+  - **Default Selection**: B2 defaults to "LIBERTY" when template is opened
+  - **Data Extraction Compatibility**: Updated CellExtractor and SimpleEODProcessor to handle new template structure with correct cell references
+  - **EOD Processing**: Enhanced template header delimiter processing to include {{cruise_line}} for C3 cell in EOD reports
 
 ## User Preferences
 
