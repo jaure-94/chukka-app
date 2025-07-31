@@ -126,8 +126,15 @@ export default function CreateDispatch() {
           for (let c = 0; c < actualColumnCount; c++) {
             let cellValue = row[c] !== undefined ? row[c] : '';
             
-            // Convert time values in column B
-            if (c === 1) {
+            // Set correct values for B1 and B2 cells
+            if (r === 0 && c === 1) {
+              // B1 should be "CCL" (no dropdown)
+              cellValue = 'CCL';
+            } else if (r === 1 && c === 1) {
+              // B2 should default to "LIBERTY" (with dropdown)
+              cellValue = cellValue || 'LIBERTY';
+            } else if (c === 1) {
+              // Convert time values in column B for other rows
               cellValue = convertExcelTimeToReadable(cellValue);
             }
             
@@ -742,21 +749,20 @@ export default function CreateDispatch() {
                               classNames.push('ship-info-cell');
                             }
                             
-                            // Add dropdown for Ship Name cell (B1 = row 0, col 1)
+                            // No dropdown for B1 (row 0, col 1) - just text "CCL"
                             if (row === 0 && col === 1) {
+                              // B1 should just contain "CCL" with no dropdown
+                              cellProperties.readOnly = false; // Allow editing but no dropdown
+                            }
+                            
+                            // Add dropdown for Ship Name cell (B2 = row 1, col 1)
+                            if (row === 1 && col === 1) {
                               cellProperties.type = 'dropdown';
                               cellProperties.source = [
-                                'MARDI GRAS',
-                                'ESCAPE',
-                                'ENCHANTED PRINCESS', 
-                                'SUNSHINE',
-                                'LIBERTY OTS',
-                                'CELEBRATION',
-                                'VISTA',
-                                'AQUA',
-                                'WORLD AMERICA',
-                                'ISLAND PRINCESS',
-                                'SYMPHONY OTS'
+                                'LIBERTY', 'VISTA', 'FREEDOM', 'CONQUEST', 'GLORY', 'ELATION', 'PRIDE', 
+                                'MARDI GRAS', 'CELEBRATION', 'HORIZON', 'DREAM', 'SUNRISE', 'VENEZIA', 
+                                'MAGIC', 'PANORAMA', 'SUNSHINE', 'SPLENDOR', 'LEGEND', 'JUBILEE', 
+                                'MIRACLE', 'FIRENZE', 'LUMINOSA', 'RADIANCE', 'SENSATION'
                               ];
                               cellProperties.strict = false; // Allow custom values
                               cellProperties.allowInvalid = true; // Allow typing custom values
