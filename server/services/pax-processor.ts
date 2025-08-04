@@ -187,28 +187,25 @@ export class PaxProcessor {
       totalPaxOnTour += record.paxOnTour;
     }
 
-    // Create new data row (starting from row 5, after template row 4)
-    const dataRow = 5;
-    
-    // Copy template row format to data row
-    await this.copyRowFormat(worksheet, 4, dataRow);
+    // Work directly with the template row (row 4) where delimiters exist
+    const templateRow = 4;
 
-    // Replace delimiters with actual data
-    this.replaceDelimiter(worksheet, dataRow, 1, '{{date}}', dispatchData.date);
-    this.replaceDelimiter(worksheet, dataRow, 2, '{{cruise_line}}', dispatchData.cruiseLine);
-    this.replaceDelimiter(worksheet, dataRow, 3, '{{ship_name}}', dispatchData.shipName);
+    // Replace delimiters with actual data directly in template row
+    this.replaceDelimiter(worksheet, templateRow, 1, '{{date}}', dispatchData.date);
+    this.replaceDelimiter(worksheet, templateRow, 2, '{{cruise_line}}', dispatchData.cruiseLine);
+    this.replaceDelimiter(worksheet, templateRow, 3, '{{ship_name}}', dispatchData.shipName);
 
     // Tour-specific data
-    this.replaceDelimiter(worksheet, dataRow, 4, '{{cat_sold}}', tourTotals.catamaran.sold);
-    this.replaceDelimiter(worksheet, dataRow, 5, '{{cat_allot}}', tourTotals.catamaran.allotment);
-    this.replaceDelimiter(worksheet, dataRow, 6, '{{champ_sold}}', tourTotals.champagne.sold);
-    this.replaceDelimiter(worksheet, dataRow, 7, '{{champ_allot}}', tourTotals.champagne.allotment);
-    this.replaceDelimiter(worksheet, dataRow, 8, '{{inv_sold}}', tourTotals.invisible.sold);
-    this.replaceDelimiter(worksheet, dataRow, 9, '{{inv_allot}}', tourTotals.invisible.allotment);
+    this.replaceDelimiter(worksheet, templateRow, 4, '{{cat_sold}}', tourTotals.catamaran.sold);
+    this.replaceDelimiter(worksheet, templateRow, 5, '{{cat_allot}}', tourTotals.catamaran.allotment);
+    this.replaceDelimiter(worksheet, templateRow, 6, '{{champ_sold}}', tourTotals.champagne.sold);
+    this.replaceDelimiter(worksheet, templateRow, 7, '{{champ_allot}}', tourTotals.champagne.allotment);
+    this.replaceDelimiter(worksheet, templateRow, 8, '{{inv_sold}}', tourTotals.invisible.sold);
+    this.replaceDelimiter(worksheet, templateRow, 9, '{{inv_allot}}', tourTotals.invisible.allotment);
 
     // Analysis data (columns BT=72, BU=73)
-    this.replaceDelimiter(worksheet, dataRow, 72, '{{pax_on_board}}', totalPaxOnBoard);
-    this.replaceDelimiter(worksheet, dataRow, 73, '{{pax_on_tour}}', totalPaxOnTour);
+    this.replaceDelimiter(worksheet, templateRow, 72, '{{pax_on_board}}', totalPaxOnBoard);
+    this.replaceDelimiter(worksheet, templateRow, 73, '{{pax_on_tour}}', totalPaxOnTour);
 
     console.log(`→ PaxProcessor: PAX report generation completed`);
     console.log(`→ PaxProcessor: Tour totals - Catamaran: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champagne: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Invisible: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}`);

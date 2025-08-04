@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight, Users, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +43,8 @@ export default function CreateDispatch() {
   const [savedFileId, setSavedFileId] = useState<string | null>(null);
   const [showUpdateEOD, setShowUpdateEOD] = useState(false);
   const [currentScrollColumn, setCurrentScrollColumn] = useState(0);
+  const [showPaxSuccessModal, setShowPaxSuccessModal] = useState(false);
+  const [paxFileName, setPaxFileName] = useState<string>('');
 
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -391,6 +394,41 @@ export default function CreateDispatch() {
     debugDataMutation.mutate();
   };
 
+  // PAX update mutation
+  const updatePaxMutation = useMutation({
+    mutationFn: async () => {
+      if (!savedFileId) {
+        throw new Error('No saved file ID available');
+      }
+
+      const response = await apiRequest(`/api/process-pax-from-dispatch`, {
+        method: 'POST',
+        body: JSON.stringify({ dispatchFileId: savedFileId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      return response;
+    },
+    onSuccess: (result) => {
+      setPaxFileName(result.paxFile);
+      setShowPaxSuccessModal(true);
+      
+      // Refresh output files to show the new PAX report
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to generate PAX report",
+        description: error.message || "An error occurred while generating the PAX report.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdatePax = () => {
+    updatePaxMutation.mutate();
+  };
+
   // Horizontal scrolling functions
   const getColumnsToScroll = () => {
     // Check if screen is smaller (mobile/tablet)
@@ -601,6 +639,14 @@ export default function CreateDispatch() {
                             className="bg-purple-600 hover:bg-purple-700"
                           >
                             {updateEODMutation.isPending ? 'Updating...' : 'Update EOD Report'}
+                          </Button>
+                          <Button 
+                            onClick={handleUpdatePax}
+                            disabled={updatePaxMutation.isPending}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            {updatePaxMutation.isPending ? 'Updating...' : 'Update PAX Report'}
                           </Button>
                           <Button 
                             onClick={handleDebugData}
@@ -1004,6 +1050,45 @@ export default function CreateDispatch() {
           )}
         </div>
       </div>
+
+      {/* PAX Success Modal */}
+      <Dialog open={showPaxSuccessModal} onOpenChange={setShowPaxSuccessModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-green-600">
+              <CheckCircle className="w-6 h-6 mr-2" />
+              PAX Report Generated!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">
+              Your PAX report has been successfully generated and is ready for download.
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="text-sm font-medium text-gray-700">Generated File:</p>
+              <p className="text-sm text-gray-600">{paxFileName}</p>
+            </div>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={() => {
+                  setShowPaxSuccessModal(false);
+                  setLocation("/reports");
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                View Reports
+              </Button>
+              <Button 
+                onClick={() => setShowPaxSuccessModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Continue Here
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
