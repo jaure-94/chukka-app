@@ -194,7 +194,7 @@ export default function Reports() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Most Recent EOD Report */}
                 <div className="bg-white rounded-lg p-6 border border-blue-200 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
@@ -337,6 +337,25 @@ export default function Reports() {
                       </div>
                     );
                   })()}
+                </div>
+
+                {/* Most Recent PAX Report */}
+                <div className="bg-white rounded-lg p-6 border border-orange-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <Users className="w-4 h-4 mr-2 text-orange-600" />
+                      Latest PAX Report
+                    </h3>
+                    <Badge className="bg-gray-100 text-gray-600">Coming Soon</Badge>
+                  </div>
+                  
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 text-sm">PAX reports functionality coming soon</p>
+                    <p className="text-gray-400 text-xs mt-1">Will display passenger count summaries</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
