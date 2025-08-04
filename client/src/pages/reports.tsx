@@ -78,8 +78,8 @@ export default function Reports() {
     setPaxGenerating(true);
     try {
       // Use the most recent dispatch file ID
-      const latestDispatch = dispatchVersions
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      const latestDispatch = (dispatchVersions as any[])
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
       
       if (!latestDispatch) {
         toast({
@@ -90,22 +90,22 @@ export default function Reports() {
         return;
       }
 
-      const response = await apiRequest(`/api/process-pax-from-dispatch`, {
-        method: 'POST',
-        body: JSON.stringify({ dispatchFileId: latestDispatch.id }),
-        headers: { 'Content-Type': 'application/json' }
+      const response = await apiRequest("POST", "/api/process-pax-from-dispatch", {
+        dispatchFileId: latestDispatch.id
       });
 
-      if (response.success) {
+      const result = await response.json();
+      
+      if (result.success) {
         toast({
           title: "PAX report generated successfully",
-          description: `PAX report ${response.paxFile} has been created and is ready for download.`,
+          description: `PAX report ${result.paxFile} has been created and is ready for download.`,
         });
         
         // Refresh output files to show the new PAX report
         queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
       } else {
-        throw new Error(response.message || 'Failed to generate PAX report');
+        throw new Error(result.message || 'Failed to generate PAX report');
       }
     } catch (error: any) {
       toast({
@@ -253,9 +253,9 @@ export default function Reports() {
                   </div>
                   
                   {(() => {
-                    const eodFiles = outputFiles.filter(file => file.filename.startsWith('eod_'));
+                    const eodFiles = (outputFiles as any[]).filter((file: any) => file.filename.startsWith('eod_'));
                     const latestEOD = eodFiles
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                     
                     // Debug logging
                     console.log('EOD files found:', eodFiles.length);
@@ -397,9 +397,9 @@ export default function Reports() {
                   </div>
                   
                   {(() => {
-                    const paxFiles = outputFiles.filter(file => file.filename.startsWith('pax_'));
+                    const paxFiles = (outputFiles as any[]).filter((file: any) => file.filename.startsWith('pax_'));
                     const latestPAX = paxFiles
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                     
                     return latestPAX ? (
                       <div>
@@ -483,7 +483,7 @@ export default function Reports() {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
                   <p className="text-gray-500 mt-2 text-sm">Loading files...</p>
                 </div>
-              ) : outputFiles.length === 0 ? (
+              ) : (outputFiles as any[]).length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <File className="w-6 h-6 text-gray-400" />
@@ -492,7 +492,7 @@ export default function Reports() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(showAllFiles ? outputFiles : outputFiles.slice(0, 4)).map((file: any) => (
+                  {(showAllFiles ? (outputFiles as any[]) : (outputFiles as any[]).slice(0, 4)).map((file: any) => (
                     <div
                       key={file.filename}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -527,7 +527,7 @@ export default function Reports() {
                     </div>
                   ))}
                   
-                  {outputFiles.length > 4 && (
+                  {(outputFiles as any[]).length > 4 && (
                     <div className="text-center pt-4 border-t border-gray-200">
                       <Button
                         variant="ghost"
@@ -535,7 +535,7 @@ export default function Reports() {
                         className="text-gray-600 hover:text-gray-900"
                         onClick={() => setShowAllFiles(!showAllFiles)}
                       >
-                        {showAllFiles ? 'View Less' : `View More (${outputFiles.length - 4} more files)`}
+                        {showAllFiles ? 'View Less' : `View More (${(outputFiles as any[]).length - 4} more files)`}
                       </Button>
                     </div>
                   )}

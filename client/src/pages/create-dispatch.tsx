@@ -401,13 +401,11 @@ export default function CreateDispatch() {
         throw new Error('No saved file ID available');
       }
 
-      const response = await apiRequest(`/api/process-pax-from-dispatch`, {
-        method: 'POST',
-        body: JSON.stringify({ dispatchFileId: savedFileId }),
-        headers: { 'Content-Type': 'application/json' }
+      const response = await apiRequest("POST", "/api/process-pax-from-dispatch", {
+        dispatchFileId: savedFileId
       });
 
-      return response;
+      return response.json();
     },
     onSuccess: (result) => {
       setPaxFileName(result.paxFile);
