@@ -44,20 +44,20 @@ export class CellExtractor {
     // Extract specific cells - Tour 1 data is now in row 9 (updated for new template structure)
     const cellA9 = this.getCellValue(worksheet, 'A9'); // Tour name
     const cellB9 = this.getCellValue(worksheet, 'B9'); // Departure time
-    const cellL9 = this.getNumericCellValue(worksheet, 'L9'); // Adult count
-    const cellM9 = this.getNumericCellValue(worksheet, 'M9'); // Child count
-    const cellN9 = this.getNumericCellValue(worksheet, 'N9'); // Comp count
-    const cellO9 = this.getCellValue(worksheet, 'O9'); // Notes column (shifted from P to O due to column E deletion)
+    const cellK9 = this.getNumericCellValue(worksheet, 'K9'); // Adult count (Column K)
+    const cellL9 = this.getNumericCellValue(worksheet, 'L9'); // Child count (Column L)
+    const cellM9 = this.getNumericCellValue(worksheet, 'M9'); // Comp count (Column M)
+    const cellN9_notes = this.getCellValue(worksheet, 'N9'); // Notes column (Column N)
 
-    console.log(`→ CellExtractor: A9="${cellA9}", B9="${cellB9}", L9=${cellL9}, M9=${cellM9}, N9=${cellN9}, O9="${cellO9}"`);
+    console.log(`→ CellExtractor: A9="${cellA9}", B9="${cellB9}", K9=${cellK9}, L9=${cellL9}, M9=${cellM9}, Notes_N9="${cellN9_notes}"`);
 
     return {
       cellA8: cellA9, // Map A9 to A8 field for backward compatibility
       cellB8: cellB9, // Map B9 to B8 field for backward compatibility
-      cellH8: cellO9, // Map notes from O9 to H8 field
-      cellL8: cellL9, // Map L9 to L8 field for backward compatibility
-      cellM8: cellM9, // Map M9 to M8 field for backward compatibility
-      cellN8: cellN9  // Map N9 to N8 field for backward compatibility
+      cellH8: cellN9_notes, // Map notes from N9 to H8 field
+      cellL8: cellK9, // Map K9 to L8 field for backward compatibility (Adult count)
+      cellM8: cellL9, // Map L9 to M8 field for backward compatibility (Child count)
+      cellN8: cellM9  // Map M9 to N8 field for backward compatibility (Comp count)
     };
   }
 
@@ -89,12 +89,12 @@ export class CellExtractor {
     for (let row = 9; row <= 31; row++) { // Updated to start from row 9 and expanded range
       const cellA = this.getCellValue(worksheet, `A${row}`);
       const cellB = this.getCellValue(worksheet, `B${row}`);
+      const cellK = this.getCellValue(worksheet, `K${row}`);
       const cellL = this.getCellValue(worksheet, `L${row}`);
       const cellM = this.getCellValue(worksheet, `M${row}`);
       const cellN = this.getCellValue(worksheet, `N${row}`);
-      const cellO = this.getCellValue(worksheet, `O${row}`);
       
-      console.log(`→ CellExtractor: Checking row ${row} - A="${cellA}", B="${cellB}", L="${cellL}", M="${cellM}", N="${cellN}"`);
+      console.log(`→ CellExtractor: Checking row ${row} - A="${cellA}", B="${cellB}", K="${cellK}", L="${cellL}", M="${cellM}", N="${cellN}"`);
       
       // Check if this row contains tour data (starts with "Tour" or has significant data)
       if (cellA && (cellA.toLowerCase().startsWith('tour') || cellA.trim().length > 0)) {
@@ -102,10 +102,10 @@ export class CellExtractor {
         console.log(`→ CellExtractor: Row ${row} - A="${cellA}", B="${cellB}"`);
         
         // Get numeric values for guest counts
-        const adultCount = this.getNumericCellValue(worksheet, `L${row}`);
-        const childCount = this.getNumericCellValue(worksheet, `M${row}`);
-        const compCount = this.getNumericCellValue(worksheet, `N${row}`);
-        const notesValue = cellO || ''; // Notes are in column O (shifted from P due to column E deletion)
+        const adultCount = this.getNumericCellValue(worksheet, `K${row}`); // Adult count (Column K)
+        const childCount = this.getNumericCellValue(worksheet, `L${row}`); // Child count (Column L)
+        const compCount = this.getNumericCellValue(worksheet, `M${row}`); // Comp count (Column M)
+        const notesValue = cellN || ''; // Notes are in column N
         
         console.log(`→ CellExtractor: Row ${row} - Adult=${adultCount}, Child=${childCount}, Comp=${compCount}, Notes="${notesValue}"`);
         

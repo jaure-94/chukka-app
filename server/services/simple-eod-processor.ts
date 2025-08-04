@@ -491,41 +491,47 @@ export class SimpleEODProcessor {
     console.log(`→ SimpleEOD: Calculating totals by reading all tour sections in worksheet (totals start at row ${totalsStartRow})`);
     
     // Scan through the worksheet to find all tour sections
-    // Tour sections start at row 23 and repeat every 16 rows, with guest counts at offset +2 (3rd row)
-    let currentRow = 23; // First tour section starts at row 23
+    // Tour sections start at row 23 and repeat every 17 rows, with guest counts at offset +2 (3rd row)
+    let recordIndex = 0;
     let sectionCount = 0;
     
-    while (currentRow < totalsStartRow) {
-      // Check if this is a tour section by looking for guest counts at offset +2 (row 3 of section)
-      const guestCountRow = currentRow + 2;
+    while (true) {
+      // Calculate the current row based on the record processing logic: 23 + (recordIndex * 17)
+      const currentRow = 23 + (recordIndex * 17);
+      const guestCountRow = currentRow + 2; // Guest counts are at offset +2 from section start
+      
+      // Stop if we've reached the totals section
+      if (currentRow >= totalsStartRow) {
+        break;
+      }
       
       console.log(`→ SimpleEOD: Checking potential tour section at row ${currentRow} (guest count row ${guestCountRow})`);
       
-      if (guestCountRow < totalsStartRow) {
-        const adultCell = worksheet.getCell(guestCountRow, 3); // Column C
-        const childCell = worksheet.getCell(guestCountRow, 4); // Column D
-        const compCell = worksheet.getCell(guestCountRow, 5);  // Column E
-        
-        // Check if this row contains numeric guest counts
-        const adults = typeof adultCell.value === 'number' ? adultCell.value : 0;
-        const children = typeof childCell.value === 'number' ? childCell.value : 0;
-        const comp = typeof compCell.value === 'number' ? compCell.value : 0;
-        
-        console.log(`→ SimpleEOD: Row ${guestCountRow} values - Adults: ${adults} (${typeof adultCell.value}), Children: ${children} (${typeof childCell.value}), Comp: ${comp} (${typeof compCell.value})`);
-        
-        // Only count if we have valid numeric values (indicating this is a tour section)
-        if (adults > 0 || children > 0 || comp > 0) {
-          totalAdults += adults;
-          totalChildren += children;
-          totalComp += comp;
-          sectionCount++;
-          console.log(`→ SimpleEOD: ✓ Found tour section at row ${currentRow} - Adults: ${adults}, Children: ${children}, Comp: ${comp}`);
-        } else {
-          console.log(`→ SimpleEOD: ✗ No valid guest counts found at row ${currentRow}`);
-        }
+      const adultCell = worksheet.getCell(guestCountRow, 3); // Column C
+      const childCell = worksheet.getCell(guestCountRow, 4); // Column D
+      const compCell = worksheet.getCell(guestCountRow, 5);  // Column E
+      
+      // Check if this row contains numeric guest counts
+      const adults = typeof adultCell.value === 'number' ? adultCell.value : 0;
+      const children = typeof childCell.value === 'number' ? childCell.value : 0;
+      const comp = typeof compCell.value === 'number' ? compCell.value : 0;
+      
+      console.log(`→ SimpleEOD: Row ${guestCountRow} values - Adults: ${adults} (${typeof adultCell.value}), Children: ${children} (${typeof childCell.value}), Comp: ${comp} (${typeof compCell.value})`);
+      
+      // Only count if we have valid numeric values (indicating this is a tour section)
+      if (adults > 0 || children > 0 || comp > 0) {
+        totalAdults += adults;
+        totalChildren += children;
+        totalComp += comp;
+        sectionCount++;
+        console.log(`→ SimpleEOD: ✓ Found tour section at row ${currentRow} - Adults: ${adults}, Children: ${children}, Comp: ${comp}`);
+      } else {
+        console.log(`→ SimpleEOD: ✗ No valid guest counts found at row ${currentRow}`);
+        // If we don't find guest counts, assume no more tour sections
+        break;
       }
       
-      currentRow += 16; // Move to next potential tour section (16 rows apart)
+      recordIndex++;
     }
     
     console.log(`→ SimpleEOD: Processed ${sectionCount} tour sections`);
