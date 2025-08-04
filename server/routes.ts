@@ -11,6 +11,7 @@ import { EODProcessor } from "./services/eod-processor-exceljs";
 import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
 import { cellExtractor } from "./services/cell-extractor";
+import { PaxProcessor } from "./services/pax-processor";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { 
@@ -44,6 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const dropboxService = new DropboxService();
   const eodProcessor = new EODProcessor();
   const dispatchGenerator = new DispatchGenerator();
+  const paxProcessor = new PaxProcessor();
 
   // Serve uploaded files
   app.get("/api/files/:filename", async (req, res) => {
@@ -656,10 +658,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Parse filename to determine type
         const isEOD = filename.startsWith('eod_');
         const isDispatch = filename.startsWith('dispatch_');
+        const isPAX = filename.startsWith('pax_');
         
         return {
           filename,
-          type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : 'Other',
+          type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
           size: stats.size,
           createdAt: stats.birthtime,
           downloadUrl: `/api/output/${filename}`
@@ -824,8 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchVersion = await storage.createDispatchVersion({
         filename: path.basename(dispatchFilePath),
         originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath,
-        isActive: true
+        filePath: dispatchFilePath
       });
 
       // For now, skip database record and just return success
@@ -893,8 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dispatchVersion = await storage.createDispatchVersion({
         filename: path.basename(dispatchFilePath),
         originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath,
-        isActive: true
+        filePath: dispatchFilePath
       });
 
       res.json({
@@ -910,6 +911,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Successive dispatch entry error:", error);
       res.status(500).json({ 
         message: "Failed to add successive dispatch entry", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Process PAX report from dispatch file
+  app.post("/api/process-pax-from-dispatch", async (req, res) => {
+    try {
+      const { dispatchFileId } = req.body;
+      
+      if (!dispatchFileId) {
+        return res.status(400).json({ message: "Dispatch file ID is required" });
+      }
+
+      // Get the most recent dispatch version (edited file) instead of the original upload
+      const dispatchVersions = await storage.getDispatchVersions(1);
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        // Use the latest edited dispatch file
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log('Using latest dispatch version for PAX:', latestVersion.filename);
+        console.log('Dispatch file path:', dispatchFilePath);
+      } else {
+        // Fallback to original uploaded file
+        const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+        if (!dispatchFile) {
+          return res.status(404).json({ message: "Dispatch file not found" });
+        }
+        dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
+      }
+
+      // Get active PAX template
+      const paxTemplate = await storage.getActivePaxTemplate();
+      if (!paxTemplate) {
+        return res.status(400).json({ message: "No active PAX template found" });
+      }
+
+      console.log('File exists:', fs.existsSync(dispatchFilePath));
+      
+      // Generate PAX report using PaxProcessor
+      const paxTemplatePath = path.join(process.cwd(), paxTemplate.filePath);
+      const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath);
+      
+      res.json({
+        success: true,
+        paxFile: paxOutputFilename,
+        message: "PAX report generated successfully"
+      });
+
+    } catch (error) {
+      console.error("PAX processing error:", error);
+      res.status(500).json({ 
+        message: "Failed to process PAX report",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }

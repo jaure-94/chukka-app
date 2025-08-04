@@ -42,6 +42,7 @@ export default function Reports() {
   const [dispatchSpreadsheetData, setDispatchSpreadsheetData] = useState<(string | number)[][]>([]);
   const [loadingEod, setLoadingEod] = useState(false);
   const [loadingDispatch, setLoadingDispatch] = useState(false);
+  const [paxGenerating, setPaxGenerating] = useState(false);
 
   const { isCollapsed } = useSidebar();
 
@@ -71,6 +72,50 @@ export default function Reports() {
 
   const handleDownloadReport = (reportId: number, type: 'dispatch' | 'eod') => {
     window.open(`/api/download-report/${reportId}/${type}`, '_blank');
+  };
+
+  const handleGeneratePaxReport = async () => {
+    setPaxGenerating(true);
+    try {
+      // Use the most recent dispatch file ID
+      const latestDispatch = dispatchVersions
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      
+      if (!latestDispatch) {
+        toast({
+          title: "No dispatch files found",
+          description: "Please upload a dispatch file first before generating PAX reports.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await apiRequest(`/api/process-pax-from-dispatch`, {
+        method: 'POST',
+        body: JSON.stringify({ dispatchFileId: latestDispatch.id }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.success) {
+        toast({
+          title: "PAX report generated successfully",
+          description: `PAX report ${response.paxFile} has been created and is ready for download.`,
+        });
+        
+        // Refresh output files to show the new PAX report
+        queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      } else {
+        throw new Error(response.message || 'Failed to generate PAX report');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to generate PAX report",
+        description: error.message || "An error occurred while generating the PAX report.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaxGenerating(false);
+    }
   };
 
   const handleViewEodReport = async (filename: string) => {
@@ -346,16 +391,77 @@ export default function Reports() {
                       <Users className="w-4 h-4 mr-2 text-orange-600" />
                       Latest PAX Report
                     </h3>
-                    <Badge className="bg-gray-100 text-gray-600">Coming Soon</Badge>
+                    {outputFiles.find(file => file.filename.startsWith('pax_')) && (
+                      <Badge className="bg-green-100 text-green-800">Available</Badge>
+                    )}
                   </div>
                   
-                  <div className="text-center py-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Users className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-sm">PAX reports functionality coming soon</p>
-                    <p className="text-gray-400 text-xs mt-1">Will display passenger count summaries</p>
-                  </div>
+                  {(() => {
+                    const paxFiles = outputFiles.filter(file => file.filename.startsWith('pax_'));
+                    const latestPAX = paxFiles
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    
+                    return latestPAX ? (
+                      <div>
+                        <div className="text-sm text-gray-600 mb-3">
+                          <div className="flex items-center mb-1">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Generated: {new Date(latestPAX.createdAt).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 ml-4">
+                            {new Date(latestPAX.createdAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                            File: {latestPAX.filename}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-orange-600 hover:bg-orange-700"
+                            onClick={() => window.open(`/api/output/${latestPAX.filename}`, '_blank')}
+                          >
+                            <Download className="w-3 h-3 mr-2" />
+                            Download
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1 border-orange-600 text-orange-600 hover:bg-orange-50"
+                            onClick={handleGeneratePaxReport}
+                            disabled={paxGenerating}
+                          >
+                            <Users className="w-3 h-3 mr-2" />
+                            {paxGenerating ? 'Generating...' : 'Generate New'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Users className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 text-sm">No PAX reports generated yet</p>
+                        <Button 
+                          size="sm" 
+                          className="mt-3 bg-orange-600 hover:bg-orange-700"
+                          onClick={handleGeneratePaxReport}
+                          disabled={paxGenerating}
+                        >
+                          <Users className="w-3 h-3 mr-2" />
+                          {paxGenerating ? 'Generating...' : 'Generate PAX Report'}
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </CardContent>
@@ -393,7 +499,8 @@ export default function Reports() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-2 h-2 rounded-full ${
-                          file.type === 'EOD Report' ? 'bg-emerald-500' : 'bg-blue-500'
+                          file.type === 'EOD Report' ? 'bg-emerald-500' : 
+                          file.type === 'PAX Report' ? 'bg-orange-500' : 'bg-blue-500'
                         }`}></div>
                         <div>
                           <h4 className="font-medium text-gray-900 text-sm">
