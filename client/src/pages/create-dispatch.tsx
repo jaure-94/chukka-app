@@ -45,6 +45,8 @@ export default function CreateDispatch() {
   const [currentScrollColumn, setCurrentScrollColumn] = useState(0);
   const [showPaxSuccessModal, setShowPaxSuccessModal] = useState(false);
   const [paxFileName, setPaxFileName] = useState<string>('');
+  const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
+  const [eodFileName, setEodFileName] = useState<string>('');
 
   // Fetch dispatch template
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -291,20 +293,13 @@ export default function CreateDispatch() {
       return response.json();
     },
     onSuccess: (result) => {
-      toast({
-        title: "Success! 🎉",
-        description: `EOD report generated successfully! Files: ${result.eodFile} & ${result.dispatchFile}`,
-      });
+      setEodFileName(result.eodFile);
+      setShowEodSuccessModal(true);
       
       // Invalidate all related caches
       queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
-      
-      // Redirect to Reports page after a short delay
-      setTimeout(() => {
-        setLocation("/reports");
-      }, 2000);
     },
     onError: (error) => {
       toast({
@@ -639,14 +634,6 @@ export default function CreateDispatch() {
                             {updateEODMutation.isPending ? 'Updating...' : 'Update EOD Report'}
                           </Button>
                           <Button 
-                            onClick={handleUpdatePax}
-                            disabled={updatePaxMutation.isPending}
-                            className="bg-orange-600 hover:bg-orange-700"
-                          >
-                            <Users className="w-4 h-4 mr-2" />
-                            {updatePaxMutation.isPending ? 'Updating...' : 'Update PAX Report'}
-                          </Button>
-                          <Button 
                             onClick={handleDebugData}
                             disabled={debugDataMutation.isPending}
                             variant="outline"
@@ -687,14 +674,12 @@ export default function CreateDispatch() {
                       </div>
                       <div className="flex space-x-3">
                         <Button 
-                          onClick={() => {
-                            // TODO: Implement PAX report functionality
-                            console.log('PAX Report functionality will be implemented later');
-                          }}
-                          disabled={false}
-                          className="bg-green-600 hover:bg-green-700"
+                          onClick={handleUpdatePax}
+                          disabled={updatePaxMutation.isPending}
+                          className="bg-orange-600 hover:bg-orange-700"
                         >
-                          Update PAX Report
+                          <Users className="w-4 h-4 mr-2" />
+                          {updatePaxMutation.isPending ? 'Updating...' : 'Update PAX Report'}
                         </Button>
                       </div>
                     </div>
@@ -1078,6 +1063,45 @@ export default function CreateDispatch() {
               </Button>
               <Button 
                 onClick={() => setShowPaxSuccessModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Continue Here
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* EOD Success Modal */}
+      <Dialog open={showEodSuccessModal} onOpenChange={setShowEodSuccessModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-green-600">
+              <CheckCircle className="w-6 h-6 mr-2" />
+              EOD Report Generated!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">
+              Your EOD report has been successfully generated and is ready for download.
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="text-sm font-medium text-gray-700">Generated File:</p>
+              <p className="text-sm text-gray-600">{eodFileName}</p>
+            </div>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={() => {
+                  setShowEodSuccessModal(false);
+                  setLocation("/reports");
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                View Reports
+              </Button>
+              <Button 
+                onClick={() => setShowEodSuccessModal(false)}
                 variant="outline"
                 className="flex-1"
               >
