@@ -108,6 +108,46 @@ Preferred communication style: Simple, everyday language.
 
 **Status:** Template structure documented - ready for PAX generation implementation
 
+## PAX Report Generation Logic (Latest Update)
+
+### Delimiter Replacement Logic:
+**Date:** January 4, 2025
+
+**Validation Layer Requirements:**
+- Tour names in dispatch sheet must match exactly one of:
+  - "Catamaran Sail & Snorkel"
+  - "Champagne Adults Only"
+  - "Invisible Boat Family"
+- Only validated records are processed for PAX report generation
+
+**Direct Cell Mapping (Always Applied):**
+- `{{date}}` ← Dispatch Cell B4 (date)
+- `{{cruise_line}}` ← Dispatch Cell B1 (cruise line)
+- `{{ship_name}}` ← Dispatch Cell B2 (ship name)
+
+**Conditional Column Mapping (Tour Name Based):**
+- **Dispatch Column H (ALLOTMENT)** → PAX delimiters:
+  - `{{cat_allot}}` if tour = "Catamaran Sail & Snorkel"
+  - `{{champ_allot}}` if tour = "Champagne Adults Only"
+  - `{{inv_allot}}` if tour = "Invisible Boat Family"
+
+- **Dispatch Column J (SOLD)** → PAX delimiters:
+  - `{{cat_sold}}` if tour = "Catamaran Sail & Snorkel"
+  - `{{champ_sold}}` if tour = "Champagne Adults Only"
+  - `{{inv_sold}}` if tour = "Invisible Boat Family"
+
+**Universal Record Mapping:**
+- Dispatch Column Q (PAX ON BOARD) → `{{pax_on_board}}`
+- Dispatch Column R (PAX ON TOUR) → `{{pax_on_tour}}`
+
+**Implementation Notes:**
+- Row 4 serves as template row for data population
+- Each validated dispatch record creates a new row in PAX report
+- Tour-specific data only populates corresponding delimiter columns
+- Analysis columns (BR-BX) contain summary calculations
+
+**Status:** Logic documented - ready for PAX processor implementation
+
 ## External Dependencies
 
 - **Database**: @neondatabase/serverless, drizzle-orm
