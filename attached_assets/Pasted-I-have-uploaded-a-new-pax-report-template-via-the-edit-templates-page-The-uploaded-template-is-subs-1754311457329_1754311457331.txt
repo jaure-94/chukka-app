@@ -1,0 +1,12 @@
+I have uploaded a new pax report template via the edit templates page. The uploaded template is subsequently being appropriately displayed on the templates page, which is great. Please take careful note of the following:
+1.	Row 1 is empty.
+2.	Row 2 contains the headings “DATE” (Column A), “LINE” (Column B), “SHIP NAME” (Column C), “Catamaran Sail & Snorkel” (Merged Columns D and E), “Champagne Adults Only” (Merged Columns F and G), “Invisible Boat Family” (Merged Columns H and I) and “PAX TOTALS, ANALYSIS and RATES” (Merged Columns BR to BX).
+3.	Row 3 contains subheadings “Sold” and “Allotment” (Column D and E), repeated across columns D to W.
+4.	Note that each “Sold/Allotment” pair sits under the respective tour name above. For example, the heading “Catamaran Sail & Snorkel” in row 2 has a corresponding “Sold/Allotment” pair in row 3. This is true for “Champagne Adults Only” and “Invisible Boat Family”.
+5.	Row 3 also contains the subheadings “Chukka Tours (Sold)” (Column BR), “Alloted Pax” (Column BS), “Pax on Board” (Column BT), “Pax on Tour” (Column BU), “Capture Rate” (Column BV), “Utilization Rate” (Column BW) and “Market Share” (Column BX).
+6.	Row 4 contains delimiters that will later on be used in tour data replacement logic: {{date}} (Column A), {{cruise_line}} (Column B), {{ship_name}} (Column C), {{cat_sold}} (Column D), {{cat_allot}} (Column E), {{champ_sold}} (Column F), {{champ_allot}} (Column G), {{inv_sold}} (Column H), {{inv_allot}} (Column I), {{pax_on_board}} (Column BT) and {{pax_on_tour}} (Column BU).
+
+IMPORTANT NOTE: Please take detailed note of these changes in the pax report template. We will use this information to update our pax report generation functionality later.
+IMPORTANT NOTE: Do not make any changes to the code just yet, just take note of the information listed above.
+
+IMPORTANT NOTE: Please pay close attention to row 4, which contains delimiters. This row is crucial to the template, as this delimiter replacement logic will be applied row after row in the generated pax report.

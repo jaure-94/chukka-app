@@ -71,7 +71,42 @@ Preferred communication style: Simple, everyday language.
 - Column mapping in EOD processors
 - Any hardcoded column references throughout the system
 
-**Status:** Changes documented - code updates pending
+**Status:** Changes documented - code updates completed
+
+## PAX Report Template Structure (Latest Update)
+
+### Template Layout Analysis:
+**Date:** January 4, 2025
+
+**PAX Template Structure:**
+1. **Row 1**: Empty
+2. **Row 2**: Main headers with merged tour name columns:
+   - A: "DATE", B: "LINE", C: "SHIP NAME"
+   - D-E: "Catamaran Sail & Snorkel" (merged)
+   - F-G: "Champagne Adults Only" (merged) 
+   - H-I: "Invisible Boat Family" (merged)
+   - BR-BX: "PAX TOTALS, ANALYSIS and RATES" (merged)
+
+3. **Row 3**: Subheadings with Sold/Allotment pairs:
+   - D: "Sold", E: "Allotment" (Catamaran)
+   - F: "Sold", G: "Allotment" (Champagne)
+   - H: "Sold", I: "Allotment" (Invisible Boat)
+   - Analysis columns: BR-BX with rate calculations
+
+4. **Row 4**: **CRITICAL DELIMITER ROW** for data replacement:
+   - A: `{{date}}`, B: `{{cruise_line}}`, C: `{{ship_name}}`
+   - D: `{{cat_sold}}`, E: `{{cat_allot}}`
+   - F: `{{champ_sold}}`, G: `{{champ_allot}}`
+   - H: `{{inv_sold}}`, I: `{{inv_allot}}`
+   - BT: `{{pax_on_board}}`, BU: `{{pax_on_tour}}`
+
+**Key Implementation Notes:**
+- Row 4 serves as the template row for data population
+- Each tour has a Sold/Allotment pair in consecutive columns
+- Analysis columns (BR-BX) contain summary calculations
+- Template supports 3 main tours: Catamaran, Champagne Adults Only, Invisible Boat Family
+
+**Status:** Template structure documented - ready for PAX generation implementation
 
 ## External Dependencies
 
