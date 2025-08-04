@@ -43,6 +43,28 @@ Preferred communication style: Simple, everyday language.
 - **Auto-Calculations**: Real-time calculation for fields like "Total Guests".
 - **Responsive Design**: Global sidebar for navigation, content shifting, and responsive layouts across all pages.
 
+## Important Template Structure Changes (Latest Update)
+
+### Dispatch Template Structure Changes:
+**Date:** January 4, 2025
+
+**Critical Changes Made to Dispatch Template:**
+1. **Column C8 Header Change**: Changed from "Actual Dep" to "Return Tour Time"
+2. **Column E Deletion**: Removed column E which contained "(Armband)" subheading
+3. **Column Shift Impact**: All columns from F onwards have shifted left by one position:
+   - Original column F → Now column E
+   - Original column G → Now column F
+   - Original column H → Now column G
+   - ...and so on
+   - Original column S → Now column R (last column)
+
+**IMPORTANT:** These changes will require updates to the EOD report generation functionality, specifically:
+- Cell extraction logic in cell-extractor.ts
+- Column mapping in EOD processors
+- Any hardcoded column references throughout the system
+
+**Status:** Changes documented - code updates pending
+
 ## External Dependencies
 
 - **Database**: @neondatabase/serverless, drizzle-orm
