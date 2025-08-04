@@ -194,7 +194,7 @@ export default function Reports() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {/* Most Recent EOD Report */}
                 <div className="bg-white rounded-lg p-6 border border-blue-200 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
