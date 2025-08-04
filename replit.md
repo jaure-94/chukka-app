@@ -58,6 +58,14 @@ Preferred communication style: Simple, everyday language.
    - ...and so on
    - Original column S → Now column R (last column)
 
+**Key Column Positions After Changes:**
+- **ADULT**: Column K (unchanged)
+- **CHILD**: Column L (unchanged) 
+- **COMP**: Column M (unchanged)
+- **Notes**: Column N (unchanged)
+
+*Note: These important data columns maintained their positions because the deleted column E was before them.*
+
 **IMPORTANT:** These changes will require updates to the EOD report generation functionality, specifically:
 - Cell extraction logic in cell-extractor.ts
 - Column mapping in EOD processors
