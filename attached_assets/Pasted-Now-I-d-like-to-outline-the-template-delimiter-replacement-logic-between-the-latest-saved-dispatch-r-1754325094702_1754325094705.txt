@@ -1,0 +1,22 @@
+Now I’d like to outline the template delimiter replacement logic between the latest saved dispatch report and the pax report template.
+I would like to implement a validation layer between the dispatch sheet and the pax report. We want to ensure that under the tour name column in the dispatch sheet, the tour name that is entered matches either “Catamaran Sail & Snorkel”, “Champagne Adults Only” or “Invisible Boat Family”. If they match, then the data from that record can then be extracted from the dispatch sheet and entered into the pax report.
+We start with direct delimiter replacement with data that will always come from specific dispatch sheet cells:
+1.	Dispatch: date (Cell B4)
+2.	Dispatch: cruise line (Cell B1)
+3.	Dispatch: ship name (cell B2)
+Then, we have dispatch column to pax column record transfer:
+1.	Dispatch column H (Subheading “ALLOTMENT”) to pax template delimiter:
+a.	{{cat_allot}} ONLY IF tour name entered in dispatch is “Catamaran Sail & Snorkel”
+b.	{{champ_allot}} ONLY IF tour name entered in dispatch is “Champagne Adults Only”
+c.	{{inv_allot}} ONLY IF tour name entered in dispatch is “Invisible Boat Family”
+2.	Dispatch column J (Subheading “SOLD”) to pax template delimiter:
+a.	{{cat_sold}} ONLY IF tour name entered in dispatch is “Catamaran Sail & Snorkel”
+b.	{{champ_sold}} ONLY IF tour name entered in dispatch is “Champagne Adults Only”
+c.	{{inv_sold}} ONLY IF tour name entered in dispatch is “Invisible Boat Family”
+3.	Dispatch column Q (Subheading “PAX ON BOARD”) to pax template delimiter {{pax_on_board}} for each record.
+4.	Dispatch column R (Subheading “PAX ON TOUR”) to pax template delimiter {{pax_on_tour}} for each record.
+
+IMPORTANT NOTE: Please take detailed note of the delimiter logic from dispatch sheet pax report template. We will use this information to update our pax report generation functionality later.
+IMPORTANT NOTE: Do not make any changes to the code just yet, just take note of the information listed above.
+
+IMPORTANT: Please take careful note of the validation layer when dealing with the 3 tours mentioned above. This will be crucial to the final implementation of the pax report generation function.
