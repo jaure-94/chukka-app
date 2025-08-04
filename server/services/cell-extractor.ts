@@ -47,7 +47,7 @@ export class CellExtractor {
     const cellL9 = this.getNumericCellValue(worksheet, 'L9'); // Adult count
     const cellM9 = this.getNumericCellValue(worksheet, 'M9'); // Child count
     const cellN9 = this.getNumericCellValue(worksheet, 'N9'); // Comp count
-    const cellO9 = this.getCellValue(worksheet, 'O9'); // Notes column (column O is "Incident, accident, cancellation etc.")
+    const cellO9 = this.getCellValue(worksheet, 'O9'); // Notes column (shifted from P to O due to column E deletion)
 
     console.log(`→ CellExtractor: A9="${cellA9}", B9="${cellB9}", L9=${cellL9}, M9=${cellM9}, N9=${cellN9}, O9="${cellO9}"`);
 
@@ -105,7 +105,7 @@ export class CellExtractor {
         const adultCount = this.getNumericCellValue(worksheet, `L${row}`);
         const childCount = this.getNumericCellValue(worksheet, `M${row}`);
         const compCount = this.getNumericCellValue(worksheet, `N${row}`);
-        const notesValue = cellO || ''; // Notes are now in column O
+        const notesValue = cellO || ''; // Notes are in column O (shifted from P due to column E deletion)
         
         console.log(`→ CellExtractor: Row ${row} - Adult=${adultCount}, Child=${childCount}, Comp=${compCount}, Notes="${notesValue}"`);
         
