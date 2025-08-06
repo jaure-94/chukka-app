@@ -70,7 +70,11 @@ export class PaxProcessor {
    */
   private async extractDispatchData(filePath: string): Promise<PaxReportData> {
     const workbook = new ExcelJS.Workbook();
+    
+    // Enable formula calculations when reading the file
     await workbook.xlsx.readFile(filePath);
+    
+    // Force recalculation of formulas
     const worksheet = workbook.getWorksheet(1);
 
     if (!worksheet) {
@@ -100,6 +104,16 @@ export class PaxProcessor {
         console.log(`→ PaxProcessor: DEBUG Row ${row} - Tour: "${tourNameCell.value}"`);
         console.log(`→ PaxProcessor: DEBUG - Cell Q${row} (paxOnBoard): value="${paxOnBoardCell.value}", type=${typeof paxOnBoardCell.value}`);
         console.log(`→ PaxProcessor: DEBUG - Cell R${row} (paxOnTour): value="${paxOnTourCell.value}", type=${typeof paxOnTourCell.value}`);
+        
+        // Enhanced debugging for formula objects
+        if (paxOnBoardCell.value && typeof paxOnBoardCell.value === 'object') {
+          console.log(`→ PaxProcessor: DEBUG - Q${row} object keys:`, Object.keys(paxOnBoardCell.value));
+          console.log(`→ PaxProcessor: DEBUG - Q${row} full object:`, JSON.stringify(paxOnBoardCell.value));
+        }
+        if (paxOnTourCell.value && typeof paxOnTourCell.value === 'object') {
+          console.log(`→ PaxProcessor: DEBUG - R${row} object keys:`, Object.keys(paxOnTourCell.value));
+          console.log(`→ PaxProcessor: DEBUG - R${row} full object:`, JSON.stringify(paxOnTourCell.value));
+        }
       }
 
       if (tourNameCell.value && typeof tourNameCell.value === 'string') {
@@ -276,6 +290,27 @@ export class PaxProcessor {
       // Handle other object types that might contain numeric values
       if ('value' in cellValue && typeof cellValue.value === 'number') {
         return cellValue.value;
+      }
+      
+      // Handle ExcelJS rich value objects
+      if ('richText' in cellValue && Array.isArray(cellValue.richText)) {
+        const text = cellValue.richText.map((part: any) => part.text || '').join('');
+        const parsed = Number(text);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      
+      // Handle objects with formula and result properties
+      if ('formula' in cellValue && 'result' in cellValue) {
+        if (typeof cellValue.result === 'number') {
+          return cellValue.result;
+        }
+      }
+      
+      // Try to get any numeric property from the object
+      for (const prop of ['calculatedValue', 'value', 'number', 'val']) {
+        if (prop in cellValue && typeof cellValue[prop] === 'number') {
+          return cellValue[prop];
+        }
       }
     }
     

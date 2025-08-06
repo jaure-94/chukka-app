@@ -576,12 +576,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       editedWorksheet.eachRow((row, rowNumber) => {
         if (rowNumber >= 8) { // Data rows start from row 8 (where tour data begins)
           row.eachCell((cell, colNumber) => {
-            if (colNumber <= 15) { // Process columns A-O (1-15) to include notes column
+            if (colNumber <= 18) { // Process columns A-R (1-18) to include PAX columns
               const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
               const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
               
-              // Set the value from edited sheet
-              targetCell.value = cell.value;
+              // Special handling for PAX ON TOUR column (Column R = 18) - sync with SOLD values
+              if (colNumber === 18) { // Column R (PAX ON TOUR)
+                if (rowNumber >= 10 && rowNumber <= 50) { // Only for tour data rows
+                  // Get the current SOLD value from column J in the same row
+                  const soldCell = templateWorksheet.getCell(rowNumber, 10); // Column J
+                  const soldValue = soldCell.value || 0;
+                  
+                  // Set PAX ON TOUR to match SOLD value directly
+                  targetCell.value = { formula: `J${rowNumber}`, result: soldValue };
+                  console.log(`→ Updated PAX ON TOUR at R${rowNumber} to match SOLD value: ${soldValue}`);
+                } else {
+                  // For header/non-data rows, use the original value
+                  targetCell.value = cell.value;
+                }
+              } else {
+                // For all other columns, set the value from edited sheet
+                targetCell.value = cell.value;
+              }
               
               // Preserve original template formatting (if template cell has formatting)
               if (templateCell.font) targetCell.font = { ...templateCell.font };
