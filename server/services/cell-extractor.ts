@@ -152,7 +152,7 @@ export class CellExtractor {
     }
     
     const cruiseLine = this.getCellValue(worksheet, 'B1');     // NEW - Cruise Line
-    const shipName = this.getCellValue(worksheet, 'B2');       // Moved from B1
+    const shipName = this.getCellValue(worksheet, 'E2');       // Ship name is in E2 (dropdown selection), not B2
     const tourOperator = this.getCellValue(worksheet, 'B3');   // Moved from B2
     const shorexManager = this.getCellValue(worksheet, 'B6');  // Moved from B5
     const shorexAsstManager = this.getCellValue(worksheet, 'B7'); // Moved from B6
