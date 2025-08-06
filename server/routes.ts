@@ -980,15 +980,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dispatch file ID is required" });
       }
 
-      // Get the most recent dispatch version (edited file) 
-      const dispatchVersions = await storage.getDispatchVersions(1);
+      // Get the most recent dispatch file directly from filesystem
+      const uploadsDir = path.join(process.cwd(), "uploads");
+      const editedDispatchFiles = fs.readdirSync(uploadsDir).filter(file => 
+        file.startsWith('edited_dispatch_') && file.endsWith('.xlsx')
+      );
+      
       let dispatchFilePath;
       
-      if (dispatchVersions.length > 0) {
-        // Use the latest edited dispatch file
-        const latestVersion = dispatchVersions[0];
-        dispatchFilePath = latestVersion.filePath;
-        console.log('Using latest dispatch version for successive PAX:', latestVersion.filename);
+      if (editedDispatchFiles.length > 0) {
+        // Sort by timestamp in filename to get the latest
+        editedDispatchFiles.sort((a, b) => {
+          const timestampA = parseInt(a.replace('edited_dispatch_', '').replace('.xlsx', ''));
+          const timestampB = parseInt(b.replace('edited_dispatch_', '').replace('.xlsx', ''));
+          return timestampB - timestampA; // Newest first
+        });
+        
+        const latestEditedFile = editedDispatchFiles[0];
+        dispatchFilePath = path.join(uploadsDir, latestEditedFile);
+        console.log('Using latest dispatch version for successive PAX:', latestEditedFile);
       } else {
         // Fallback to original uploaded file
         const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
