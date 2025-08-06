@@ -971,6 +971,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add successive PAX entry to existing PAX report
+  app.post("/api/add-successive-pax-entry", async (req, res) => {
+    try {
+      const { dispatchFileId } = req.body;
+      
+      if (!dispatchFileId) {
+        return res.status(400).json({ message: "Dispatch file ID is required" });
+      }
+
+      // Get the most recent dispatch version (edited file) 
+      const dispatchVersions = await storage.getDispatchVersions(1);
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        // Use the latest edited dispatch file
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log('Using latest dispatch version for successive PAX:', latestVersion.filename);
+      } else {
+        // Fallback to original uploaded file
+        const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+        if (!dispatchFile) {
+          return res.status(404).json({ message: "Dispatch file not found" });
+        }
+        dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
+      }
+
+      // Find the latest existing PAX report
+      const outputDir = path.join(process.cwd(), "output");
+      const outputFiles = fs.readdirSync(outputDir).filter(file => 
+        file.startsWith('pax_') && file.endsWith('.xlsx')
+      );
+      
+      if (outputFiles.length === 0) {
+        return res.status(400).json({ message: "No existing PAX reports found. Generate a new PAX report first." });
+      }
+
+      // Sort by filename (timestamp) to get the latest
+      outputFiles.sort((a, b) => {
+        const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
+        const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
+        return timestampB - timestampA; // Newest first
+      });
+
+      const latestPaxFile = outputFiles[0];
+      const latestPaxPath = path.join(outputDir, latestPaxFile);
+
+      console.log('Adding successive PAX entry to:', latestPaxFile);
+      console.log('Using dispatch data from:', path.basename(dispatchFilePath));
+      
+      // Add successive entry to the existing PAX report
+      const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath);
+      
+      res.json({
+        success: true,
+        paxFile: updatedPaxFilename,
+        message: "Successive PAX entry added successfully",
+        originalPaxFile: latestPaxFile
+      });
+
+    } catch (error) {
+      console.error("Successive PAX entry error:", error);
+      res.status(500).json({ 
+        message: "Failed to add successive PAX entry",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/download-report/:reportId/:type", async (req, res) => {
     try {
       const { reportId, type } = req.params;

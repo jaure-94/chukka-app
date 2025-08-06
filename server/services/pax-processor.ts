@@ -287,4 +287,146 @@ export class PaxProcessor {
     
     return 0;
   }
+
+  /**
+   * Add successive PAX entry to existing PAX report
+   */
+  async addSuccessiveEntryToPax(dispatchFilePath: string, existingPaxPath: string): Promise<string> {
+    console.log(`→ PaxProcessor: Adding successive PAX entry`);
+    console.log(`→ PaxProcessor: Dispatch file: ${dispatchFilePath}`);
+    console.log(`→ PaxProcessor: Existing PAX: ${existingPaxPath}`);
+
+    // Extract data from dispatch sheet
+    const dispatchData = await this.extractDispatchData(dispatchFilePath);
+    console.log(`→ PaxProcessor: Extracted ${dispatchData.records.length} records from dispatch`);
+
+    // Validate and filter records
+    const validatedRecords = this.validateAndMapRecords(dispatchData.records);
+    console.log(`→ PaxProcessor: ${validatedRecords.length} records passed validation`);
+
+    // Load existing PAX report
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(existingPaxPath);
+    const worksheet = workbook.getWorksheet(1);
+
+    if (!worksheet) {
+      throw new Error('Existing PAX report worksheet not found');
+    }
+
+    // Find the next available row after existing data
+    const nextRow = this.findNextAvailableRow(worksheet);
+    console.log(`→ PaxProcessor: Adding new data starting at row ${nextRow}`);
+
+    // Add new records to the existing PAX report
+    await this.addRecordsToExistingPax(worksheet, dispatchData, validatedRecords, nextRow);
+
+    // Save the updated report with new timestamp
+    const outputFilename = `pax_${Date.now()}.xlsx`;
+    const outputPath = path.join(process.cwd(), 'output', outputFilename);
+    await workbook.xlsx.writeFile(outputPath);
+
+    console.log(`→ PaxProcessor: Updated PAX report saved to ${outputPath}`);
+    return outputFilename;
+  }
+
+  /**
+   * Find the next available row in the PAX report
+   */
+  private findNextAvailableRow(worksheet: ExcelJS.Worksheet): number {
+    // Start checking from row 5 (after template row 4)
+    let currentRow = 5;
+    
+    // Look for the first empty row by checking column A (date column)
+    while (currentRow <= 1000) { // Safety limit
+      const cellA = worksheet.getCell(currentRow, 1); // Column A
+      if (!cellA.value || cellA.value === '') {
+        return currentRow;
+      }
+      currentRow++;
+    }
+    
+    // If we reach here, assume we can add at row 5 as fallback
+    return 5;
+  }
+
+  /**
+   * Add new records to existing PAX report
+   */
+  private async addRecordsToExistingPax(
+    worksheet: ExcelJS.Worksheet,
+    dispatchData: PaxReportData,
+    validatedRecords: ValidatedPaxRecord[],
+    startRow: number
+  ): Promise<void> {
+    console.log(`→ PaxProcessor: Adding ${validatedRecords.length} new records starting at row ${startRow}`);
+
+    // Copy the template row (row 4) formatting to preserve styling
+    const templateRow = worksheet.getRow(4);
+
+    // Add each validated record as a new row
+    for (let i = 0; i < validatedRecords.length; i++) {
+      const targetRow = startRow + i;
+      const newRow = worksheet.getRow(targetRow);
+
+      // Copy template row formatting to new row
+      templateRow.eachCell((cell, colNumber) => {
+        const newCell = newRow.getCell(colNumber);
+        
+        // Copy formatting
+        newCell.font = cell.font;
+        newCell.alignment = cell.alignment;
+        newCell.border = cell.border;
+        newCell.fill = cell.fill;
+        newCell.numFmt = cell.numFmt;
+      });
+
+      // Set the actual data for this record
+      await this.populateRowWithData(newRow, dispatchData, validatedRecords);
+    }
+
+    // Commit all row changes
+    worksheet.commit();
+  }
+
+  /**
+   * Populate a row with PAX data (used for successive entries)
+   */
+  private async populateRowWithData(
+    row: ExcelJS.Row,
+    dispatchData: PaxReportData,
+    validatedRecords: ValidatedPaxRecord[]
+  ): Promise<void> {
+    // Set direct mapping values (same for all records)
+    row.getCell(1).value = dispatchData.date; // A: date
+    row.getCell(2).value = dispatchData.cruiseLine; // B: cruise_line
+    row.getCell(3).value = dispatchData.shipName; // C: ship_name
+
+    // Calculate totals for this set of records
+    const totalPaxOnBoard = validatedRecords.reduce((sum, record) => sum + record.paxOnBoard, 0);
+    const totalPaxOnTour = validatedRecords.reduce((sum, record) => sum + record.paxOnTour, 0);
+
+    // Set conditional column mappings based on tour types
+    validatedRecords.forEach(record => {
+      switch (record.tourType) {
+        case 'catamaran':
+          row.getCell(4).value = record.sold; // D: cat_sold
+          row.getCell(5).value = record.allotment; // E: cat_allot
+          break;
+        case 'champagne':
+          row.getCell(6).value = record.sold; // F: champ_sold
+          row.getCell(7).value = record.allotment; // G: champ_allot
+          break;
+        case 'invisible':
+          row.getCell(8).value = record.sold; // H: inv_sold
+          row.getCell(9).value = record.allotment; // I: inv_allot
+          break;
+      }
+    });
+
+    // Set universal record mappings
+    row.getCell(72).value = totalPaxOnBoard; // BT: pax_on_board
+    row.getCell(73).value = totalPaxOnTour; // BU: pax_on_tour
+
+    console.log(`→ PaxProcessor: Added row with totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
+  }
 }

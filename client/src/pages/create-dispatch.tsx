@@ -422,6 +422,39 @@ export default function CreateDispatch() {
     updatePaxMutation.mutate();
   };
 
+  // Update existing PAX report mutation
+  const updateExistingPaxMutation = useMutation({
+    mutationFn: async () => {
+      if (!savedFileId) {
+        throw new Error('No saved file ID available');
+      }
+
+      const response = await apiRequest("POST", "/api/add-successive-pax-entry", {
+        dispatchFileId: savedFileId
+      });
+
+      return response.json();
+    },
+    onSuccess: (result) => {
+      setPaxFileName(result.paxFile);
+      setShowPaxSuccessModal(true);
+      
+      // Refresh output files to show the updated PAX report
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update PAX report",
+        description: error.message || "An error occurred while updating the existing PAX report.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateExistingPax = () => {
+    updateExistingPaxMutation.mutate();
+  };
+
   // Horizontal scrolling functions
   const getColumnsToScroll = () => {
     // Check if screen is smaller (mobile/tablet)
@@ -675,11 +708,20 @@ export default function CreateDispatch() {
                       <div className="flex space-x-3">
                         <Button 
                           onClick={handleUpdatePax}
-                          disabled={updatePaxMutation.isPending}
+                          disabled={updatePaxMutation.isPending || updateExistingPaxMutation.isPending}
                           className="bg-orange-600 hover:bg-orange-700"
                         >
                           <Users className="w-4 h-4 mr-2" />
-                          {updatePaxMutation.isPending ? 'Updating...' : 'Update PAX Report'}
+                          {updatePaxMutation.isPending ? 'Generating...' : 'Generate New PAX Report'}
+                        </Button>
+                        <Button 
+                          onClick={handleUpdateExistingPax}
+                          disabled={updateExistingPaxMutation.isPending || updatePaxMutation.isPending}
+                          variant="outline"
+                          className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          {updateExistingPaxMutation.isPending ? 'Updating...' : 'Update Existing PAX Report'}
                         </Button>
                       </div>
                     </div>
