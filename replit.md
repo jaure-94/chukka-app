@@ -170,6 +170,31 @@ Preferred communication style: Simple, everyday language.
 
 **Status:** ✅ Fully implemented and tested - both new and successive PAX generation working correctly
 
+## PAX Report Header Data Fix (Latest Update)
+
+### Issue Identified and Fixed:
+**Date:** January 4, 2025
+
+**Problem:** Ship name and date remained static ("Liberty", same date) despite user edits to dispatch cells B2 and B4
+
+**Root Cause:** Dispatch save process only processed rows 8+ (data rows), completely ignoring header rows 1-7 containing critical cells:
+- B1: Cruise Line  
+- B2: Ship Name
+- B4: Date
+
+**Solution Implemented:**
+1. **Enhanced Save Process**: Added header row processing (rows 1-7) before data row processing
+2. **Header Cell Debugging**: Added specific logging for B1, B2, B4 cell updates during save
+3. **Enhanced Data Extraction**: Added detailed debugging for header cell values and types during PAX generation
+4. **Preserved Formatting**: Header updates maintain template formatting while capturing user edits
+
+**Technical Changes:**
+- Modified `/api/save-dispatch-sheet` to process header rows 1-7 first
+- Added targeted logging for cruise line, ship name, and date cell updates
+- Enhanced PAX processor with header cell debugging for troubleshooting
+
+**Status:** ✅ Header preservation logic implemented - ready for user testing with fresh ship/date edits
+
 ## PAX Report Functionality (Latest Update)
 
 ### Implementation Completed:

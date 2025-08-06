@@ -81,11 +81,18 @@ export class PaxProcessor {
       throw new Error('Dispatch worksheet not found');
     }
 
-    // Extract header data (always from specific cells)
+    // Extract header data (always from specific cells) with enhanced debugging
+    const dateCell = worksheet.getCell('B4');
+    const cruiseLineCell = worksheet.getCell('B1');
+    const shipNameCell = worksheet.getCell('B2');
+    
     const date = this.getCellValue(worksheet, 'B4') || '';
     const cruiseLine = this.getCellValue(worksheet, 'B1') || '';
     const shipName = this.getCellValue(worksheet, 'B2') || '';
 
+    console.log(`→ PaxProcessor: Header DEBUG - B1 (Cruise): value="${cruiseLineCell.value}", type=${typeof cruiseLineCell.value}`);
+    console.log(`→ PaxProcessor: Header DEBUG - B2 (Ship): value="${shipNameCell.value}", type=${typeof shipNameCell.value}`);
+    console.log(`→ PaxProcessor: Header DEBUG - B4 (Date): value="${dateCell.value}", type=${typeof dateCell.value}`);
     console.log(`→ PaxProcessor: Header data - Date: ${date}, Cruise Line: ${cruiseLine}, Ship: ${shipName}`);
 
     // Extract tour records from dispatch sheet

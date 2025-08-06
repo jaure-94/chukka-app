@@ -572,7 +572,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Preserving formatting from template and copying edited data");
       
-      // Copy all data from edited sheet while preserving template formatting
+      // First, copy header data from rows 1-7 (including B1, B2, B4)
+      for (let headerRow = 1; headerRow <= 7; headerRow++) {
+        const editedHeaderRow = editedWorksheet.getRow(headerRow);
+        const templateHeaderRow = templateWorksheet.getRow(headerRow);
+        
+        editedHeaderRow.eachCell((cell, colNumber) => {
+          const targetCell = templateHeaderRow.getCell(colNumber);
+          
+          // Special attention to header cells B1, B2, B4
+          if ((headerRow === 1 && colNumber === 2) || // B1 - Cruise Line
+              (headerRow === 2 && colNumber === 2) || // B2 - Ship Name  
+              (headerRow === 4 && colNumber === 2)) { // B4 - Date
+            console.log(`→ Updating header cell ${String.fromCharCode(64 + colNumber)}${headerRow} with: "${cell.value}"`);
+          }
+          
+          // Copy the value from edited sheet to template
+          targetCell.value = cell.value;
+        });
+      }
+      
+      // Then copy all data from edited sheet while preserving template formatting
       editedWorksheet.eachRow((row, rowNumber) => {
         if (rowNumber >= 8) { // Data rows start from row 8 (where tour data begins)
           row.eachCell((cell, colNumber) => {
