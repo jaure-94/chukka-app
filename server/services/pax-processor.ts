@@ -95,14 +95,21 @@ export class PaxProcessor {
       const paxOnBoardCell = worksheet.getCell(row, 17); // Column Q
       const paxOnTourCell = worksheet.getCell(row, 18); // Column R
 
+      // Debug every row that has a tour name for the first few rows
+      if (row <= 15 && tourNameCell.value) {
+        console.log(`→ PaxProcessor: DEBUG Row ${row} - Tour: "${tourNameCell.value}"`);
+        console.log(`→ PaxProcessor: DEBUG - Cell Q${row} (paxOnBoard): value="${paxOnBoardCell.value}", type=${typeof paxOnBoardCell.value}`);
+        console.log(`→ PaxProcessor: DEBUG - Cell R${row} (paxOnTour): value="${paxOnTourCell.value}", type=${typeof paxOnTourCell.value}`);
+      }
+
       if (tourNameCell.value && typeof tourNameCell.value === 'string') {
         const tourName = tourNameCell.value.trim();
         
         if (tourName && tourName !== 'TOUR') { // Skip header row
-          const allotment = typeof allotmentCell.value === 'number' ? allotmentCell.value : 0;
-          const sold = typeof soldCell.value === 'number' ? soldCell.value : 0;
-          const paxOnBoard = typeof paxOnBoardCell.value === 'number' ? paxOnBoardCell.value : 0;
-          const paxOnTour = typeof paxOnTourCell.value === 'number' ? paxOnTourCell.value : 0;
+          const allotment = this.extractNumericValue(allotmentCell.value);
+          const sold = this.extractNumericValue(soldCell.value);
+          const paxOnBoard = this.extractNumericValue(paxOnBoardCell.value);
+          const paxOnTour = this.extractNumericValue(paxOnTourCell.value);
 
           records.push({
             tourName,
@@ -250,5 +257,34 @@ export class PaxProcessor {
   private getCellValue(worksheet: ExcelJS.Worksheet, address: string): string {
     const cell = worksheet.getCell(address);
     return cell.value ? String(cell.value) : '';
+  }
+
+  /**
+   * Extract numeric value from cell, handling both numbers and formula objects
+   */
+  private extractNumericValue(cellValue: any): number {
+    if (typeof cellValue === 'number') {
+      return cellValue;
+    }
+    
+    if (cellValue && typeof cellValue === 'object') {
+      // Handle formula objects with result property (common in Excel formulas)
+      if ('result' in cellValue && typeof cellValue.result === 'number') {
+        return cellValue.result;
+      }
+      
+      // Handle other object types that might contain numeric values
+      if ('value' in cellValue && typeof cellValue.value === 'number') {
+        return cellValue.value;
+      }
+    }
+    
+    // Try to parse as number if it's a string
+    if (typeof cellValue === 'string') {
+      const parsed = Number(cellValue);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    
+    return 0;
   }
 }
