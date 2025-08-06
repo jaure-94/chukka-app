@@ -15,9 +15,6 @@ export interface PaxRecord {
   sold: number;
   paxOnBoard: number;
   paxOnTour: number;
-  adult?: number;
-  child?: number;
-  comp?: number;
 }
 
 export interface ValidatedPaxRecord extends PaxRecord {
@@ -84,14 +81,11 @@ export class PaxProcessor {
       throw new Error('Dispatch worksheet not found');
     }
 
-    // Extract header data with enhanced debugging - use E2 for ship name (dropdown selection)
+    // Extract header data (always from specific cells)
     const date = this.getCellValue(worksheet, 'B4') || '';
     const cruiseLine = this.getCellValue(worksheet, 'B1') || '';
-    const shipName = this.getCellValue(worksheet, 'E2') || ''; // Ship name is in E2, not B2
+    const shipName = this.getCellValue(worksheet, 'B2') || '';
 
-    // Log extracted header data for verification
-    console.log(`→ PaxProcessor: Header extracted - Ship: "${shipName}", Cruise Line: "${cruiseLine}"`);
-    
     console.log(`→ PaxProcessor: Header data - Date: ${date}, Cruise Line: ${cruiseLine}, Ship: ${shipName}`);
 
     // Extract tour records from dispatch sheet
@@ -105,9 +99,21 @@ export class PaxProcessor {
       const paxOnBoardCell = worksheet.getCell(row, 17); // Column Q
       const paxOnTourCell = worksheet.getCell(row, 18); // Column R
 
-      // Basic debug logging for header rows only
-      if (row <= 10 && tourNameCell.value && process.env.DEBUG_PAX === 'true') {
-        console.log(`→ PaxProcessor: Row ${row} - "${tourNameCell.value}"`);
+      // Debug every row that has a tour name for the first few rows
+      if (row <= 15 && tourNameCell.value) {
+        console.log(`→ PaxProcessor: DEBUG Row ${row} - Tour: "${tourNameCell.value}"`);
+        console.log(`→ PaxProcessor: DEBUG - Cell Q${row} (paxOnBoard): value="${paxOnBoardCell.value}", type=${typeof paxOnBoardCell.value}`);
+        console.log(`→ PaxProcessor: DEBUG - Cell R${row} (paxOnTour): value="${paxOnTourCell.value}", type=${typeof paxOnTourCell.value}`);
+        
+        // Enhanced debugging for formula objects
+        if (paxOnBoardCell.value && typeof paxOnBoardCell.value === 'object') {
+          console.log(`→ PaxProcessor: DEBUG - Q${row} object keys:`, Object.keys(paxOnBoardCell.value));
+          console.log(`→ PaxProcessor: DEBUG - Q${row} full object:`, JSON.stringify(paxOnBoardCell.value));
+        }
+        if (paxOnTourCell.value && typeof paxOnTourCell.value === 'object') {
+          console.log(`→ PaxProcessor: DEBUG - R${row} object keys:`, Object.keys(paxOnTourCell.value));
+          console.log(`→ PaxProcessor: DEBUG - R${row} full object:`, JSON.stringify(paxOnTourCell.value));
+        }
       }
 
       if (tourNameCell.value && typeof tourNameCell.value === 'string') {
@@ -118,28 +124,16 @@ export class PaxProcessor {
           const sold = this.extractNumericValue(soldCell.value);
           const paxOnBoard = this.extractNumericValue(paxOnBoardCell.value);
           const paxOnTour = this.extractNumericValue(paxOnTourCell.value);
-          
-          // Extract demographic data (ADULT, CHILD, COMP columns)
-          const adultCell = worksheet.getCell(row, 11); // Column K
-          const childCell = worksheet.getCell(row, 12); // Column L
-          const compCell = worksheet.getCell(row, 13); // Column M
-          
-          const adult = this.extractNumericValue(adultCell.value);
-          const child = this.extractNumericValue(childCell.value);
-          const comp = this.extractNumericValue(compCell.value);
 
           records.push({
             tourName,
             allotment,
             sold,
             paxOnBoard,
-            paxOnTour,
-            adult,
-            child,
-            comp
+            paxOnTour
           });
 
-          console.log(`→ PaxProcessor: Found tour "${tourName}" - Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}, Adult: ${adult}, Child: ${child}, Comp: ${comp}`);
+          console.log(`→ PaxProcessor: Found tour "${tourName}" - Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
         }
       }
     }
