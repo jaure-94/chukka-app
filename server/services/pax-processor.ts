@@ -273,11 +273,33 @@ export class PaxProcessor {
   }
 
   /**
-   * Get cell value safely
+   * Get cell value safely with date formatting
    */
   private getCellValue(worksheet: ExcelJS.Worksheet, address: string): string {
     const cell = worksheet.getCell(address);
-    return cell.value ? String(cell.value) : '';
+    if (!cell.value) return '';
+    
+    // Special handling for dates
+    if (cell.value instanceof Date) {
+      // Format as DD/MM/YYYY
+      const day = cell.value.getDate().toString().padStart(2, '0');
+      const month = (cell.value.getMonth() + 1).toString().padStart(2, '0');
+      const year = cell.value.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    
+    // Handle Excel serial date numbers (if date comes as number)
+    if (typeof cell.value === 'number' && cell.value > 1 && cell.value < 100000) {
+      // Excel date serial numbers start from 1900-01-01
+      const excelEpoch = new Date(1900, 0, 1);
+      const date = new Date(excelEpoch.getTime() + (cell.value - 1) * 24 * 60 * 60 * 1000);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    
+    return String(cell.value);
   }
 
   /**
