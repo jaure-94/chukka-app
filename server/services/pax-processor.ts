@@ -363,29 +363,26 @@ export class PaxProcessor {
     // Copy the template row (row 4) formatting to preserve styling
     const templateRow = worksheet.getRow(4);
 
-    // Add each validated record as a new row
-    for (let i = 0; i < validatedRecords.length; i++) {
-      const targetRow = startRow + i;
-      const newRow = worksheet.getRow(targetRow);
+    // Add one row for all validated records (same as original PAX logic)
+    const targetRow = startRow;
+    const newRow = worksheet.getRow(targetRow);
 
-      // Copy template row formatting to new row
-      templateRow.eachCell((cell, colNumber) => {
-        const newCell = newRow.getCell(colNumber);
-        
-        // Copy formatting
-        newCell.font = cell.font;
-        newCell.alignment = cell.alignment;
-        newCell.border = cell.border;
-        newCell.fill = cell.fill;
-        newCell.numFmt = cell.numFmt;
-      });
+    // Copy template row formatting to new row
+    templateRow.eachCell((cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      
+      // Copy formatting
+      newCell.font = cell.font;
+      newCell.alignment = cell.alignment;
+      newCell.border = cell.border;
+      newCell.fill = cell.fill;
+      newCell.numFmt = cell.numFmt;
+    });
 
-      // Set the actual data for this record
-      await this.populateRowWithData(newRow, dispatchData, validatedRecords);
-    }
+    // Set the actual data for all records in this single row
+    await this.populateRowWithData(newRow, dispatchData, validatedRecords);
 
-    // Commit all row changes
-    worksheet.commit();
+    // Note: ExcelJS automatically commits changes, no explicit commit needed
   }
 
   /**
