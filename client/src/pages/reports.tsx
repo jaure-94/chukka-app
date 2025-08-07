@@ -427,7 +427,20 @@ export default function Reports() {
                           <Button 
                             size="sm" 
                             className="flex-1 bg-orange-600 hover:bg-orange-700"
-                            onClick={() => window.open(`/api/output/${latestPAX.filename}`, '_blank')}
+                            onClick={() => {
+                              console.log('Attempting to download PAX file:', latestPAX.filename);
+                              const downloadUrl = `/api/output/${latestPAX.filename}`;
+                              console.log('Download URL:', downloadUrl);
+                              
+                              // Try window.open first
+                              const newWindow = window.open(downloadUrl, '_blank');
+                              
+                              // If popup blocked, use direct location
+                              if (!newWindow || newWindow.closed) {
+                                console.log('Popup blocked, trying direct download...');
+                                window.location.href = downloadUrl;
+                              }
+                            }}
                           >
                             <Download className="w-3 h-3 mr-2" />
                             Download
@@ -517,7 +530,19 @@ export default function Reports() {
                       </div>
                       
                       <Button
-                        onClick={() => window.open(file.downloadUrl, '_blank')}
+                        onClick={() => {
+                          console.log('Downloading file:', file.filename, 'Type:', file.type);
+                          console.log('Download URL:', file.downloadUrl);
+                          
+                          // Try window.open first
+                          const newWindow = window.open(file.downloadUrl, '_blank');
+                          
+                          // If popup blocked, use direct location
+                          if (!newWindow || newWindow.closed) {
+                            console.log('Popup blocked, trying direct download...');
+                            window.location.href = file.downloadUrl;
+                          }
+                        }}
                         size="sm"
                         variant="ghost"
                         className="text-gray-600 hover:text-gray-900"
