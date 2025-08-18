@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ interface GeneratedReport {
 }
 
 export default function Reports() {
+  const [location] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAllFiles, setShowAllFiles] = useState(false);
@@ -45,6 +47,16 @@ export default function Reports() {
   const [paxGenerating, setPaxGenerating] = useState(false);
 
   const { isCollapsed } = useSidebar();
+
+  // Extract ship information from URL
+  const getShipFromLocation = () => {
+    if (location.includes('/reports/ship-a')) return 'SHIP A';
+    if (location.includes('/reports/ship-b')) return 'SHIP B'; 
+    if (location.includes('/reports/ship-c')) return 'SHIP C';
+    return null;
+  };
+
+  const currentShip = getShipFromLocation();
 
   // Fetch recent generated reports
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
@@ -217,9 +229,14 @@ export default function Reports() {
               <div className="flex items-center">
                 <MobileNavigation />
                 <div className="ml-4 md:ml-0">
-                  <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Reports{currentShip ? `: ${currentShip}` : ''}
+                  </h1>
                   <p className="mt-2 text-gray-600">
-                    Generate and manage your dispatch and EOD reports
+                    {currentShip 
+                      ? `Generate and manage your dispatch and EOD reports for ${currentShip}`
+                      : 'Generate and manage your dispatch and EOD reports'
+                    }
                   </p>
                 </div>
               </div>

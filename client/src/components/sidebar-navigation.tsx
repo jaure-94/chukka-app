@@ -63,8 +63,24 @@ const navigationItems: NavigationItem[] = [
   },
   {
     name: "Reports",
-    href: "/reports",
     icon: BarChart3,
+    subItems: [
+      {
+        name: "Ship A",
+        href: "/reports/ship-a",
+        icon: Ship,
+      },
+      {
+        name: "Ship B",
+        href: "/reports/ship-b", 
+        icon: Ship,
+      },
+      {
+        name: "Ship C",
+        href: "/reports/ship-c",
+        icon: Ship,
+      },
+    ],
   },
   {
     name: "Spreadsheet View",

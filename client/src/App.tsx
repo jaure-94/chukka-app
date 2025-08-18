@@ -29,6 +29,9 @@ function Router() {
           <Route path="/templates" component={Templates} />
           <Route path="/templates/edit" component={EditTemplates} />
           <Route path="/reports" component={Reports} />
+          <Route path="/reports/ship-a" component={Reports} />
+          <Route path="/reports/ship-b" component={Reports} />
+          <Route path="/reports/ship-c" component={Reports} />
           <Route path="/users" component={Users} />
           <Route path="/spreadsheet" component={SpreadsheetView} />
           <Route path="/spreadsheet/eod/:filename" component={SpreadsheetEodView} />
