@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack web application for uploading, processing, and exporting Excel files with template-based document generation. The system allows users to upload Excel files, preview the data, select processing templates, and export results to Dropbox. The project aims to streamline document creation, enhance data management, and provide robust reporting capabilities for businesses.
+This is a full-stack web application for uploading, processing, and exporting Excel files with template-based document generation. The system allows users to upload Excel files, preview the data, select processing templates, and export results. The project aims to streamline document creation, enhance data management, and provide robust reporting capabilities for businesses, with a vision for future ship-specific data management.
 
 ## User Preferences
 
@@ -23,217 +23,32 @@ Preferred communication style: Simple, everyday language.
 - **Language**: TypeScript with ES modules
 - **File Upload**: Multer
 - **Excel Processing**: ExcelJS (for robust formatting preservation), xlsx (for initial parsing)
-- **Template Engine**: Handlebars for document generation (initially), custom ExcelJS-based template processing for EOD reports.
+- **Template Engine**: Handlebars for general templates, custom ExcelJS-based template processing for EOD reports.
 
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
 - **Database**: PostgreSQL (configured for Neon serverless)
 - **Schema**: Supports file management, processing tracking, and user management.
 
-### Key Features
-- **File Upload System**: Drag-and-drop interface with validation for Excel formats (.xlsx, .xls) and size limits.
-- **Data Processing Pipeline**: Involves file storage, Excel parsing, database storage of parsed data, template application, and Dropbox export.
-- **Template System**: Handlebars-based for general templates, and a specialized ExcelJS-based system for EOD templates, supporting dynamic data insertion, complex formatting preservation (merged cells, colors, borders, fonts, text wrapping), and calculations.
-- **EOD Report Generation**: Comprehensive system to extract specific data (tour names, adult/child/comp counts, departure times, notes) from dispatch sheets and populate a detailed EOD template, including dynamic row creation for multiple tours and accurate totals.
-- **Dispatch Sheet Generation**: System to generate new dispatch sheets, preserving original template formatting.
-- **Report Management**: Automatic dual report (dispatch and EOD) generation upon new dispatch record creation, with downloadable files and processing history.
-- **User Management**: Comprehensive users page with user details, status, and management actions.
-- **Spreadsheet View**: In-browser Excel editing capabilities using Handsontable, allowing upload, edit, save, and download of spreadsheets.
-- **Date/Time Selection**: Redesigned date picker with separate date and time selection.
+### Core Features
+- **File Upload System**: Drag-and-drop interface with validation.
+- **Data Processing Pipeline**: Involves file storage, Excel parsing, database storage of parsed data, template application, and export.
+- **Template System**: Supports dynamic data insertion, complex formatting preservation (merged cells, colors, borders, fonts, text wrapping), and calculations.
+- **EOD Report Generation**: Extracts specific data from dispatch sheets and populates a detailed EOD template, including dynamic row creation and accurate totals.
+- **Dispatch Sheet Generation**: Generates new dispatch sheets while preserving original template formatting.
+- **Report Management**: Automatic dual report (dispatch and EOD) generation with downloadable files and processing history.
+- **User Management**: Comprehensive user management with details, status, and actions.
+- **Spreadsheet View**: In-browser Excel editing capabilities (upload, edit, save, download).
 - **Auto-Calculations**: Real-time calculation for fields like "Total Guests".
-- **Responsive Design**: Global sidebar for navigation, content shifting, and responsive layouts across all pages.
+- **Responsive Design**: Global sidebar for navigation and responsive layouts.
+- **Successive Report Generation**: Ability to append new records to existing reports, e.g., PAX reports.
+- **Header Data Preservation**: Ensures original template header data (e.g., ship name, date) is correctly extracted and preserved during saves and report generation.
+- **Date Formatting**: Consistent DD/MM/YYYY date formatting in reports.
 
-## Important Template Structure Changes (Latest Update)
-
-### Dispatch Template Structure Changes:
-**Date:** January 4, 2025
-
-**Critical Changes Made to Dispatch Template:**
-1. **Column C8 Header Change**: Changed from "Actual Dep" to "Return Tour Time"
-2. **Column E Deletion**: Removed column E which contained "(Armband)" subheading
-3. **Column Shift Impact**: All columns from F onwards have shifted left by one position:
-   - Original column F → Now column E
-   - Original column G → Now column F
-   - Original column H → Now column G
-   - ...and so on
-   - Original column S → Now column R (last column)
-
-**Key Column Positions After Changes:**
-- **ADULT**: Column K (unchanged)
-- **CHILD**: Column L (unchanged) 
-- **COMP**: Column M (unchanged)
-- **Notes**: Column N (unchanged)
-
-*Note: These important data columns maintained their positions because the deleted column E was before them.*
-
-**IMPORTANT:** These changes will require updates to the EOD report generation functionality, specifically:
-- Cell extraction logic in cell-extractor.ts
-- Column mapping in EOD processors
-- Any hardcoded column references throughout the system
-
-**Status:** Changes documented - code updates completed
-
-## PAX Report Template Structure (Latest Update)
-
-### Template Layout Analysis:
-**Date:** January 4, 2025
-
-**PAX Template Structure:**
-1. **Row 1**: Empty
-2. **Row 2**: Main headers with merged tour name columns:
-   - A: "DATE", B: "LINE", C: "SHIP NAME"
-   - D-E: "Catamaran Sail & Snorkel" (merged)
-   - F-G: "Champagne Adults Only" (merged) 
-   - H-I: "Invisible Boat Family" (merged)
-   - BR-BX: "PAX TOTALS, ANALYSIS and RATES" (merged)
-
-3. **Row 3**: Subheadings with Sold/Allotment pairs:
-   - D: "Sold", E: "Allotment" (Catamaran)
-   - F: "Sold", G: "Allotment" (Champagne)
-   - H: "Sold", I: "Allotment" (Invisible Boat)
-   - Analysis columns: BR-BX with rate calculations
-
-4. **Row 4**: **CRITICAL DELIMITER ROW** for data replacement:
-   - A: `{{date}}`, B: `{{cruise_line}}`, C: `{{ship_name}}`
-   - D: `{{cat_sold}}`, E: `{{cat_allot}}`
-   - F: `{{champ_sold}}`, G: `{{champ_allot}}`
-   - H: `{{inv_sold}}`, I: `{{inv_allot}}`
-   - BT: `{{pax_on_board}}`, BU: `{{pax_on_tour}}`
-
-**Key Implementation Notes:**
-- Row 4 serves as the template row for data population
-- Each tour has a Sold/Allotment pair in consecutive columns
-- Analysis columns (BR-BX) contain summary calculations
-- Template supports 3 main tours: Catamaran, Champagne Adults Only, Invisible Boat Family
-
-**Status:** Template structure documented - ready for PAX generation implementation
-
-## PAX Report Generation Logic (Latest Update)
-
-### Delimiter Replacement Logic:
-**Date:** January 4, 2025
-
-**Validation Layer Requirements:**
-- Tour names in dispatch sheet must match exactly one of:
-  - "Catamaran Sail & Snorkel"
-  - "Champagne Adults Only"
-  - "Invisible Boat Family"
-- Only validated records are processed for PAX report generation
-
-**Direct Cell Mapping (Always Applied):**
-- `{{date}}` ← Dispatch Cell B4 (date)
-- `{{cruise_line}}` ← Dispatch Cell B1 (cruise line)
-- `{{ship_name}}` ← Dispatch Cell B2 (ship name)
-
-**Conditional Column Mapping (Tour Name Based):**
-- **Dispatch Column H (ALLOTMENT)** → PAX delimiters:
-  - `{{cat_allot}}` if tour = "Catamaran Sail & Snorkel"
-  - `{{champ_allot}}` if tour = "Champagne Adults Only"
-  - `{{inv_allot}}` if tour = "Invisible Boat Family"
-
-- **Dispatch Column J (SOLD)** → PAX delimiters:
-  - `{{cat_sold}}` if tour = "Catamaran Sail & Snorkel"
-  - `{{champ_sold}}` if tour = "Champagne Adults Only"
-  - `{{inv_sold}}` if tour = "Invisible Boat Family"
-
-**Universal Record Mapping:**
-- Dispatch Column Q (PAX ON BOARD) → `{{pax_on_board}}`
-- Dispatch Column R (PAX ON TOUR) → `{{pax_on_tour}}`
-
-**Implementation Notes:**
-- Row 4 serves as template row for data population
-- Each validated dispatch record creates a new row in PAX report
-- Tour-specific data only populates corresponding delimiter columns
-- Analysis columns (BR-BX) contain summary calculations
-
-**Status:** ✅ PAX processor implemented and fully functional
-
-## PAX Report Successive Records Implementation (Latest Update)
-
-### Features Completed:
-**Date:** January 4, 2025
-
-**PAX Report Enhancement:**
-1. **Dual Button System**: 
-   - "Generate New PAX Report": Creates fresh PAX report (replaces template row 4)
-   - "Update Existing PAX Report": Adds successive records as new rows to latest existing PAX report
-2. **Backend Implementation**: New `/api/add-successive-pax-entry` endpoint
-3. **PaxProcessor Enhancement**: Added `addSuccessiveEntryToPax()` method for row-by-row additions
-4. **Data Flow**: Both buttons use same modal success functionality with navigation options
-5. **File Management**: System automatically finds latest PAX report and appends new data below existing records
-
-**Technical Implementation:**
-- Frontend: Two-button PAX Template card with consistent styling and modal behavior
-- Backend: Automatic PAX file detection, template row formatting preservation, proper data extraction
-- Data Integrity: Same validation and mapping logic as original PAX generation
-- File Output: New timestamped files for each successive addition to maintain audit trail
-
-**Status:** ✅ Fully implemented and tested - both new and successive PAX generation working correctly
-
-## PAX Report Header Data Fix (Latest Update)
-
-### Issue Identified and Fixed:
-**Date:** January 4, 2025
-
-**Problem:** Ship name and date remained static ("Liberty", same date) despite user edits to dispatch cells B2 and B4
-
-**Root Cause:** Dispatch save process only processed rows 8+ (data rows), completely ignoring header rows 1-7 containing critical cells:
-- B1: Cruise Line  
-- B2: Ship Name
-- B4: Date
-
-**Solution Implemented:**
-1. **Enhanced Save Process**: Added header row processing (rows 1-7) before data row processing
-2. **Header Cell Debugging**: Added specific logging for B1, B2, B4 cell updates during save
-3. **Enhanced Data Extraction**: Added detailed debugging for header cell values and types during PAX generation
-4. **Preserved Formatting**: Header updates maintain template formatting while capturing user edits
-
-**Technical Changes:**
-- Modified `/api/save-dispatch-sheet` to process header rows 1-7 first
-- Added targeted logging for cruise line, ship name, and date cell updates
-- Enhanced PAX processor with header cell debugging for troubleshooting
-
-**Status:** ✅ Header preservation logic implemented and tested successfully
-
-## Date Format Enhancement (Latest Update)
-
-### Date Display Improvement:
-**Date:** January 4, 2025
-
-**Issue:** Date appeared in long format: "Thu May 08 2025 00:00:00 GMT+0000 (Coordinated Universal Time)"
-
-**Solution:** Enhanced `getCellValue` method in PAX processor to format dates as DD/MM/YYYY
-
-**Technical Implementation:**
-- Added date detection for JavaScript Date objects
-- Added Excel serial date number handling for numeric date values
-- Formats dates as DD/MM/YYYY (e.g., "08/05/2025") for better readability
-- Maintains backward compatibility with string and numeric date formats
-
-**Status:** ✅ Date formatting implemented and working correctly - displays clean DD/MM/YYYY format in PAX reports
-
-## PAX Report Functionality (Latest Update)
-
-### Implementation Completed:
-**Date:** January 4, 2025
-
-**PAX Report Generation Features:**
-1. **Button Location**: "Update PAX Report" button located in Create New Record page alongside "Update EOD Report" button
-2. **Success Modal**: Displays success confirmation with navigation options to Reports page or stay on current page
-3. **Delimiter Replacement**: Correctly replaces all template delimiters with actual dispatch data:
-   - `{{date}}`, `{{cruise_line}}`, `{{ship_name}}` from dispatch header cells
-   - `{{cat_sold}}`, `{{cat_allot}}`, `{{champ_sold}}`, `{{champ_allot}}`, `{{inv_sold}}`, `{{inv_allot}}` based on validated tour data
-   - `{{pax_on_board}}`, `{{pax_on_tour}}` from dispatch summary columns
-4. **Data Validation**: Tour names validated against exact matches before processing
-5. **Single Row Output**: All data correctly entered into single template row (row 4) with proper formatting
-
-**Technical Implementation:**
-- PAX processor works directly with template row 4 for delimiter replacement
-- Proper validation and mapping of tour types to corresponding PAX columns
-- Complete integration with frontend success modal and navigation
-- File type detection and display in Reports page with orange color coding
-
-**Status:** ✅ Fully implemented and tested - PAX reports generating correctly
+### System Design Choices
+- **Ship-Agnostic Workflow**: Designed for eventual implementation of ship-specific data management, requiring future database schema modifications (e.g., `ship_id` columns), file system changes (ship-specific subdirectories), and API endpoint modifications.
+- **Version Control**: Tracks all saved dispatch sheet edits in `dispatch_versions` table.
+- **Modular Processors**: Uses dedicated processors (e.g., `cellExtractor`, `simpleEODProcessor`, `PAXProcessor`) for distinct data extraction and processing tasks.
 
 ## External Dependencies
 
@@ -244,5 +59,4 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: @tanstack/react-query
 - **Styling**: tailwindcss, class-variance-authority
 - **Spreadsheet Editor**: handsontable
-- **Dropbox API**: For file upload and storage
-```
+- **Cloud Storage**: Dropbox API (for file upload and storage)
