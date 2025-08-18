@@ -28,10 +28,20 @@ interface SpreadsheetFile {
 }
 
 export default function CreateDispatch() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
+
+  // Extract ship information from URL
+  const getShipFromLocation = () => {
+    if (location.includes('/create-dispatch/ship-a')) return 'SHIP A';
+    if (location.includes('/create-dispatch/ship-b')) return 'SHIP B'; 
+    if (location.includes('/create-dispatch/ship-c')) return 'SHIP C';
+    return null;
+  };
+
+  const currentShip = getShipFromLocation();
   const hotTableRef = useRef<HotTableClass>(null);
 
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
@@ -599,8 +609,15 @@ export default function CreateDispatch() {
       >
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Create New Dispatch Record</h1>
-            <p className="text-gray-600">Edit the dispatch template spreadsheet to create a new record</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Create New Dispatch Record{currentShip ? `: ${currentShip}` : ''}
+            </h1>
+            <p className="text-gray-600">
+              {currentShip 
+                ? `Edit the dispatch template spreadsheet to create a new record for ${currentShip}`
+                : 'Edit the dispatch template spreadsheet to create a new record'
+              }
+            </p>
           </div>
 
           {isLoadingDispatch ? (

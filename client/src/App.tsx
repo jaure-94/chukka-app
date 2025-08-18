@@ -23,6 +23,9 @@ function Router() {
         <Switch>
           <Route path="/" component={TemplateUpload} />
           <Route path="/create-dispatch" component={CreateDispatch} />
+          <Route path="/create-dispatch/ship-a" component={CreateDispatch} />
+          <Route path="/create-dispatch/ship-b" component={CreateDispatch} />
+          <Route path="/create-dispatch/ship-c" component={CreateDispatch} />
           <Route path="/templates" component={Templates} />
           <Route path="/templates/edit" component={EditTemplates} />
           <Route path="/reports" component={Reports} />

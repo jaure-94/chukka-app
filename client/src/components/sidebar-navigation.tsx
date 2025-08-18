@@ -9,6 +9,9 @@ import {
   Table,
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Ship,
   Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,8 +20,13 @@ import { useSidebar } from "@/contexts/sidebar-context";
 
 interface NavigationItem {
   name: string;
-  href: string;
+  href?: string;
   icon: React.ComponentType<{ className?: string }>;
+  subItems?: {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[];
 }
 
 const navigationItems: NavigationItem[] = [
@@ -29,8 +37,24 @@ const navigationItems: NavigationItem[] = [
   },
   {
     name: "Create New Record",
-    href: "/create-dispatch",
     icon: Plus,
+    subItems: [
+      {
+        name: "Ship A",
+        href: "/create-dispatch/ship-a",
+        icon: Ship,
+      },
+      {
+        name: "Ship B", 
+        href: "/create-dispatch/ship-b",
+        icon: Ship,
+      },
+      {
+        name: "Ship C",
+        href: "/create-dispatch/ship-c", 
+        icon: Ship,
+      },
+    ],
   },
   {
     name: "Templates",
@@ -61,6 +85,19 @@ interface SidebarNavigationProps {
 export function SidebarNavigation({ className }: SidebarNavigationProps) {
   const { isCollapsed, toggleCollapsed } = useSidebar();
   const [location] = useLocation();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemName) 
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
+  const isItemExpanded = (itemName: string) => expandedItems.includes(itemName);
+  const isSubItemActive = (subItems: { href: string }[] | undefined) => 
+    subItems?.some(subItem => location === subItem.href) || false;
 
   return (
     <div className={cn(
@@ -91,30 +128,100 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       <nav className="flex-1 px-2 py-4 space-y-1">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const hasSubItems = item.subItems && item.subItems.length > 0;
+          const isActive = item.href ? location === item.href : false;
+          const isExpanded = isItemExpanded(item.name);
+          const hasActiveSubItem = isSubItemActive(item.subItems);
           
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                isActive
-                  ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                isCollapsed ? "justify-center" : "justify-start"
+            <div key={item.name}>
+              {/* Main Navigation Item */}
+              {item.href ? (
+                // Regular navigation item with direct link
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isActive
+                      ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    isCollapsed ? "justify-center" : "justify-start"
+                  )}
+                  title={isCollapsed ? item.name : undefined}
+                >
+                  <Icon className={cn(
+                    "flex-shrink-0",
+                    isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
+                    isActive ? "text-blue-700" : "text-gray-400"
+                  )} />
+                  {!isCollapsed && (
+                    <span className="truncate">{item.name}</span>
+                  )}
+                </Link>
+              ) : (
+                // Expandable navigation item
+                <button
+                  onClick={() => !isCollapsed && toggleExpanded(item.name)}
+                  className={cn(
+                    "w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    hasActiveSubItem
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    isCollapsed ? "justify-center" : "justify-between"
+                  )}
+                  title={isCollapsed ? item.name : undefined}
+                >
+                  <div className="flex items-center">
+                    <Icon className={cn(
+                      "flex-shrink-0",
+                      isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
+                      hasActiveSubItem ? "text-blue-700" : "text-gray-400"
+                    )} />
+                    {!isCollapsed && (
+                      <span className="truncate">{item.name}</span>
+                    )}
+                  </div>
+                  {!isCollapsed && hasSubItems && (
+                    <div className="ml-2">
+                      {isExpanded ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </div>
+                  )}
+                </button>
               )}
-              title={isCollapsed ? item.name : undefined}
-            >
-              <Icon className={cn(
-                "flex-shrink-0",
-                isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
-                isActive ? "text-blue-700" : "text-gray-400"
-              )} />
-              {!isCollapsed && (
-                <span className="truncate">{item.name}</span>
+
+              {/* Sub Items */}
+              {hasSubItems && !isCollapsed && isExpanded && (
+                <div className="ml-6 mt-1 space-y-1">
+                  {item.subItems!.map((subItem) => {
+                    const SubIcon = subItem.icon;
+                    const isSubActive = location === subItem.href;
+                    
+                    return (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.href}
+                        className={cn(
+                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          isSubActive
+                            ? "bg-blue-100 text-blue-800 border-l-2 border-blue-800"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        )}
+                      >
+                        <SubIcon className={cn(
+                          "h-3 w-3 mr-3 flex-shrink-0",
+                          isSubActive ? "text-blue-800" : "text-gray-400"
+                        )} />
+                        <span className="truncate">{subItem.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
@@ -135,6 +242,19 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
+  const [mobileExpandedItems, setMobileExpandedItems] = useState<string[]>([]);
+
+  const toggleMobileExpanded = (itemName: string) => {
+    setMobileExpandedItems(prev => 
+      prev.includes(itemName) 
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
+  const isMobileItemExpanded = (itemName: string) => mobileExpandedItems.includes(itemName);
+  const isMobileSubItemActive = (subItems: { href: string }[] | undefined) => 
+    subItems?.some(subItem => location === subItem.href) || false;
 
   return (
     <>
@@ -168,26 +288,92 @@ export function MobileNavigation() {
             <nav className="px-2 py-4 space-y-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location === item.href;
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                const isActive = item.href ? location === item.href : false;
+                const isExpanded = isMobileItemExpanded(item.name);
+                const hasActiveSubItem = isMobileSubItemActive(item.subItems);
                 
                 return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={cn(
-                      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      isActive
-                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  <div key={item.name}>
+                    {/* Main Mobile Navigation Item */}
+                    {item.href ? (
+                      // Regular mobile navigation item with direct link
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          isActive
+                            ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        )}
+                      >
+                        <Icon className={cn(
+                          "h-4 w-4 mr-3 flex-shrink-0",
+                          isActive ? "text-blue-700" : "text-gray-400"
+                        )} />
+                        <span className="truncate">{item.name}</span>
+                      </Link>
+                    ) : (
+                      // Expandable mobile navigation item
+                      <button
+                        onClick={() => toggleMobileExpanded(item.name)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          hasActiveSubItem
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        )}
+                      >
+                        <div className="flex items-center">
+                          <Icon className={cn(
+                            "h-4 w-4 mr-3 flex-shrink-0",
+                            hasActiveSubItem ? "text-blue-700" : "text-gray-400"
+                          )} />
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        {hasSubItems && (
+                          <div className="ml-2">
+                            {isExpanded ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                          </div>
+                        )}
+                      </button>
                     )}
-                  >
-                    <Icon className={cn(
-                      "h-4 w-4 mr-3 flex-shrink-0",
-                      isActive ? "text-blue-700" : "text-gray-400"
-                    )} />
-                    <span className="truncate">{item.name}</span>
-                  </Link>
+
+                    {/* Mobile Sub Items */}
+                    {hasSubItems && isExpanded && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.subItems!.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isSubActive = location === subItem.href;
+                          
+                          return (
+                            <Link
+                              key={subItem.name}
+                              href={subItem.href}
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                                isSubActive
+                                  ? "bg-blue-100 text-blue-800 border-l-2 border-blue-800"
+                                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              )}
+                            >
+                              <SubIcon className={cn(
+                                "h-3 w-3 mr-3 flex-shrink-0",
+                                isSubActive ? "text-blue-800" : "text-gray-400"
+                              )} />
+                              <span className="truncate">{subItem.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </nav>
