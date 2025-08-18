@@ -29,10 +29,10 @@ export class PaxProcessor {
   ];
 
   /**
-   * Process dispatch data to generate PAX report
+   * Process dispatch data to generate PAX report (ship-aware)
    */
-  async processDispatchToPax(dispatchFilePath: string, paxTemplatePath: string): Promise<string> {
-    console.log(`→ PaxProcessor: Starting PAX report generation`);
+  async processDispatchToPax(dispatchFilePath: string, paxTemplatePath: string, shipId: string = 'ship-a'): Promise<string> {
+    console.log(`→ PaxProcessor: Starting PAX report generation for ${shipId}`);
     console.log(`→ PaxProcessor: Dispatch file: ${dispatchFilePath}`);
     console.log(`→ PaxProcessor: PAX template: ${paxTemplatePath}`);
 
@@ -56,9 +56,16 @@ export class PaxProcessor {
     // Generate PAX report
     await this.generatePaxReport(worksheet, dispatchData, validatedRecords);
 
-    // Save the generated report
+    // Save the generated report to ship-specific directory
     const outputFilename = `pax_${Date.now()}.xlsx`;
-    const outputPath = path.join(process.cwd(), 'output', outputFilename);
+    const shipOutputDir = path.join(process.cwd(), 'output', shipId);
+    const outputPath = path.join(shipOutputDir, outputFilename);
+    
+    // Ensure ship-specific output directory exists
+    if (!require('fs').existsSync(shipOutputDir)) {
+      require('fs').mkdirSync(shipOutputDir, { recursive: true });
+    }
+    
     await workbook.xlsx.writeFile(outputPath);
 
     console.log(`→ PaxProcessor: PAX report saved to ${outputPath}`);

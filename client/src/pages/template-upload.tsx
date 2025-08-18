@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { SingleFileUpload } from "@/components/single-file-upload";
 import { DataPreview } from "@/components/data-preview";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { ShipSelector } from "@/components/ship-selector";
 import { CheckCircle, X, Upload, FileSpreadsheet, Settings, Download } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useShipContext } from "@/contexts/ship-context";
 import { useToast } from "@/hooks/use-toast";
 import type { UploadResponse } from "@/lib/types";
 
@@ -17,6 +19,7 @@ export default function TemplateUpload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const { isCollapsed } = useSidebar();
+  const { currentShip, getShipDisplayName } = useShipContext();
   const { toast } = useToast();
 
   // Auto-hide success notification after 3 seconds
@@ -56,12 +59,14 @@ export default function TemplateUpload() {
         filename: dispatchUpload.file.filename,
         originalFilename: dispatchUpload.file.originalName,
         filePath: `uploads/${dispatchUpload.file.filename}`,
+        shipId: currentShip,
       };
 
       const eodTemplateData = {
         filename: eodUpload.file.filename,
         originalFilename: eodUpload.file.originalName,
         filePath: `uploads/${eodUpload.file.filename}`,
+        shipId: currentShip,
       };
 
       // Create dispatch template record
@@ -179,9 +184,21 @@ export default function TemplateUpload() {
         {/* Main Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-7xl mx-auto">
+            {/* Ship Selector */}
+            <div className="mb-8">
+              <ShipSelector />
+            </div>
+
             {/* Upload Instructions */}
             <div className="text-center mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Upload Your Template Files</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Upload Your Template Files
+                {currentShip && (
+                  <span className="text-lg font-normal text-blue-600 block mt-2">
+                    for {getShipDisplayName(currentShip)}
+                  </span>
+                )}
+              </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 Upload both your dispatch file and EOD template below. These templates will be stored securely 
                 and will automatically populate with data from dispatch records you create.
@@ -219,10 +236,10 @@ export default function TemplateUpload() {
             )}
 
             {/* Submit Section */}
-            {canSubmit && (
+            {canSubmit && currentShip && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-8 text-center">
                 <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to Store Templates</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to Store Templates for {getShipDisplayName(currentShip)}</h3>
                 <p className="text-gray-600 mb-6">
                   Both files have been uploaded successfully. Submit to store your templates and proceed to dispatch creation.
                 </p>
@@ -231,8 +248,20 @@ export default function TemplateUpload() {
                   disabled={isSubmitting}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-medium disabled:bg-gray-400"
                 >
-                  {isSubmitting ? "Storing Templates..." : "Submit and Store Templates"}
+                  {isSubmitting ? `Storing Templates for ${getShipDisplayName(currentShip)}...` : `Submit and Store Templates for ${getShipDisplayName(currentShip)}`}
                 </Button>
+              </div>
+            )}
+
+            {/* Ship Selection Required */}
+            {canSubmit && !currentShip && (
+              <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-8 text-center">
+                <div className="max-w-md mx-auto">
+                  <h3 className="text-xl font-semibold text-yellow-800 mb-4">Ship Selection Required</h3>
+                  <p className="text-yellow-700 mb-6">
+                    Please select a ship above to continue with template setup. Each ship maintains separate templates and data.
+                  </p>
+                </div>
               </div>
             )}
 

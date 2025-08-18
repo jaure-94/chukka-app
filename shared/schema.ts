@@ -25,6 +25,7 @@ export const processingJobs = pgTable("processing_jobs", {
   id: serial("id").primaryKey(),
   fileId: integer("file_id").notNull().references(() => uploadedFiles.id),
   templateType: text("template_type").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   progress: integer("progress").notNull().default(0),
   resultFilePath: text("result_file_path"),
@@ -59,6 +60,7 @@ export const dispatchTemplates = pgTable("dispatch_templates", {
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   filePath: text("file_path").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
@@ -68,6 +70,7 @@ export const eodTemplates = pgTable("eod_templates", {
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   filePath: text("file_path").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
@@ -77,6 +80,7 @@ export const paxTemplates = pgTable("pax_templates", {
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   filePath: text("file_path").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
@@ -105,6 +109,7 @@ export const generatedReports = pgTable("generated_reports", {
   id: serial("id").primaryKey(),
   dispatchFilePath: text("dispatch_file_path").notNull(),
   eodFilePath: text("eod_file_path"),
+  shipId: text("ship_id").notNull().default("ship-a"),
   recordCount: integer("record_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -114,6 +119,7 @@ export const dispatchVersions = pgTable("dispatch_versions", {
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   filePath: text("file_path").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   version: integer("version").notNull().default(1),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -122,6 +128,7 @@ export const dispatchVersions = pgTable("dispatch_versions", {
 export const extractedDispatchData = pgTable("extracted_dispatch_data", {
   id: serial("id").primaryKey(),
   dispatchFileId: integer("dispatch_file_id").notNull(),
+  shipId: text("ship_id").notNull().default("ship-a"),
   cellA8Value: text("cell_a8_value"), // Tour name from A8
   cellB8Value: text("cell_b8_value"), // Departure time from B8
   cellH8Value: text("cell_h8_value"), // Notes from H8

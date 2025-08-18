@@ -31,7 +31,7 @@ import {
   type InsertExtractedDispatchData
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // File operations
@@ -42,34 +42,34 @@ export interface IStorage {
   createExcelData(data: InsertExcelData): Promise<ExcelData>;
   getExcelDataByFileId(fileId: number): Promise<ExcelData[]>;
   
-  // Processing job operations
+  // Processing job operations (ship-aware)
   createProcessingJob(job: InsertProcessingJob): Promise<ProcessingJob>;
   getProcessingJob(id: number): Promise<ProcessingJob | undefined>;
   updateProcessingJob(id: number, updates: Partial<ProcessingJob>): Promise<ProcessingJob>;
   getProcessingJobsByFileId(fileId: number): Promise<ProcessingJob[]>;
-  getRecentProcessingJobs(limit?: number): Promise<(ProcessingJob & { file: UploadedFile })[]>;
+  getRecentProcessingJobs(limit?: number, shipId?: string): Promise<(ProcessingJob & { file: UploadedFile })[]>;
 
-  // Template operations
+  // Template operations (ship-aware)
   createDispatchTemplate(template: InsertDispatchTemplate): Promise<DispatchTemplate>;
-  getActiveDispatchTemplate(): Promise<DispatchTemplate | undefined>;
+  getActiveDispatchTemplate(shipId?: string): Promise<DispatchTemplate | undefined>;
   createEodTemplate(template: InsertEodTemplate): Promise<EodTemplate>;
-  getActiveEodTemplate(): Promise<EodTemplate | undefined>;
+  getActiveEodTemplate(shipId?: string): Promise<EodTemplate | undefined>;
   createPaxTemplate(template: InsertPaxTemplate): Promise<PaxTemplate>;
-  getActivePaxTemplate(): Promise<PaxTemplate | undefined>;
+  getActivePaxTemplate(shipId?: string): Promise<PaxTemplate | undefined>;
 
   // Dispatch record operations
   createDispatchRecord(record: InsertDispatchRecord): Promise<DispatchRecord>;
   getAllActiveDispatchRecords(): Promise<DispatchRecord[]>;
   getDispatchRecord(id: number): Promise<DispatchRecord | undefined>;
 
-  // Generated report operations
+  // Generated report operations (ship-aware)
   createGeneratedReport(report: InsertGeneratedReport): Promise<GeneratedReport>;
-  getRecentGeneratedReports(limit?: number): Promise<GeneratedReport[]>;
+  getRecentGeneratedReports(limit?: number, shipId?: string): Promise<GeneratedReport[]>;
   getGeneratedReport(id: number): Promise<GeneratedReport | undefined>;
 
-  // Dispatch version operations
+  // Dispatch version operations (ship-aware)
   createDispatchVersion(version: InsertDispatchVersion): Promise<DispatchVersion>;
-  getDispatchVersions(limit?: number): Promise<DispatchVersion[]>;
+  getDispatchVersions(limit?: number, shipId?: string): Promise<DispatchVersion[]>;
   getDispatchVersion(id: number): Promise<DispatchVersion | undefined>;
 
   // Extracted dispatch data operations
@@ -141,13 +141,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(processingJobs.fileId, fileId));
   }
 
-  async getRecentProcessingJobs(limit: number = 10): Promise<(ProcessingJob & { file: UploadedFile })[]> {
-    const results = await db
+  async getRecentProcessingJobs(limit: number = 10, shipId?: string): Promise<(ProcessingJob & { file: UploadedFile })[]> {
+    let query = db
       .select()
       .from(processingJobs)
       .innerJoin(uploadedFiles, eq(processingJobs.fileId, uploadedFiles.id))
       .orderBy(desc(processingJobs.createdAt))
       .limit(limit);
+    
+    if (shipId) {
+      query = query.where(eq(processingJobs.shipId, shipId));
+    }
+    
+    const results = await query;
     
     return results.map(result => ({
       ...result.processing_jobs,
@@ -157,8 +163,12 @@ export class DatabaseStorage implements IStorage {
 
   // Template operations
   async createDispatchTemplate(template: InsertDispatchTemplate): Promise<DispatchTemplate> {
-    // Deactivate existing templates
-    await db.update(dispatchTemplates).set({ isActive: false });
+    // Deactivate existing templates for this ship only
+    const shipId = template.shipId || 'ship-a';
+    await db
+      .update(dispatchTemplates)
+      .set({ isActive: false })
+      .where(eq(dispatchTemplates.shipId, shipId));
     
     const [newTemplate] = await db
       .insert(dispatchTemplates)
@@ -167,19 +177,27 @@ export class DatabaseStorage implements IStorage {
     return newTemplate;
   }
 
-  async getActiveDispatchTemplate(): Promise<DispatchTemplate | undefined> {
+  async getActiveDispatchTemplate(shipId?: string): Promise<DispatchTemplate | undefined> {
+    const targetShipId = shipId || 'ship-a';
     const [template] = await db
       .select()
       .from(dispatchTemplates)
-      .where(eq(dispatchTemplates.isActive, true))
+      .where(and(
+        eq(dispatchTemplates.isActive, true),
+        eq(dispatchTemplates.shipId, targetShipId)
+      ))
       .orderBy(desc(dispatchTemplates.createdAt))
       .limit(1);
     return template || undefined;
   }
 
   async createEodTemplate(template: InsertEodTemplate): Promise<EodTemplate> {
-    // Deactivate existing templates
-    await db.update(eodTemplates).set({ isActive: false });
+    // Deactivate existing templates for this ship only
+    const shipId = template.shipId || 'ship-a';
+    await db
+      .update(eodTemplates)
+      .set({ isActive: false })
+      .where(eq(eodTemplates.shipId, shipId));
     
     const [newTemplate] = await db
       .insert(eodTemplates)
@@ -188,19 +206,27 @@ export class DatabaseStorage implements IStorage {
     return newTemplate;
   }
 
-  async getActiveEodTemplate(): Promise<EodTemplate | undefined> {
+  async getActiveEodTemplate(shipId?: string): Promise<EodTemplate | undefined> {
+    const targetShipId = shipId || 'ship-a';
     const [template] = await db
       .select()
       .from(eodTemplates)
-      .where(eq(eodTemplates.isActive, true))
+      .where(and(
+        eq(eodTemplates.isActive, true),
+        eq(eodTemplates.shipId, targetShipId)
+      ))
       .orderBy(desc(eodTemplates.createdAt))
       .limit(1);
     return template || undefined;
   }
 
   async createPaxTemplate(template: InsertPaxTemplate): Promise<PaxTemplate> {
-    // Deactivate existing templates
-    await db.update(paxTemplates).set({ isActive: false });
+    // Deactivate existing templates for this ship only
+    const shipId = template.shipId || 'ship-a';
+    await db
+      .update(paxTemplates)
+      .set({ isActive: false })
+      .where(eq(paxTemplates.shipId, shipId));
     
     const [newTemplate] = await db
       .insert(paxTemplates)
@@ -209,11 +235,15 @@ export class DatabaseStorage implements IStorage {
     return newTemplate;
   }
 
-  async getActivePaxTemplate(): Promise<PaxTemplate | undefined> {
+  async getActivePaxTemplate(shipId?: string): Promise<PaxTemplate | undefined> {
+    const targetShipId = shipId || 'ship-a';
     const [template] = await db
       .select()
       .from(paxTemplates)
-      .where(eq(paxTemplates.isActive, true))
+      .where(and(
+        eq(paxTemplates.isActive, true),
+        eq(paxTemplates.shipId, targetShipId)
+      ))
       .orderBy(desc(paxTemplates.createdAt))
       .limit(1);
     return template || undefined;
@@ -253,12 +283,17 @@ export class DatabaseStorage implements IStorage {
     return newReport;
   }
 
-  async getRecentGeneratedReports(limit: number = 10): Promise<GeneratedReport[]> {
-    return await db
+  async getRecentGeneratedReports(limit: number = 10, shipId?: string): Promise<GeneratedReport[]> {
+    const query = db
       .select()
       .from(generatedReports)
       .orderBy(desc(generatedReports.createdAt))
       .limit(limit);
+    
+    if (shipId) {
+      return await query.where(eq(generatedReports.shipId, shipId));
+    }
+    return await query;
   }
 
   async getGeneratedReport(id: number): Promise<GeneratedReport | undefined> {
@@ -278,12 +313,17 @@ export class DatabaseStorage implements IStorage {
     return newVersion;
   }
 
-  async getDispatchVersions(limit: number = 10): Promise<DispatchVersion[]> {
-    return await db
+  async getDispatchVersions(limit: number = 10, shipId?: string): Promise<DispatchVersion[]> {
+    const query = db
       .select()
       .from(dispatchVersions)
       .orderBy(desc(dispatchVersions.createdAt))
       .limit(limit);
+    
+    if (shipId) {
+      return await query.where(eq(dispatchVersions.shipId, shipId));
+    }
+    return await query;
   }
 
   async getDispatchVersion(id: number): Promise<DispatchVersion | undefined> {

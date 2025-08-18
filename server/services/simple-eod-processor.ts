@@ -14,12 +14,24 @@ export class SimpleEODProcessor {
   }
 
   /**
-   * Add new tour data to existing EOD report using successive dispatch entries
+   * Get ship-specific output directory
+   */
+  private getShipOutputDir(shipId: string = 'ship-a'): string {
+    const shipOutputDir = path.join(this.outputDir, shipId);
+    if (!fs.existsSync(shipOutputDir)) {
+      fs.mkdirSync(shipOutputDir, { recursive: true });
+    }
+    return shipOutputDir;
+  }
+
+  /**
+   * Add new tour data to existing EOD report using successive dispatch entries (ship-aware)
    */
   async addSuccessiveDispatchEntry(
     existingEodPath: string,
     dispatchFilePath: string,
-    outputPath: string
+    outputPath: string,
+    shipId: string = 'ship-a'
   ): Promise<string> {
     try {
       console.log('→ SimpleEOD: Adding successive dispatch entry to existing EOD report');

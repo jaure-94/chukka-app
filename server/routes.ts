@@ -90,6 +90,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ship-specific output file download
+  app.get("/api/output/:shipId/:filename", async (req, res) => {
+    try {
+      const { shipId, filename } = req.params;
+      const filePath = path.join(process.cwd(), "output", shipId, filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: `File not found for ${shipId}` });
+      }
+
+      // Set appropriate headers for Excel files
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Ship-specific file download error:", error);
+      res.status(500).json({ message: "Failed to serve ship-specific output file" });
+    }
+  });
+
   // File upload endpoint
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
@@ -290,10 +312,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No template file provided" });
       }
 
+      // Extract ship ID from request body or default to ship-a
+      const shipId = req.body.shipId || 'ship-a';
+
       const templateData = insertDispatchTemplateSchema.parse({
         filename: req.file.filename,
         originalFilename: req.file.originalname,
         filePath: req.file.path,
+        shipId: shipId,
       });
 
       const template = await storage.createDispatchTemplate(templateData);
@@ -310,10 +336,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No template file provided" });
       }
 
+      // Extract ship ID from request body or default to ship-a
+      const shipId = req.body.shipId || 'ship-a';
+
       const templateData = insertEodTemplateSchema.parse({
         filename: req.file.filename,
         originalFilename: req.file.originalname,
         filePath: req.file.path,
+        shipId: shipId,
       });
 
       const template = await storage.createEodTemplate(templateData);
@@ -324,15 +354,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/templates/pax", upload.single("template"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No template file provided" });
+      }
+
+      // Extract ship ID from request body or default to ship-a
+      const shipId = req.body.shipId || 'ship-a';
+
+      const templateData = insertPaxTemplateSchema.parse({
+        filename: req.file.filename,
+        originalFilename: req.file.originalname,
+        filePath: req.file.path,
+        shipId: shipId,
+      });
+
+      const template = await storage.createPaxTemplate(templateData);
+      res.json(template);
+    } catch (error) {
+      console.error("PAX template upload error:", error);
+      res.status(500).json({ message: "Template upload failed" });
+    }
+  });
+
+  // Get template status (ship-aware)
   app.get("/api/templates/status", async (req, res) => {
     try {
-      const dispatchTemplate = await storage.getActiveDispatchTemplate();
-      const eodTemplate = await storage.getActiveEodTemplate();
+      const shipId = req.query.ship as string;
+      const dispatchTemplate = await storage.getActiveDispatchTemplate(shipId);
+      const eodTemplate = await storage.getActiveEodTemplate(shipId);
+      const paxTemplate = await storage.getActivePaxTemplate(shipId);
       
       res.json({
         dispatch: dispatchTemplate,
         eod: eodTemplate,
-        hasTemplates: !!(dispatchTemplate && eodTemplate)
+        pax: paxTemplate,
+        hasTemplates: !!(dispatchTemplate && eodTemplate && paxTemplate),
+        ship: shipId || 'ship-a'
       });
     } catch (error) {
       console.error("Template status error:", error);
@@ -340,11 +399,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get dispatch templates
+  // Get dispatch templates (ship-aware)
   app.get("/api/dispatch-templates", async (req, res) => {
     try {
-      const template = await storage.getActiveDispatchTemplate();
-      console.log("Dispatch template query result:", template);
+      const shipId = req.query.ship as string;
+      const template = await storage.getActiveDispatchTemplate(shipId);
+      console.log(`Dispatch template query result for ship ${shipId || 'default'}:`, template);
       res.json(template || {});
     } catch (error) {
       console.error("Dispatch template fetch error:", error);
@@ -352,11 +412,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get EOD templates
+  // Get EOD templates (ship-aware)
   app.get("/api/eod-templates", async (req, res) => {
     try {
-      const template = await storage.getActiveEodTemplate();
-      console.log("EOD template query result:", template);
+      const shipId = req.query.ship as string;
+      const template = await storage.getActiveEodTemplate(shipId);
+      console.log(`EOD template query result for ship ${shipId || 'default'}:`, template);
       res.json(template || {});
     } catch (error) {
       console.error("EOD template fetch error:", error);
@@ -364,12 +425,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download dispatch template
+  // Download dispatch template (ship-aware)
   app.get("/api/templates/dispatch/download", async (req, res) => {
     try {
-      const template = await storage.getActiveDispatchTemplate();
+      const shipId = req.query.ship as string;
+      const template = await storage.getActiveDispatchTemplate(shipId);
       if (!template || !template.filePath) {
-        return res.status(404).json({ message: "Dispatch template not found" });
+        return res.status(404).json({ message: `Dispatch template not found for ${shipId || 'default ship'}` });
       }
 
       const filePath = path.resolve(template.filePath);
@@ -384,12 +446,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download EOD template
+  // Download EOD template (ship-aware)
   app.get("/api/templates/eod/download", async (req, res) => {
     try {
-      const template = await storage.getActiveEodTemplate();
+      const shipId = req.query.ship as string;
+      const template = await storage.getActiveEodTemplate(shipId);
       if (!template || !template.filePath) {
-        return res.status(404).json({ message: "EOD template not found" });
+        return res.status(404).json({ message: `EOD template not found for ${shipId || 'default ship'}` });
       }
 
       const filePath = path.resolve(template.filePath);
@@ -429,10 +492,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get PAX templates
+  // Get PAX templates (ship-aware)
   app.get("/api/pax-templates", async (req, res) => {
     try {
-      const template = await storage.getActivePaxTemplate();
-      console.log("PAX template query result:", template);
+      const shipId = req.query.ship as string;
+      const template = await storage.getActivePaxTemplate(shipId);
+      console.log(`PAX template query result for ship ${shipId || 'default'}:`, template);
       res.json(template || {});
     } catch (error) {
       console.error("PAX template fetch error:", error);
@@ -440,12 +505,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download PAX template
+  // Download PAX template (ship-aware)
   app.get("/api/templates/pax/download", async (req, res) => {
     try {
-      const template = await storage.getActivePaxTemplate();
+      const shipId = req.query.ship as string;
+      const template = await storage.getActivePaxTemplate(shipId);
       if (!template || !template.filePath) {
-        return res.status(404).json({ message: "PAX template not found" });
+        return res.status(404).json({ message: `PAX template not found for ${shipId || 'default ship'}` });
       }
 
       const filePath = path.resolve(template.filePath);
@@ -647,16 +713,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const uploadedFile = await storage.createUploadedFile(fileData);
 
-      // Create dispatch version record
-      const versionCount = await storage.getDispatchVersions(100);
+      // Extract ship ID from request body or default to ship-a
+      const { shipId = 'ship-a' } = req.body;
+
+      // Create dispatch version record with ship ID
+      const versionCount = await storage.getDispatchVersions(100, shipId);
       const nextVersion = versionCount.length + 1;
       
       await storage.createDispatchVersion({
         filename: newFilename,
         originalFilename: req.file.originalname,
         filePath: outputPath, // Use the complete absolute path
+        shipId: shipId,
         version: nextVersion,
-        description: `Formatted dispatch sheet v${nextVersion}`,
+        description: `Formatted dispatch sheet v${nextVersion} (${shipId})`,
       });
 
       // Clean up the original uploaded file
@@ -676,34 +746,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all output files with metadata
+  // Get all output files with metadata (ship-aware)
   app.get("/api/output-files", async (req, res) => {
     try {
+      const shipId = req.query.ship as string || 'ship-a';
       const outputDir = path.join(process.cwd(), "output");
       
       if (!fs.existsSync(outputDir)) {
         return res.json([]);
       }
 
-      const files = fs.readdirSync(outputDir).filter(file => file.endsWith('.xlsx'));
-      
-      const fileList = files.map(filename => {
-        const filePath = path.join(outputDir, filename);
-        const stats = fs.statSync(filePath);
-        
-        // Parse filename to determine type
-        const isEOD = filename.startsWith('eod_');
-        const isDispatch = filename.startsWith('dispatch_');
-        const isPAX = filename.startsWith('pax_');
-        
-        return {
-          filename,
-          type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
-          size: stats.size,
-          createdAt: stats.birthtime,
-          downloadUrl: `/api/output/${filename}`
-        };
-      });
+      let fileList = [];
+
+      if (shipId === 'all') {
+        // Return files from all ships
+        const shipDirs = ['ship-a', 'ship-b', 'ship-c'];
+        for (const ship of shipDirs) {
+          const shipOutputDir = path.join(outputDir, ship);
+          if (fs.existsSync(shipOutputDir)) {
+            const shipFiles = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
+            const shipFileList = shipFiles.map(filename => {
+              const filePath = path.join(shipOutputDir, filename);
+              const stats = fs.statSync(filePath);
+              
+              // Parse filename to determine type
+              const isEOD = filename.startsWith('eod_');
+              const isDispatch = filename.startsWith('dispatch_');
+              const isPAX = filename.startsWith('pax_');
+              
+              return {
+                filename,
+                ship: ship,
+                type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
+                size: stats.size,
+                createdAt: stats.birthtime,
+                downloadUrl: `/api/output/${ship}/${filename}`
+              };
+            });
+            fileList.push(...shipFileList);
+          }
+        }
+      } else {
+        // Return files for specific ship
+        const shipOutputDir = path.join(outputDir, shipId);
+        if (fs.existsSync(shipOutputDir)) {
+          const files = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
+          
+          fileList = files.map(filename => {
+            const filePath = path.join(shipOutputDir, filename);
+            const stats = fs.statSync(filePath);
+            
+            // Parse filename to determine type
+            const isEOD = filename.startsWith('eod_');
+            const isDispatch = filename.startsWith('dispatch_');
+            const isPAX = filename.startsWith('pax_');
+            
+            return {
+              filename,
+              ship: shipId,
+              type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              downloadUrl: `/api/output/${shipId}/${filename}`
+            };
+          });
+        }
+      }
 
       // Sort by creation date, newest first
       fileList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -823,10 +931,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Dispatch file object:', dispatchFile);
 
-      // Get active EOD template
-      const eodTemplate = await storage.getActiveEodTemplate();
+      // Extract ship ID from request body or default to ship-a
+      const { shipId = 'ship-a' } = req.body;
+
+      // Get active EOD template for the specific ship
+      const eodTemplate = await storage.getActiveEodTemplate(shipId);
       if (!eodTemplate) {
-        return res.status(400).json({ message: "No active EOD template found" });
+        return res.status(400).json({ message: `No active EOD template found for ${shipId}` });
       }
 
       // Parse dispatch data (dispatchFilePath is already set above)
@@ -845,8 +956,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate timestamp for unique filenames
       const timestamp = Date.now();
       
-      // Process EOD template with multiple dispatch records
-      const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
+      // Process EOD template with multiple dispatch records (ship-aware)
+      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      if (!fs.existsSync(shipOutputDir)) {
+        fs.mkdirSync(shipOutputDir, { recursive: true });
+      }
+      
+      const eodOutputPath = path.join(shipOutputDir, `eod_${timestamp}.xlsx`);
       const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
       await simpleEODProcessor.processMultipleRecords(
         eodTemplatePath,
@@ -855,23 +971,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eodOutputPath
       );
 
-      // Generate dispatch report as well - for now, just copy the original file
-      const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
+      // Generate dispatch report as well - for now, just copy the original file to ship-specific directory
+      const dispatchOutputPath = path.join(shipOutputDir, `dispatch_${timestamp}.xlsx`);
       fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
 
-      // Create a new dispatch version record to make it appear in "Latest Dispatch Sheet"
+      // Create a new dispatch version record with ship ID
       const dispatchVersion = await storage.createDispatchVersion({
         filename: path.basename(dispatchFilePath),
         originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath
+        filePath: dispatchFilePath,
+        shipId: shipId
       });
 
-      // For now, skip database record and just return success
+      // Return success with ship-specific information
       res.json({
         success: true,
         dispatchFile: path.basename(dispatchOutputPath),
         eodFile: path.basename(eodOutputPath),
-        message: "EOD report generated successfully",
+        shipId: shipId,
+        message: `EOD report generated successfully for ${shipId}`,
         dispatchVersionId: dispatchVersion.id
       });
 
@@ -955,21 +1073,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process PAX report from dispatch file
   app.post("/api/process-pax-from-dispatch", async (req, res) => {
     try {
-      const { dispatchFileId } = req.body;
+      const { dispatchFileId, shipId = 'ship-a' } = req.body;
       
       if (!dispatchFileId) {
         return res.status(400).json({ message: "Dispatch file ID is required" });
       }
 
-      // Get the most recent dispatch version (edited file) instead of the original upload
-      const dispatchVersions = await storage.getDispatchVersions(1);
+      // Get the most recent dispatch version (edited file) for the specific ship
+      const dispatchVersions = await storage.getDispatchVersions(1, shipId);
       let dispatchFilePath;
       
       if (dispatchVersions.length > 0) {
         // Use the latest edited dispatch file
         const latestVersion = dispatchVersions[0];
         dispatchFilePath = latestVersion.filePath;
-        console.log('Using latest dispatch version for PAX:', latestVersion.filename);
+        console.log(`Using latest dispatch version for PAX (${shipId}):`, latestVersion.filename);
         console.log('Dispatch file path:', dispatchFilePath);
       } else {
         // Fallback to original uploaded file
@@ -980,22 +1098,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
       }
 
-      // Get active PAX template
-      const paxTemplate = await storage.getActivePaxTemplate();
+      // Get active PAX template for the specific ship
+      const paxTemplate = await storage.getActivePaxTemplate(shipId);
       if (!paxTemplate) {
-        return res.status(400).json({ message: "No active PAX template found" });
+        return res.status(400).json({ message: `No active PAX template found for ${shipId}` });
       }
 
       console.log('File exists:', fs.existsSync(dispatchFilePath));
       
-      // Generate PAX report using PaxProcessor
+      // Generate PAX report using PaxProcessor with ship ID
       const paxTemplatePath = path.join(process.cwd(), paxTemplate.filePath);
-      const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath);
+      const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath, shipId);
       
       res.json({
         success: true,
         paxFile: paxOutputFilename,
-        message: "PAX report generated successfully"
+        shipId: shipId,
+        message: `PAX report generated successfully for ${shipId}`
       });
 
     } catch (error) {

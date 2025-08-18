@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { ShipSelector } from "@/components/ship-selector";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useShipContext } from "@/contexts/ship-context";
 import { HotTable } from "@handsontable/react";
 import type { HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
@@ -32,16 +34,7 @@ export default function CreateDispatch() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
-
-  // Extract ship information from URL
-  const getShipFromLocation = () => {
-    if (location.includes('/create-dispatch/ship-a')) return 'SHIP A';
-    if (location.includes('/create-dispatch/ship-b')) return 'SHIP B'; 
-    if (location.includes('/create-dispatch/ship-c')) return 'SHIP C';
-    return null;
-  };
-
-  const currentShip = getShipFromLocation();
+  const { currentShip, getShipDisplayName } = useShipContext();
   const hotTableRef = useRef<HotTableClass>(null);
 
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
@@ -58,19 +51,25 @@ export default function CreateDispatch() {
   const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
   const [eodFileName, setEodFileName] = useState<string>('');
 
-  // Fetch dispatch template
+  // Fetch dispatch template for current ship
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
-    queryKey: ["/api/dispatch-templates"],
+    queryKey: ["/api/dispatch-templates", currentShip],
+    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   }) as { data: any; isLoading: boolean };
 
-  // Fetch dispatch versions
+  // Fetch dispatch versions for current ship
   const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
-    queryKey: ["/api/dispatch-versions"],
+    queryKey: ["/api/dispatch-versions", currentShip],
+    queryFn: () => fetch(`/api/dispatch-versions?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   }) as { data: any[]; isLoading: boolean };
 
-  // Fetch output files for successive dispatch
+  // Fetch output files for current ship
   const { data: outputFiles = [], isLoading: isLoadingOutputFiles } = useQuery({
-    queryKey: ["/api/output-files"],
+    queryKey: ["/api/output-files", currentShip],
+    queryFn: () => fetch(`/api/output-files?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   }) as { data: any[]; isLoading: boolean };
 
   // Load dispatch template when available
@@ -239,7 +238,8 @@ export default function CreateDispatch() {
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       formData.append('file', blob, `edited_dispatch_${Date.now()}.xlsx`);
       
-      // Save the file with formatting preservation
+      // Save the file with formatting preservation (ship-aware)
+      formData.append('shipId', currentShip || 'ship-a');
       const response = await fetch('/api/save-dispatch-sheet', {
         method: 'POST',
         body: formData,
@@ -297,7 +297,8 @@ export default function CreateDispatch() {
       }
 
       const response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
-        dispatchFileId: savedFileId
+        dispatchFileId: savedFileId,
+        shipId: currentShip
       });
 
       return response.json();
@@ -306,10 +307,10 @@ export default function CreateDispatch() {
       setEodFileName(result.eodFile);
       setShowEodSuccessModal(true);
       
-      // Invalidate all related caches
-      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      // Invalidate all related caches for current ship
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
     },
     onError: (error) => {
       toast({
@@ -334,7 +335,8 @@ export default function CreateDispatch() {
 
       const response = await apiRequest("POST", "/api/add-successive-dispatch", {
         dispatchFileId: savedFileId,
-        existingEodFilename: existingEodFilename
+        existingEodFilename: existingEodFilename,
+        shipId: currentShip
       });
 
       return response.json();
@@ -345,10 +347,10 @@ export default function CreateDispatch() {
         description: `Successive dispatch entry added! New EOD file: ${result.eodFile}`,
       });
       
-      // Invalidate all related caches
-      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      // Invalidate all related caches for current ship
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
       
       // Redirect to Reports page after a short delay
       setTimeout(() => {
@@ -407,7 +409,8 @@ export default function CreateDispatch() {
       }
 
       const response = await apiRequest("POST", "/api/process-pax-from-dispatch", {
-        dispatchFileId: savedFileId
+        dispatchFileId: savedFileId,
+        shipId: currentShip
       });
 
       return response.json();
@@ -416,8 +419,8 @@ export default function CreateDispatch() {
       setPaxFileName(result.paxFile);
       setShowPaxSuccessModal(true);
       
-      // Refresh output files to show the new PAX report
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      // Refresh output files to show the new PAX report for current ship
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
     },
     onError: (error: any) => {
       toast({
@@ -440,7 +443,8 @@ export default function CreateDispatch() {
       }
 
       const response = await apiRequest("POST", "/api/add-successive-pax-entry", {
-        dispatchFileId: savedFileId
+        dispatchFileId: savedFileId,
+        shipId: currentShip
       });
 
       return response.json();
@@ -449,8 +453,8 @@ export default function CreateDispatch() {
       setPaxFileName(result.paxFile);
       setShowPaxSuccessModal(true);
       
-      // Refresh output files to show the updated PAX report
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+      // Refresh output files to show the updated PAX report for current ship
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
     },
     onError: (error: any) => {
       toast({
@@ -608,31 +612,49 @@ export default function CreateDispatch() {
         } p-6`}
       >
         <div className="max-w-7xl mx-auto">
+          {/* Ship Selector */}
+          <div className="mb-6">
+            <ShipSelector />
+          </div>
+
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Create New Dispatch Record{currentShip ? `: ${currentShip}` : ''}
+              Create New Dispatch Record
+              {currentShip && (
+                <span className="text-lg font-normal text-blue-600 block mt-1">
+                  for {getShipDisplayName(currentShip)}
+                </span>
+              )}
             </h1>
             <p className="text-gray-600">
               {currentShip 
-                ? `Edit the dispatch template spreadsheet to create a new record for ${currentShip}`
-                : 'Edit the dispatch template spreadsheet to create a new record'
+                ? `Edit the dispatch template spreadsheet to create a new record for ${getShipDisplayName(currentShip)}`
+                : 'Please select a ship above to begin editing the dispatch template'
               }
             </p>
           </div>
 
-          {isLoadingDispatch ? (
+          {!currentShip ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Please select a ship above to begin creating dispatch records.</p>
+                <p className="text-sm text-gray-500">Each ship maintains separate templates and data for complete isolation.</p>
+              </CardContent>
+            </Card>
+          ) : isLoadingDispatch ? (
             <Card>
               <CardContent className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading dispatch template...</p>
+                  <p className="text-gray-600">Loading dispatch template for {getShipDisplayName(currentShip)}...</p>
                 </div>
               </CardContent>
             </Card>
           ) : !dispatchTemplate ? (
             <Card>
               <CardContent className="text-center py-8">
-                <p className="text-gray-600 mb-4">No dispatch template found. Please upload a template first.</p>
+                <p className="text-gray-600 mb-4">No dispatch template found for {getShipDisplayName(currentShip)}. Please upload a template first.</p>
                 <Button onClick={() => setLocation("/templates/edit")}>
                   Upload Template
                 </Button>

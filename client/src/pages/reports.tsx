@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X } from "lucide-react";
+import { ShipSelector } from "@/components/ship-selector";
+import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X, AlertTriangle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useShipContext } from "@/contexts/ship-context";
 import { HotTable } from "@handsontable/react";
 import "handsontable/dist/handsontable.full.css";
 import * as XLSX from "xlsx";
@@ -47,37 +49,34 @@ export default function Reports() {
   const [paxGenerating, setPaxGenerating] = useState(false);
 
   const { isCollapsed } = useSidebar();
+  const { currentShip, getShipDisplayName } = useShipContext();
 
-  // Extract ship information from URL
-  const getShipFromLocation = () => {
-    if (location.includes('/reports/ship-a')) return 'SHIP A';
-    if (location.includes('/reports/ship-b')) return 'SHIP B'; 
-    if (location.includes('/reports/ship-c')) return 'SHIP C';
-    return null;
-  };
-
-  const currentShip = getShipFromLocation();
-
-  // Fetch recent generated reports
+  // Fetch recent generated reports for current ship
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
-    queryKey: ["/api/processing-jobs"],
+    queryKey: ["/api/processing-jobs", currentShip],
+    queryFn: () => fetch(`/api/processing-jobs?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   });
 
-  // Fetch generated reports (this includes single record reports)
+  // Fetch generated reports for current ship
   const { data: generatedReports = [], isLoading: isLoadingReports } = useQuery<GeneratedReport[]>({
-    queryKey: ["/api/generated-reports"],
+    queryKey: ["/api/generated-reports", currentShip],
+    queryFn: () => fetch(`/api/generated-reports?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   });
 
-
-
-  // Fetch output files
+  // Fetch output files for current ship
   const { data: outputFiles = [], isLoading: isLoadingFiles } = useQuery({
-    queryKey: ["/api/output-files"],
+    queryKey: ["/api/output-files", currentShip],
+    queryFn: () => fetch(`/api/output-files?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   });
 
-  // Fetch dispatch versions (to get most recent dispatch sheet)
-  const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
-    queryKey: ["/api/dispatch-versions"],
+  // Fetch dispatch versions for current ship
+  const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery<any[]>({
+    queryKey: ["/api/dispatch-versions", currentShip],
+    queryFn: () => fetch(`/api/dispatch-versions?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip
   });
 
 
@@ -90,7 +89,7 @@ export default function Reports() {
     setPaxGenerating(true);
     try {
       // Use the most recent dispatch file ID
-      const latestDispatch = (dispatchVersions as any[])
+      const latestDispatch = dispatchVersions
         .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
       
       if (!latestDispatch) {
@@ -103,7 +102,8 @@ export default function Reports() {
       }
 
       const response = await apiRequest("POST", "/api/process-pax-from-dispatch", {
-        dispatchFileId: latestDispatch.id
+        dispatchFileId: latestDispatch.id,
+        shipId: currentShip
       });
 
       const result = await response.json();
@@ -114,8 +114,8 @@ export default function Reports() {
           description: `PAX report ${result.paxFile} has been created and is ready for download.`,
         });
         
-        // Refresh output files to show the new PAX report
-        queryClient.invalidateQueries({ queryKey: ["/api/output-files"] });
+        // Refresh output files to show the new PAX report for current ship
+        queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
       } else {
         throw new Error(result.message || 'Failed to generate PAX report');
       }
@@ -230,11 +230,16 @@ export default function Reports() {
                 <MobileNavigation />
                 <div className="ml-4 md:ml-0">
                   <h1 className="text-3xl font-bold text-gray-900">
-                    Reports{currentShip ? `: ${currentShip}` : ''}
+                    Reports
+                    {currentShip && (
+                      <span className="text-lg font-normal text-blue-600 block mt-1">
+                        for {getShipDisplayName(currentShip)}
+                      </span>
+                    )}
                   </h1>
                   <p className="mt-2 text-gray-600">
                     {currentShip 
-                      ? `Generate and manage your dispatch and EOD reports for ${currentShip}`
+                      ? `Generate and manage your dispatch and EOD reports for ${getShipDisplayName(currentShip)}`
                       : 'Generate and manage your dispatch and EOD reports'
                     }
                   </p>
@@ -246,8 +251,22 @@ export default function Reports() {
 
         {/* Main Content */}
         <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          {/* Ship Selector */}
+          <div className="mb-8">
+            <ShipSelector />
+          </div>
 
-          {/* Latest Reports Quick Access */}
+          {!currentShip ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Please select a ship above to view reports.</p>
+                <p className="text-sm text-gray-500">Each ship maintains separate reports and data for complete isolation.</p>
+              </CardContent>
+            </Card>
+          ) : (
+          <div>
+            {/* Latest Reports Quick Access */}
           <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center text-blue-900">
@@ -264,7 +283,7 @@ export default function Reports() {
                       <FileText className="w-4 h-4 mr-2 text-blue-600" />
                       Latest EOD Report
                     </h3>
-                    {outputFiles.find(file => file.filename.startsWith('eod_')) && (
+                    {outputFiles.find((file: any) => file.filename.startsWith('eod_')) && (
                       <Badge className="bg-green-100 text-green-800">Available</Badge>
                     )}
                   </div>
@@ -408,7 +427,7 @@ export default function Reports() {
                       <Users className="w-4 h-4 mr-2 text-orange-600" />
                       Latest PAX Report
                     </h3>
-                    {outputFiles.find(file => file.filename.startsWith('pax_')) && (
+                    {outputFiles.find((file: any) => file.filename.startsWith('pax_')) && (
                       <Badge className="bg-green-100 text-green-800">Available</Badge>
                     )}
                   </div>
@@ -639,6 +658,8 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+          </div>
+          )}
         </main>
       </div>
 
