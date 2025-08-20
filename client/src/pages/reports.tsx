@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ interface GeneratedReport {
 
 export default function Reports() {
   const [location] = useLocation();
+  const params = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAllFiles, setShowAllFiles] = useState(false);
@@ -49,20 +50,33 @@ export default function Reports() {
   const [paxGenerating, setPaxGenerating] = useState(false);
 
   const { isCollapsed } = useSidebar();
-  const { currentShip, getShipDisplayName } = useShipContext();
+  const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
+  
+  // Extract ship from URL params (/reports/ship-a)
+  const shipFromUrl = params.ship as string;
+  const shipToUse = (shipFromUrl || currentShip || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
+  
+  // Update ship context when URL changes
+  useEffect(() => {
+    if (shipFromUrl && ['ship-a', 'ship-b', 'ship-c'].includes(shipFromUrl)) {
+      setCurrentShip(shipFromUrl as 'ship-a' | 'ship-b' | 'ship-c');
+    }
+  }, [shipFromUrl, setCurrentShip]);
+
+
 
   // Fetch recent generated reports for current ship
   const { data: recentJobs = [], isLoading: isLoadingJobs } = useQuery<ProcessingJob[]>({
-    queryKey: ["/api/processing-jobs", currentShip],
-    queryFn: () => fetch(`/api/processing-jobs?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/processing-jobs", shipToUse],
+    queryFn: () => fetch(`/api/processing-jobs?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   });
 
   // Fetch generated reports for current ship
   const { data: generatedReports = [], isLoading: isLoadingReports } = useQuery<GeneratedReport[]>({
-    queryKey: ["/api/generated-reports", currentShip],
-    queryFn: () => fetch(`/api/generated-reports?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/generated-reports", shipToUse],
+    queryFn: () => fetch(`/api/generated-reports?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   });
 
   // Fetch output files for current ship

@@ -29,10 +29,7 @@ function Templates() {
   const shipFromUrl = params.ship as string;
   const currentShip = (shipFromUrl || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
   
-  // Debug logging to see what ship is being extracted
-  console.log('Templates page - Current location:', location);
-  console.log('Templates page - Ship from URL params:', shipFromUrl);
-  console.log('Templates page - Current ship:', currentShip);
+
   
   // Update ship context when URL changes
   React.useEffect(() => {

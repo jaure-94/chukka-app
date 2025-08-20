@@ -24,17 +24,13 @@ function Router() {
         <Switch>
           <Route path="/" component={TemplateUpload} />
           <Route path="/create-dispatch" component={CreateDispatch} />
-          <Route path="/create-dispatch/ship-a" component={CreateDispatch} />
-          <Route path="/create-dispatch/ship-b" component={CreateDispatch} />
-          <Route path="/create-dispatch/ship-c" component={CreateDispatch} />
+          <Route path="/create-dispatch/:ship" component={CreateDispatch} />
           <Route path="/templates" component={Templates} />
           <Route path="/templates/:ship" component={Templates} />
           <Route path="/templates/edit" component={EditTemplates} />
           <Route path="/templates/edit/:ship" component={EditTemplates} />
           <Route path="/reports" component={Reports} />
-          <Route path="/reports/ship-a" component={Reports} />
-          <Route path="/reports/ship-b" component={Reports} />
-          <Route path="/reports/ship-c" component={Reports} />
+          <Route path="/reports/:ship" component={Reports} />
           <Route path="/users" component={Users} />
           <Route path="/spreadsheet" component={SpreadsheetView} />
           <Route path="/spreadsheet/eod/:filename" component={SpreadsheetEodView} />
