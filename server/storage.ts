@@ -142,18 +142,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentProcessingJobs(limit: number = 10, shipId?: string): Promise<(ProcessingJob & { file: UploadedFile })[]> {
-    let query = db
+    const baseQuery = db
       .select()
       .from(processingJobs)
       .innerJoin(uploadedFiles, eq(processingJobs.fileId, uploadedFiles.id))
       .orderBy(desc(processingJobs.createdAt))
       .limit(limit);
     
-    if (shipId) {
-      query = query.where(eq(processingJobs.shipId, shipId));
-    }
-    
-    const results = await query;
+    const results = shipId 
+      ? await baseQuery.where(eq(processingJobs.shipId, shipId))
+      : await baseQuery;
     
     return results.map(result => ({
       ...result.processing_jobs,

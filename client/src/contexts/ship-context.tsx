@@ -23,8 +23,24 @@ interface ShipProviderProps {
 }
 
 export const ShipProvider: React.FC<ShipProviderProps> = ({ children }) => {
-  // In-memory state management - defaults to ship-a to preserve current implementation
-  const [currentShip, setCurrentShip] = useState<ShipId | null>('ship-a');
+  // Initialize state from localStorage with fallback to ship-a
+  const [currentShip, setCurrentShipState] = useState<ShipId | null>(() => {
+    try {
+      const stored = localStorage.getItem('selectedShip') as ShipId | null;
+      return stored && ['ship-a', 'ship-b', 'ship-c'].includes(stored) ? stored : 'ship-a';
+    } catch {
+      return 'ship-a';
+    }
+  });
+
+  const setCurrentShip = (shipId: ShipId) => {
+    setCurrentShipState(shipId);
+    try {
+      localStorage.setItem('selectedShip', shipId);
+    } catch (error) {
+      console.warn('Failed to persist ship selection:', error);
+    }
+  };
 
   const getShipDisplayName = (shipId: ShipId): string => {
     switch (shipId) {

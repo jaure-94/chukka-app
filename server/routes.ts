@@ -24,7 +24,27 @@ import {
 } from "@shared/schema";
 
 const upload = multer({ 
-  dest: "uploads/",
+  storage: multer.diskStorage({
+    destination: function(req, file, cb) {
+      // Use ship-specific directory
+      const shipId = req.body.shipId || 'ship-a';
+      const uploadDir = path.join('uploads', shipId);
+      
+      // Ensure directory exists
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      cb(null, uploadDir);
+    },
+    filename: function(req, file, cb) {
+      // Keep original filename structure but ensure uniqueness
+      const timestamp = Date.now();
+      const ext = path.extname(file.originalname);
+      const name = path.basename(file.originalname, ext);
+      cb(null, `${name}_${timestamp}${ext}`);
+    }
+  }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -47,11 +67,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const dispatchGenerator = new DispatchGenerator();
   const paxProcessor = new PaxProcessor();
 
-  // Serve uploaded files
+  // Serve uploaded files - ship-aware
+  app.get("/api/files/:shipId/:filename", async (req, res) => {
+    try {
+      const { shipId, filename } = req.params;
+      const filePath = path.join(process.cwd(), "uploads", shipId, filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Set appropriate headers for Excel files
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("File serving error:", error);
+      res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
+  // Legacy file serving (backwards compatibility)
   app.get("/api/files/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const filePath = path.join(process.cwd(), "uploads", filename);
+      // Try ship-a first for backwards compatibility
+      let filePath = path.join(process.cwd(), "uploads", "ship-a", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        // Fallback to root uploads directory
+        filePath = path.join(process.cwd(), "uploads", filename);
+      }
       
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found" });
@@ -108,34 +155,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Ship-specific output file download
-  app.get("/api/output/:shipId/:filename", async (req, res) => {
-    try {
-      const { shipId, filename } = req.params;
-      const filePath = path.join(process.cwd(), "output", shipId, filename);
-      
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: `File not found for ${shipId}` });
-      }
-
-      // Set appropriate headers for Excel files
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-    } catch (error) {
-      console.error("Ship-specific file download error:", error);
-      res.status(500).json({ message: "Failed to serve ship-specific output file" });
-    }
-  });
-
-  // File upload endpoint
+  // File upload endpoint - ship-aware
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
+
+      const shipId = req.body.shipId || 'ship-a';
 
       const fileData = insertUploadedFileSchema.parse({
         filename: req.file.filename,
@@ -146,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const uploadedFile = await storage.createUploadedFile(fileData);
 
-      // Parse Excel file
+      // Parse Excel file from ship-specific directory
       const parsedData = await excelParser.parseFile(req.file.path);
       
       // Store parsed data in database
@@ -161,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log('Parsed data preview:', JSON.stringify({
+      console.log(`Parsed data for ${shipId}:`, JSON.stringify({
         sheets: parsedData.sheets.map(sheet => ({
           name: sheet.name,
           rowCount: sheet.data.length,
@@ -170,16 +197,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       }, null, 2));
 
-      // Create a dispatch version record for tracking edited files
-      const versionCount = await storage.getDispatchVersions(100);
+      // Create a ship-aware dispatch version record
+      const versionCount = await storage.getDispatchVersions(100, shipId);
       const nextVersion = versionCount.length + 1;
       
       await storage.createDispatchVersion({
         filename: uploadedFile.filename,
         originalFilename: uploadedFile.originalName,
-        filePath: path.join("uploads", uploadedFile.filename),
+        filePath: req.file.path, // Use the actual path from multer
+        shipId: shipId,
         version: nextVersion,
-        description: `Edited dispatch sheet v${nextVersion}`,
+        description: `Edited dispatch sheet v${nextVersion} for ${shipId}`,
       });
 
       res.json({
@@ -286,11 +314,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get recent processing history
   app.get("/api/history", async (req, res) => {
     try {
-      const history = await storage.getRecentProcessingJobs(10);
+      const shipId = req.query.ship as string;
+      const history = await storage.getRecentProcessingJobs(10, shipId);
       res.json(history);
     } catch (error) {
       console.error("History error:", error);
       res.status(500).json({ message: "Failed to get history" });
+    }
+  });
+
+  // Processing jobs endpoint for ship-aware job listing
+  app.get("/api/processing-jobs", async (req, res) => {
+    try {
+      const shipId = req.query.ship as string;
+      const jobs = await storage.getRecentProcessingJobs(10, shipId);
+      res.json(jobs.map(job => ({
+        id: job.id,
+        status: job.status,
+        templateType: job.templateType,
+        outputPath: job.resultFilePath,
+        createdAt: job.createdAt,
+        shipId: job.shipId
+      })));
+    } catch (error) {
+      console.error("Processing jobs fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch processing jobs" });
     }
   });
 
@@ -584,7 +632,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/generated-reports", async (req, res) => {
     try {
-      const reports = await storage.getRecentGeneratedReports(10);
+      const shipId = req.query.ship as string;
+      const reports = await storage.getRecentGeneratedReports(10, shipId);
       res.json(reports);
     } catch (error) {
       console.error("Generated reports fetch error:", error);
@@ -592,10 +641,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get dispatch versions
+  // Get dispatch versions - ship-aware
   app.get("/api/dispatch-versions", async (req, res) => {
     try {
-      const versions = await storage.getDispatchVersions(20);
+      const shipId = req.query.ship as string;
+      const versions = await storage.getDispatchVersions(20, shipId);
       res.json(versions);
     } catch (error) {
       console.error("Dispatch versions fetch error:", error);
@@ -629,13 +679,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Saving edited dispatch sheet: ${req.file.originalname}`);
       
-      // Get the active dispatch template to preserve its formatting
-      const dispatchTemplate = await storage.getActiveDispatchTemplate();
+      // Extract ship ID from request body or default to ship-a  
+      const { shipId = 'ship-a' } = req.body;
+      
+      // Get the active dispatch template for the specific ship
+      const dispatchTemplate = await storage.getActiveDispatchTemplate(shipId);
       if (!dispatchTemplate) {
-        return res.status(404).json({ message: "No active dispatch template found" });
+        return res.status(404).json({ message: `No active dispatch template found for ${shipId}` });
       }
 
-      const templatePath = path.join(process.cwd(), "uploads", dispatchTemplate.filename);
+      const templatePath = path.resolve(dispatchTemplate.filePath);
       if (!fs.existsSync(templatePath)) {
         return res.status(404).json({ message: "Dispatch template file not found" });
       }
@@ -714,10 +767,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Save the formatted file with a new filename
+      // Save the formatted file with a new filename in ship-specific directory
       const timestamp = Date.now();
       const newFilename = `edited_dispatch_${timestamp}.xlsx`;
-      const outputPath = path.join(process.cwd(), "uploads", newFilename);
+      const shipUploadDir = path.join(process.cwd(), "uploads", shipId);
+      const outputPath = path.join(shipUploadDir, newFilename);
+      
+      // Ensure ship-specific upload directory exists
+      if (!fs.existsSync(shipUploadDir)) {
+        fs.mkdirSync(shipUploadDir, { recursive: true });
+      }
       
       await templateWorkbook.xlsx.writeFile(outputPath);
       
@@ -730,9 +789,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const uploadedFile = await storage.createUploadedFile(fileData);
-
-      // Extract ship ID from request body or default to ship-a
-      const { shipId = 'ship-a' } = req.body;
 
       // Create dispatch version record with ship ID
       const versionCount = await storage.getDispatchVersions(100, shipId);
