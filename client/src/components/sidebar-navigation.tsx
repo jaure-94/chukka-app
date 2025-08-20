@@ -58,8 +58,24 @@ const navigationItems: NavigationItem[] = [
   },
   {
     name: "Templates",
-    href: "/templates",
     icon: FileText,
+    subItems: [
+      {
+        name: "Ship A",
+        href: "/templates/ship-a",
+        icon: Ship,
+      },
+      {
+        name: "Ship B",
+        href: "/templates/ship-b",
+        icon: Ship,
+      },
+      {
+        name: "Ship C",
+        href: "/templates/ship-c",
+        icon: Ship,
+      },
+    ],
   },
   {
     name: "Reports",

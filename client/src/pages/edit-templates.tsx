@@ -1,12 +1,13 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Download, ChevronRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useShipContext } from "@/contexts/ship-context";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 
 interface Template {
@@ -25,26 +26,45 @@ interface FileUpload {
 
 export default function EditTemplatesPage() {
   const { isCollapsed } = useSidebar();
+  const { setCurrentShip, getShipDisplayName } = useShipContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const params = useParams();
+  
+  // Extract ship from URL params (/templates/edit/ship-a)
+  const shipFromUrl = params.ship as string;
+  const currentShip = shipFromUrl || 'ship-a';
+  
+  // Update ship context when URL changes
+  React.useEffect(() => {
+    if (shipFromUrl) {
+      setCurrentShip(shipFromUrl);
+    }
+  }, [shipFromUrl, setCurrentShip]);
   
   const [dispatchUpload, setDispatchUpload] = useState<FileUpload | null>(null);
   const [eodUpload, setEodUpload] = useState<FileUpload | null>(null);
   const [paxUpload, setPaxUpload] = useState<FileUpload | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch current templates
+  // Fetch current templates for the specific ship
   const { data: dispatchTemplate, isLoading: dispatchLoading } = useQuery<Template>({
-    queryKey: ['/api/dispatch-templates'],
+    queryKey: ['/api/dispatch-templates', currentShip],
+    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
   const { data: eodTemplate, isLoading: eodLoading } = useQuery<Template>({
-    queryKey: ['/api/eod-templates'],
+    queryKey: ['/api/eod-templates', currentShip],
+    queryFn: () => fetch(`/api/eod-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
   const { data: paxTemplate, isLoading: paxLoading } = useQuery<Template>({
-    queryKey: ['/api/pax-templates'],
+    queryKey: ['/api/pax-templates', currentShip],
+    queryFn: () => fetch(`/api/pax-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
   const handleFileUpload = (file: File, type: 'dispatch' | 'eod' | 'pax') => {
@@ -71,11 +91,11 @@ export default function EditTemplatesPage() {
 
   const downloadTemplate = async (template: Template) => {
     try {
-      let endpoint = '/api/templates/eod/download'; // default
+      let endpoint = `/api/templates/eod/download?ship=${currentShip}`; // default
       if (template.id === dispatchTemplate?.id) {
-        endpoint = '/api/templates/dispatch/download';
+        endpoint = `/api/templates/dispatch/download?ship=${currentShip}`;
       } else if (template.id === paxTemplate?.id) {
-        endpoint = '/api/templates/pax/download';
+        endpoint = `/api/templates/pax/download?ship=${currentShip}`;
       }
       
       const response = await fetch(endpoint);
@@ -130,11 +150,12 @@ export default function EditTemplatesPage() {
         if (!uploadResponse.ok) throw new Error('Failed to upload dispatch file');
         const uploadResult = await uploadResponse.json();
         
-        // Create new dispatch template
+        // Create new dispatch template for the specific ship
         const templateData = {
           filename: uploadResult.file.filename,
           originalFilename: uploadResult.file.originalName,
           filePath: `uploads/${uploadResult.file.filename}`,
+          shipId: currentShip,
         };
         
         const templateResponse = await fetch('/api/templates/dispatch/create', {
@@ -160,11 +181,12 @@ export default function EditTemplatesPage() {
         if (!uploadResponse.ok) throw new Error('Failed to upload EOD file');
         const uploadResult = await uploadResponse.json();
         
-        // Create new EOD template
+        // Create new EOD template for the specific ship
         const templateData = {
           filename: uploadResult.file.filename,
           originalFilename: uploadResult.file.originalName,
           filePath: `uploads/${uploadResult.file.filename}`,
+          shipId: currentShip,
         };
         
         const templateResponse = await fetch('/api/templates/eod/create', {
@@ -190,11 +212,12 @@ export default function EditTemplatesPage() {
         if (!uploadResponse.ok) throw new Error('Failed to upload PAX file');
         const uploadResult = await uploadResponse.json();
         
-        // Create new PAX template
+        // Create new PAX template for the specific ship
         const templateData = {
           filename: uploadResult.file.filename,
           originalFilename: uploadResult.file.originalName,
           filePath: `uploads/${uploadResult.file.filename}`,
+          shipId: currentShip,
         };
         
         const templateResponse = await fetch('/api/templates/pax/create', {
@@ -208,10 +231,10 @@ export default function EditTemplatesPage() {
         if (!templateResponse.ok) throw new Error('Failed to create PAX template');
       }
       
-      // Invalidate cache to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['/api/dispatch-templates'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/eod-templates'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/pax-templates'] });
+      // Invalidate cache to refresh data for the specific ship
+      await queryClient.invalidateQueries({ queryKey: ['/api/dispatch-templates', currentShip] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/eod-templates', currentShip] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/pax-templates', currentShip] });
       
       toast({
         title: "Templates Updated",
@@ -225,7 +248,7 @@ export default function EditTemplatesPage() {
       
       // Redirect back to Templates page after a short delay to show the success message
       setTimeout(() => {
-        setLocation('/templates');
+        setLocation(`/templates/${currentShip}`);
       }, 1500);
       
     } catch (error) {
@@ -274,16 +297,16 @@ export default function EditTemplatesPage() {
                 <div className="ml-4 md:ml-0">
                   {/* Breadcrumb Navigation */}
                   <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-3">
-                    <Link href="/templates" className="hover:text-gray-700 transition-colors">
-                      Templates
+                    <Link href={`/templates/${currentShip}`} className="hover:text-gray-700 transition-colors">
+                      Templates - {getShipDisplayName(currentShip)}
                     </Link>
                     <ChevronRight className="w-4 h-4" />
                     <span className="text-gray-900 font-medium">Edit Templates</span>
                   </nav>
                   
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Templates</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Templates - {getShipDisplayName(currentShip)}</h1>
                   <p className="text-gray-600">
-                    Replace your current templates with new versions. Select new files to upload and save changes.
+                    Replace your current templates with new versions for {getShipDisplayName(currentShip)}. Select new files to upload and save changes.
                   </p>
                 </div>
               </div>

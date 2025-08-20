@@ -1,5 +1,5 @@
 
-
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,8 @@ import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-naviga
 import { FileText, Upload, Calendar, User, Download, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
-import { Link } from "wouter";
+import { useShipContext } from "@/contexts/ship-context";
+import { Link, useParams, useLocation } from "wouter";
 
 interface Template {
   id: number;
@@ -20,27 +21,44 @@ interface Template {
 
 function Templates() {
   const { isCollapsed } = useSidebar();
+  const { setCurrentShip, getShipDisplayName } = useShipContext();
+  const params = useParams();
+  const [location] = useLocation();
+  
+  // Extract ship from URL params (/templates/ship-a)
+  const shipFromUrl = params.ship as string;
+  const currentShip = (shipFromUrl || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
+  
+  // Update ship context when URL changes
+  React.useEffect(() => {
+    if (shipFromUrl && ['ship-a', 'ship-b', 'ship-c'].includes(shipFromUrl)) {
+      setCurrentShip(shipFromUrl as 'ship-a' | 'ship-b' | 'ship-c');
+    }
+  }, [shipFromUrl, setCurrentShip]);
 
-  // Fetch current templates from storage
+  // Fetch current templates from storage for the specific ship
   const { data: dispatchTemplate } = useQuery<Template>({
-    queryKey: ["/api/dispatch-templates"],
-    enabled: true,
+    queryKey: ["/api/dispatch-templates", currentShip],
+    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
   const { data: eodTemplate } = useQuery<Template>({
-    queryKey: ["/api/eod-templates"],
-    enabled: true,
+    queryKey: ["/api/eod-templates", currentShip],
+    queryFn: () => fetch(`/api/eod-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
   const { data: paxTemplate } = useQuery<Template>({
-    queryKey: ["/api/pax-templates"],
-    enabled: true,
+    queryKey: ["/api/pax-templates", currentShip],
+    queryFn: () => fetch(`/api/pax-templates?ship=${currentShip}`).then(res => res.json()),
+    enabled: !!currentShip,
   });
 
 
 
   const handleDownloadTemplate = (type: 'dispatch' | 'eod' | 'pax') => {
-    window.open(`/api/templates/${type}/download`, '_blank');
+    window.open(`/api/templates/${type}/download?ship=${currentShip}`, '_blank');
   };
 
   return (
@@ -61,13 +79,13 @@ function Templates() {
               <div className="flex items-center">
                 <MobileNavigation />
                 <div className="ml-4 md:ml-0">
-                  <h1 className="text-3xl font-bold text-gray-900">Templates</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">Templates - {getShipDisplayName(currentShip)}</h1>
                   <p className="mt-2 text-gray-600">
-                    Manage your dispatch, EOD, and PAX template documents
+                    Manage your dispatch, EOD, and PAX template documents for {getShipDisplayName(currentShip)}
                   </p>
                 </div>
               </div>
-              <Link href="/templates/edit">
+              <Link href={`/templates/edit/${currentShip}`}>
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Templates

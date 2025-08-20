@@ -28,7 +28,11 @@ function Router() {
           <Route path="/create-dispatch/ship-b" component={CreateDispatch} />
           <Route path="/create-dispatch/ship-c" component={CreateDispatch} />
           <Route path="/templates" component={Templates} />
+          <Route path="/templates/ship-a" component={Templates} />
+          <Route path="/templates/ship-b" component={Templates} />
+          <Route path="/templates/ship-c" component={Templates} />
           <Route path="/templates/edit" component={EditTemplates} />
+          <Route path="/templates/edit/:ship" component={EditTemplates} />
           <Route path="/reports" component={Reports} />
           <Route path="/reports/ship-a" component={Reports} />
           <Route path="/reports/ship-b" component={Reports} />
