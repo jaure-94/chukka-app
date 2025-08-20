@@ -1023,60 +1023,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add successive dispatch entry to existing EOD report
   app.post("/api/add-successive-dispatch", async (req, res) => {
     try {
-      const { dispatchFileId, existingEodFilename } = req.body;
+      const { dispatchFileId, existingEodFilename, shipId = 'ship-a' } = req.body;
       
       if (!dispatchFileId || !existingEodFilename) {
         return res.status(400).json({ message: "Dispatch file ID and existing EOD filename are required" });
       }
 
-      // Get the most recent dispatch version (edited file)
-      const dispatchVersions = await storage.getDispatchVersions(1);
+      // Get the most recent dispatch version (edited file) for the specific ship
+      const dispatchVersions = await storage.getDispatchVersions(1, shipId);
       let dispatchFilePath;
       
       if (dispatchVersions.length > 0) {
         const latestVersion = dispatchVersions[0];
         dispatchFilePath = latestVersion.filePath;
-        console.log('Adding successive dispatch from latest version:', latestVersion.filename);
+        console.log(`Adding successive dispatch from latest version (${shipId}):`, latestVersion.filename);
       } else {
         return res.status(404).json({ message: "No dispatch versions found" });
       }
 
-      // Check if existing EOD file exists
-      const existingEodPath = path.join(process.cwd(), "output", existingEodFilename);
+      // Check if existing EOD file exists in ship-specific directory
+      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      const existingEodPath = path.join(shipOutputDir, existingEodFilename);
       
+
       if (!fs.existsSync(existingEodPath)) {
-        return res.status(404).json({ message: "Existing EOD file not found" });
+        return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodPath}` });
       }
 
-      // Create output filenames
-      const timestamp = Date.now();
-      const eodOutputPath = path.join(process.cwd(), "output", `eod_${timestamp}.xlsx`);
-      const dispatchOutputPath = path.join(process.cwd(), "output", `dispatch_${timestamp}.xlsx`);
-
-      // Add successive dispatch entry to existing EOD
+      // Update the existing EOD file in-place (don't create new files)
       await simpleEODProcessor.addSuccessiveDispatchEntry(
         existingEodPath,
         dispatchFilePath,
-        eodOutputPath
+        existingEodPath  // Save back to the same file
       );
 
-      // Copy dispatch file to output
-      fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
-
-      // Create a new dispatch version record
-      const dispatchVersion = await storage.createDispatchVersion({
-        filename: path.basename(dispatchFilePath),
-        originalFilename: `dispatch_${timestamp}.xlsx`,
-        filePath: dispatchFilePath
-      });
+      // No need to copy dispatch file or create new versions for successive entries
 
       res.json({
         success: true,
-        eodFile: path.basename(eodOutputPath),
-        dispatchFile: path.basename(dispatchOutputPath),
-        message: "Successive dispatch entry added successfully",
-        originalEodFile: existingEodFilename,
-        dispatchVersionId: dispatchVersion.id
+        eodFile: existingEodFilename,  // Return the same filename since we updated in-place
+        shipId: shipId,
+        message: `Successive dispatch entry added successfully for ${shipId}`,
+        originalEodFile: existingEodFilename
       });
 
     } catch (error) {
