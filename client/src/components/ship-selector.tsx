@@ -3,6 +3,7 @@ import { useShipContext, type ShipId } from '@/contexts/ship-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Ship } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface ShipSelectorProps {
   showLabel?: boolean;
@@ -14,9 +15,25 @@ export const ShipSelector: React.FC<ShipSelectorProps> = ({
   className = "" 
 }) => {
   const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
+  const [location, setLocation] = useLocation();
 
   const handleShipChange = (value: string) => {
     setCurrentShip(value as ShipId);
+    
+    // Navigate to the ship-specific page if we're currently on a ship-aware route
+    if (location.includes('/reports/')) {
+      setLocation(`/reports/${value}`);
+    } else if (location.includes('/create-dispatch/')) {
+      setLocation(`/create-dispatch/${value}`);
+    } else if (location.includes('/templates/')) {
+      setLocation(`/templates/${value}`);
+    } else if (location === '/reports') {
+      setLocation(`/reports/${value}`);
+    } else if (location === '/create-dispatch') {
+      setLocation(`/create-dispatch/${value}`);
+    } else if (location === '/templates') {
+      setLocation(`/templates/${value}`);
+    }
   };
 
   return (

@@ -81,16 +81,16 @@ export default function Reports() {
 
   // Fetch output files for current ship
   const { data: outputFiles = [], isLoading: isLoadingFiles } = useQuery({
-    queryKey: ["/api/output-files", currentShip],
-    queryFn: () => fetch(`/api/output-files?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/output-files", shipToUse],
+    queryFn: () => fetch(`/api/output-files?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   });
 
   // Fetch dispatch versions for current ship
   const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery<any[]>({
-    queryKey: ["/api/dispatch-versions", currentShip],
-    queryFn: () => fetch(`/api/dispatch-versions?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/dispatch-versions", shipToUse],
+    queryFn: () => fetch(`/api/dispatch-versions?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   });
 
 
