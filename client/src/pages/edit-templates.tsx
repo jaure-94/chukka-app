@@ -34,12 +34,12 @@ export default function EditTemplatesPage() {
   
   // Extract ship from URL params (/templates/edit/ship-a)
   const shipFromUrl = params.ship as string;
-  const currentShip = shipFromUrl || 'ship-a';
+  const currentShip = (shipFromUrl || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
   
   // Update ship context when URL changes
   React.useEffect(() => {
-    if (shipFromUrl) {
-      setCurrentShip(shipFromUrl);
+    if (shipFromUrl && ['ship-a', 'ship-b', 'ship-c'].includes(shipFromUrl)) {
+      setCurrentShip(shipFromUrl as 'ship-a' | 'ship-b' | 'ship-c');
     }
   }, [shipFromUrl, setCurrentShip]);
   
@@ -49,21 +49,33 @@ export default function EditTemplatesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch current templates for the specific ship
-  const { data: dispatchTemplate, isLoading: dispatchLoading } = useQuery<Template>({
+  const { data: dispatchTemplate, isLoading: dispatchLoading } = useQuery<Template | null>({
     queryKey: ['/api/dispatch-templates', currentShip],
-    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/dispatch-templates?ship=${currentShip}`);
+      const data = await res.json();
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 
-  const { data: eodTemplate, isLoading: eodLoading } = useQuery<Template>({
+  const { data: eodTemplate, isLoading: eodLoading } = useQuery<Template | null>({
     queryKey: ['/api/eod-templates', currentShip],
-    queryFn: () => fetch(`/api/eod-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/eod-templates?ship=${currentShip}`);
+      const data = await res.json();
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 
-  const { data: paxTemplate, isLoading: paxLoading } = useQuery<Template>({
+  const { data: paxTemplate, isLoading: paxLoading } = useQuery<Template | null>({
     queryKey: ['/api/pax-templates', currentShip],
-    queryFn: () => fetch(`/api/pax-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/pax-templates?ship=${currentShip}`);
+      const data = await res.json();
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 

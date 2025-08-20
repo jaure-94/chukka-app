@@ -37,21 +37,36 @@ function Templates() {
   }, [shipFromUrl, setCurrentShip]);
 
   // Fetch current templates from storage for the specific ship
-  const { data: dispatchTemplate } = useQuery<Template>({
+  const { data: dispatchTemplate } = useQuery<Template | null>({
     queryKey: ["/api/dispatch-templates", currentShip],
-    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/dispatch-templates?ship=${currentShip}`);
+      const data = await res.json();
+      // Return null if empty object (no template found)
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 
-  const { data: eodTemplate } = useQuery<Template>({
+  const { data: eodTemplate } = useQuery<Template | null>({
     queryKey: ["/api/eod-templates", currentShip],
-    queryFn: () => fetch(`/api/eod-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/eod-templates?ship=${currentShip}`);
+      const data = await res.json();
+      // Return null if empty object (no template found)
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 
-  const { data: paxTemplate } = useQuery<Template>({
+  const { data: paxTemplate } = useQuery<Template | null>({
     queryKey: ["/api/pax-templates", currentShip],
-    queryFn: () => fetch(`/api/pax-templates?ship=${currentShip}`).then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`/api/pax-templates?ship=${currentShip}`);
+      const data = await res.json();
+      // Return null if empty object (no template found)
+      return Object.keys(data).length === 0 ? null : data;
+    },
     enabled: !!currentShip,
   });
 
@@ -152,8 +167,8 @@ function Templates() {
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 mb-4">No dispatch template uploaded</p>
-                    <Link href="/templates/edit">
+                    <p className="text-gray-500 mb-4">No dispatch template uploaded for {getShipDisplayName(currentShip)}</p>
+                    <Link href={`/templates/edit/${currentShip}`}>
                       <Button variant="outline" size="sm">
                         Upload Template
                       </Button>
@@ -217,8 +232,8 @@ function Templates() {
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 mb-4">No EOD template uploaded</p>
-                    <Link href="/templates/edit">
+                    <p className="text-gray-500 mb-4">No EOD template uploaded for {getShipDisplayName(currentShip)}</p>
+                    <Link href={`/templates/edit/${currentShip}`}>
                       <Button variant="outline" size="sm">
                         Upload Template
                       </Button>
@@ -282,8 +297,8 @@ function Templates() {
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FileText className="w-8 h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 mb-4">No PAX report template uploaded</p>
-                    <Link href="/templates/edit">
+                    <p className="text-gray-500 mb-4">No PAX report template uploaded for {getShipDisplayName(currentShip)}</p>
+                    <Link href={`/templates/edit/${currentShip}`}>
                       <Button variant="outline" size="sm">
                         Upload Template
                       </Button>
