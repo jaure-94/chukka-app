@@ -745,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const soldValue = soldCell.value || 0;
                   
                   // Set PAX ON TOUR to match SOLD value directly
-                  targetCell.value = { formula: `J${rowNumber}`, result: soldValue };
+                  targetCell.value = soldValue;
                   console.log(`→ Updated PAX ON TOUR at R${rowNumber} to match SOLD value: ${soldValue}`);
                 } else {
                   // For header/non-data rows, use the original value
@@ -830,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      let fileList = [];
+      let fileList: any[] = [];
 
       if (shipId === 'all') {
         // Return files from all ships
@@ -866,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (fs.existsSync(shipOutputDir)) {
           const files = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
           
-          fileList = files.map(filename => {
+          fileList = files.map((filename: string) => {
             const filePath = path.join(shipOutputDir, filename);
             const stats = fs.statSync(filePath);
             
@@ -1018,7 +1018,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('File exists:', fs.existsSync(dispatchFilePath));
       const dispatchData = await excelParser.parseFile(dispatchFilePath);
       console.log('Dispatch data for EOD processing:', JSON.stringify({
-        filename: dispatchData.filename,
         sheets: dispatchData.sheets.map(sheet => ({
           name: sheet.name,
           rowCount: sheet.data.length,
@@ -1316,6 +1315,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalGuests,
         notes: notes || "",
         tourDate,
+        shipName: "",
+        tourOperator: "",
+        shorexManager: "",
+        shorexAsstManager: "",
         isActive: true,
         createdAt: new Date()
       };
