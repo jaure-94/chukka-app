@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import path from 'path';
+import fs from 'fs';
 import { nanoid } from 'nanoid';
 
 export interface PaxReportData {
@@ -62,8 +63,8 @@ export class PaxProcessor {
     const outputPath = path.join(shipOutputDir, outputFilename);
     
     // Ensure ship-specific output directory exists
-    if (!require('fs').existsSync(shipOutputDir)) {
-      require('fs').mkdirSync(shipOutputDir, { recursive: true });
+    if (!fs.existsSync(shipOutputDir)) {
+      fs.mkdirSync(shipOutputDir, { recursive: true });
     }
     
     await workbook.xlsx.writeFile(outputPath);
