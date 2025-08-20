@@ -68,11 +68,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve output files (generated reports)
-  app.get("/api/output/:filename", async (req, res) => {
+  // Serve output files (generated reports) - ship-aware with path or query parameter
+  app.get("/api/output/:shipOrFilename/:filename?", async (req, res) => {
     try {
-      const { filename } = req.params;
-      const filePath = path.join(process.cwd(), "output", filename);
+      let filename, shipId;
+      
+      if (req.params.filename) {
+        // Ship-specific path: /api/output/ship-a/filename.xlsx
+        shipId = req.params.shipOrFilename;
+        filename = req.params.filename;
+      } else {
+        // Query parameter format: /api/output/filename.xlsx?ship=ship-a
+        filename = req.params.shipOrFilename;
+        shipId = req.query.ship as string;
+      }
+      
+      let filePath;
+      if (shipId) {
+        // Ship-specific path
+        filePath = path.join(process.cwd(), "output", shipId, filename);
+      } else {
+        // Legacy path for backwards compatibility
+        filePath = path.join(process.cwd(), "output", filename);
+      }
       
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found" });

@@ -38,6 +38,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsive Design**: Global sidebar navigation and responsive layouts.
 - **Data Preservation**: Ensures original template header data (e.g., ship name, date) is correctly extracted and preserved.
 - **Date Formatting**: Consistent DD/MM/YYYY date formatting in reports.
+- **Ship-Specific Downloads**: Complete ship-aware file download system with proper path routing.
 
 ### System Design Choices
 - **Ship-Agnostic to Ship-Specific Workflow**: Designed for eventual implementation of ship-specific data management, requiring database schema modifications (`ship_id`), file system changes (ship-specific subdirectories), and API endpoint modifications for complete data and template isolation per ship.

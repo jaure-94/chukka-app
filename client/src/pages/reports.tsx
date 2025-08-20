@@ -133,7 +133,7 @@ export default function Reports() {
   const handleViewEodReport = async (filename: string) => {
     setLoadingEod(true);
     try {
-      const response = await fetch(`/api/output/${filename}`);
+      const response = await fetch(`/api/output/${filename}?ship=${currentShip}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch EOD report: ${response.statusText}`);
       }
@@ -323,7 +323,7 @@ export default function Reports() {
                           <Button 
                             size="sm" 
                             className="flex-1 bg-blue-600 hover:bg-blue-700"
-                            onClick={() => window.open(`/api/output/${latestEOD.filename}`, '_blank')}
+                            onClick={() => window.open(`/api/output/${latestEOD.filename}?ship=${currentShip}`, '_blank')}
                           >
                             <Download className="w-3 h-3 mr-2" />
                             Download
@@ -465,7 +465,7 @@ export default function Reports() {
                             className="flex-1 bg-orange-600 hover:bg-orange-700"
                             onClick={() => {
                               console.log('Attempting to download PAX file:', latestPAX.filename);
-                              const downloadUrl = `/api/output/${latestPAX.filename}`;
+                              const downloadUrl = `/api/output/${latestPAX.filename}?ship=${currentShip}`;
                               console.log('Download URL:', downloadUrl);
                               
                               // Try window.open first
