@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight, Users, CheckCircle, Edit, Save, X, AlertTriangle } from "lucide-react";
@@ -31,11 +31,23 @@ interface SpreadsheetFile {
 
 export default function CreateDispatch() {
   const [location, setLocation] = useLocation();
+  const params = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
-  const { currentShip, getShipDisplayName } = useShipContext();
+  const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
   const hotTableRef = useRef<HotTableClass>(null);
+  
+  // Extract ship from URL params (/create-dispatch/ship-a)
+  const shipFromUrl = params.ship as string;
+  const shipToUse = (shipFromUrl || currentShip || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
+  
+  // Update ship context when URL changes
+  useEffect(() => {
+    if (shipFromUrl && ['ship-a', 'ship-b', 'ship-c'].includes(shipFromUrl)) {
+      setCurrentShip(shipFromUrl as 'ship-a' | 'ship-b' | 'ship-c');
+    }
+  }, [shipFromUrl, setCurrentShip]);
 
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
   const [editedData, setEditedData] = useState<SpreadsheetData>([]);
@@ -53,23 +65,23 @@ export default function CreateDispatch() {
 
   // Fetch dispatch template for current ship
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
-    queryKey: ["/api/dispatch-templates", currentShip],
-    queryFn: () => fetch(`/api/dispatch-templates?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/dispatch-templates", shipToUse],
+    queryFn: () => fetch(`/api/dispatch-templates?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   }) as { data: any; isLoading: boolean };
 
   // Fetch dispatch versions for current ship
   const { data: dispatchVersions = [], isLoading: isLoadingVersions } = useQuery({
-    queryKey: ["/api/dispatch-versions", currentShip],
-    queryFn: () => fetch(`/api/dispatch-versions?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/dispatch-versions", shipToUse],
+    queryFn: () => fetch(`/api/dispatch-versions?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   }) as { data: any[]; isLoading: boolean };
 
   // Fetch output files for current ship
   const { data: outputFiles = [], isLoading: isLoadingOutputFiles } = useQuery({
-    queryKey: ["/api/output-files", currentShip],
-    queryFn: () => fetch(`/api/output-files?ship=${currentShip}`).then(res => res.json()),
-    enabled: !!currentShip
+    queryKey: ["/api/output-files", shipToUse],
+    queryFn: () => fetch(`/api/output-files?ship=${shipToUse}`).then(res => res.json()),
+    enabled: !!shipToUse
   }) as { data: any[]; isLoading: boolean };
 
   // Load dispatch template when available
@@ -239,7 +251,7 @@ export default function CreateDispatch() {
       formData.append('file', blob, `edited_dispatch_${Date.now()}.xlsx`);
       
       // Save the file with formatting preservation (ship-aware)
-      formData.append('shipId', currentShip || 'ship-a');
+      formData.append('shipId', shipToUse);
       const response = await fetch('/api/save-dispatch-sheet', {
         method: 'POST',
         body: formData,
@@ -298,7 +310,7 @@ export default function CreateDispatch() {
 
       const response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
         dispatchFileId: savedFileId,
-        shipId: currentShip
+        shipId: shipToUse
       });
 
       return response.json();
