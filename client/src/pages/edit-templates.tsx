@@ -152,95 +152,41 @@ export default function EditTemplatesPage() {
       // Upload new files if selected
       if (dispatchUpload) {
         const formData = new FormData();
-        formData.append('file', dispatchUpload.file);
+        formData.append('template', dispatchUpload.file);
+        formData.append('shipId', currentShip);
         
-        const uploadResponse = await fetch('/api/upload', {
+        const templateResponse = await fetch('/api/templates/dispatch', {
           method: 'POST',
           body: formData,
         });
         
-        if (!uploadResponse.ok) throw new Error('Failed to upload dispatch file');
-        const uploadResult = await uploadResponse.json();
-        
-        // Create new dispatch template for the specific ship
-        const templateData = {
-          filename: uploadResult.file.filename,
-          originalFilename: uploadResult.file.originalName,
-          filePath: `uploads/${uploadResult.file.filename}`,
-          shipId: currentShip,
-        };
-        
-        const templateResponse = await fetch('/api/templates/dispatch/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(templateData),
-        });
-        
-        if (!templateResponse.ok) throw new Error('Failed to create dispatch template');
+        if (!templateResponse.ok) throw new Error('Failed to upload dispatch template');
       }
       
       if (eodUpload) {
         const formData = new FormData();
-        formData.append('file', eodUpload.file);
+        formData.append('template', eodUpload.file);
+        formData.append('shipId', currentShip);
         
-        const uploadResponse = await fetch('/api/upload', {
+        const templateResponse = await fetch('/api/templates/eod', {
           method: 'POST',
           body: formData,
         });
         
-        if (!uploadResponse.ok) throw new Error('Failed to upload EOD file');
-        const uploadResult = await uploadResponse.json();
-        
-        // Create new EOD template for the specific ship
-        const templateData = {
-          filename: uploadResult.file.filename,
-          originalFilename: uploadResult.file.originalName,
-          filePath: `uploads/${uploadResult.file.filename}`,
-          shipId: currentShip,
-        };
-        
-        const templateResponse = await fetch('/api/templates/eod/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(templateData),
-        });
-        
-        if (!templateResponse.ok) throw new Error('Failed to create EOD template');
+        if (!templateResponse.ok) throw new Error('Failed to upload EOD template');
       }
 
       if (paxUpload) {
         const formData = new FormData();
-        formData.append('file', paxUpload.file);
+        formData.append('template', paxUpload.file);
+        formData.append('shipId', currentShip);
         
-        const uploadResponse = await fetch('/api/upload', {
+        const templateResponse = await fetch('/api/templates/pax', {
           method: 'POST',
           body: formData,
         });
         
-        if (!uploadResponse.ok) throw new Error('Failed to upload PAX file');
-        const uploadResult = await uploadResponse.json();
-        
-        // Create new PAX template for the specific ship
-        const templateData = {
-          filename: uploadResult.file.filename,
-          originalFilename: uploadResult.file.originalName,
-          filePath: `uploads/${uploadResult.file.filename}`,
-          shipId: currentShip,
-        };
-        
-        const templateResponse = await fetch('/api/templates/pax/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(templateData),
-        });
-        
-        if (!templateResponse.ok) throw new Error('Failed to create PAX template');
+        if (!templateResponse.ok) throw new Error('Failed to upload PAX template');
       }
       
       // Invalidate cache to refresh data for the specific ship
