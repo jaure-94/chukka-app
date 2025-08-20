@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { FileText, Upload, Calendar, User, Download, Edit } from "lucide-react";
+import { ShipSelector } from "@/components/ship-selector";
+import { FileText, Upload, Calendar, User, Download, Edit, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useShipContext } from "@/contexts/ship-context";
@@ -114,6 +115,20 @@ function Templates() {
 
         {/* Main Content */}
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          {/* Ship Selector */}
+          <div className="mb-8">
+            <ShipSelector />
+          </div>
+
+          {!currentShip ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Please select a ship above to view templates.</p>
+                <p className="text-sm text-gray-500">Each ship maintains separate templates and data for complete isolation.</p>
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {/* Dispatch Template Card */}
             <Card className="h-fit">
@@ -310,6 +325,7 @@ function Templates() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Template Information Section */}
           <Card className="mt-8">
