@@ -1144,34 +1144,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add successive PAX entry to existing PAX report
+  // Add successive PAX entry to existing PAX report (ship-aware)
   app.post("/api/add-successive-pax-entry", async (req, res) => {
     try {
-      const { dispatchFileId } = req.body;
+      const { dispatchFileId, shipId = 'ship-a' } = req.body;
       
       if (!dispatchFileId) {
         return res.status(400).json({ message: "Dispatch file ID is required" });
       }
 
-      // Get the most recent dispatch file directly from filesystem
-      const uploadsDir = path.join(process.cwd(), "uploads");
-      const editedDispatchFiles = fs.readdirSync(uploadsDir).filter(file => 
-        file.startsWith('edited_dispatch_') && file.endsWith('.xlsx')
-      );
-      
+      // Get the most recent dispatch version (edited file) for the specific ship
+      const dispatchVersions = await storage.getDispatchVersions(1, shipId);
       let dispatchFilePath;
       
-      if (editedDispatchFiles.length > 0) {
-        // Sort by timestamp in filename to get the latest
-        editedDispatchFiles.sort((a, b) => {
-          const timestampA = parseInt(a.replace('edited_dispatch_', '').replace('.xlsx', ''));
-          const timestampB = parseInt(b.replace('edited_dispatch_', '').replace('.xlsx', ''));
-          return timestampB - timestampA; // Newest first
-        });
-        
-        const latestEditedFile = editedDispatchFiles[0];
-        dispatchFilePath = path.join(uploadsDir, latestEditedFile);
-        console.log('Using latest dispatch version for successive PAX:', latestEditedFile);
+      if (dispatchVersions.length > 0) {
+        // Use the latest edited dispatch file
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log(`Using latest dispatch version for successive PAX: ${latestVersion.filename}`);
       } else {
         // Fallback to original uploaded file
         const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
@@ -1181,14 +1171,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
       }
 
-      // Find the latest existing PAX report
-      const outputDir = path.join(process.cwd(), "output");
-      const outputFiles = fs.readdirSync(outputDir).filter(file => 
+      // Find the latest existing PAX report for this specific ship
+      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      
+      if (!fs.existsSync(shipOutputDir)) {
+        return res.status(400).json({ message: `No PAX reports found for ${shipId}. Generate a new PAX report first.` });
+      }
+      
+      const outputFiles = fs.readdirSync(shipOutputDir).filter(file => 
         file.startsWith('pax_') && file.endsWith('.xlsx')
       );
       
       if (outputFiles.length === 0) {
-        return res.status(400).json({ message: "No existing PAX reports found. Generate a new PAX report first." });
+        return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
       }
 
       // Sort by filename (timestamp) to get the latest
@@ -1199,13 +1194,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const latestPaxFile = outputFiles[0];
-      const latestPaxPath = path.join(outputDir, latestPaxFile);
+      const latestPaxPath = path.join(shipOutputDir, latestPaxFile);
 
-      console.log('Adding successive PAX entry to:', latestPaxFile);
+      console.log(`Adding successive PAX entry to: ${latestPaxFile} (for ${shipId})`);
       console.log('Using dispatch data from:', path.basename(dispatchFilePath));
       
-      // Add successive entry to the existing PAX report
-      const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath);
+      // Add successive entry to the existing PAX report (ship-aware)
+      const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId);
       
       res.json({
         success: true,

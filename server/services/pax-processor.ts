@@ -363,7 +363,7 @@ export class PaxProcessor {
   /**
    * Add successive PAX entry to existing PAX report
    */
-  async addSuccessiveEntryToPax(dispatchFilePath: string, existingPaxPath: string): Promise<string> {
+  async addSuccessiveEntryToPax(dispatchFilePath: string, existingPaxPath: string, shipId: string = 'ship-a'): Promise<string> {
     console.log(`→ PaxProcessor: Adding successive PAX entry`);
     console.log(`→ PaxProcessor: Dispatch file: ${dispatchFilePath}`);
     console.log(`→ PaxProcessor: Existing PAX: ${existingPaxPath}`);
@@ -392,13 +392,11 @@ export class PaxProcessor {
     // Add new records to the existing PAX report
     await this.addRecordsToExistingPax(worksheet, dispatchData, validatedRecords, nextRow);
 
-    // Save the updated report with new timestamp
-    const outputFilename = `pax_${Date.now()}.xlsx`;
-    const outputPath = path.join(process.cwd(), 'output', outputFilename);
-    await workbook.xlsx.writeFile(outputPath);
+    // Save the updated report back to the SAME file (overwrite existing)
+    await workbook.xlsx.writeFile(existingPaxPath);
 
-    console.log(`→ PaxProcessor: Updated PAX report saved to ${outputPath}`);
-    return outputFilename;
+    console.log(`→ PaxProcessor: Updated existing PAX report: ${existingPaxPath}`);
+    return path.basename(existingPaxPath);
   }
 
   /**
