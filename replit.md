@@ -8,6 +8,9 @@ This is a full-stack web application designed for uploading, processing, and exp
 - **Frontend Template Logic**: Corrected API endpoints and FormData handling for proper ship-aware uploads
 - **Database Path Alignment**: Resolved file path mismatches between database records and actual file storage locations
 - **Complete Ship Isolation**: Implemented full ship-specific architecture with dedicated directories, database isolation, and parameter-based routing
+- **JWT Authentication System**: Implemented secure authentication with bcrypt password hashing, HTTP-only cookies, and JWT tokens
+- **Role-Based Access Control**: Created 5-tier user role system (superuser, admin, manager, supervisor, user) with granular permissions
+- **User Management API**: Built comprehensive user CRUD operations with role-based restrictions and validation
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -31,7 +34,8 @@ Preferred communication style: Simple, everyday language.
 ### Database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
 - **Database**: PostgreSQL (configured for Neon serverless)
-- **Schema**: Supports file management, processing tracking, user management, and ship-specific data partitioning.
+- **Schema**: Supports file management, processing tracking, user management, and ship-specific data partitioning
+- **Authentication**: Users table with secure password hashing, role-based permissions, and JWT token management
 
 ### Core Features
 - **File Upload System**: Drag-and-drop with validation.
@@ -39,6 +43,8 @@ Preferred communication style: Simple, everyday language.
 - **Template System**: Supports dynamic data insertion, complex formatting preservation (merged cells, colors, borders, fonts, text wrapping), and calculations.
 - **Report Generation**: Automatic dual report (dispatch and EOD/PAX) generation with downloadable files and processing history. Supports both generating new reports from templates and appending new records to existing reports (successive reports).
 - **User Management**: Comprehensive user management with details, status, and actions.
+- **Authentication & Authorization**: JWT-based authentication with role-based access control, secure password management, and HTTP-only cookie sessions.
+- **Role-Based Security**: Five user roles (superuser, admin, manager, supervisor, user) with granular permissions for different system operations.
 - **Spreadsheet View**: In-browser Excel editing capabilities (upload, edit, save, download).
 - **Auto-Calculations**: Real-time calculations for relevant fields.
 - **Responsive Design**: Global sidebar navigation and responsive layouts.

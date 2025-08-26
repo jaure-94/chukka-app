@@ -1,6 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import authRoutes from "./auth/routes";
+import userRoutes from "./auth/userRoutes";
+import { authenticateToken } from "./auth/middleware";
+import { 
+  requireAuth, 
+  requireDispatchAccess, 
+  requireDispatchEdit,
+  requireEODAccess,
+  requireEODEdit,
+  requirePAXAccess,
+  requirePAXEdit,
+  requireTemplateAccess,
+  requireTemplateEdit
+} from "./auth/roleMiddleware";
 import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
@@ -70,6 +83,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes
   app.use("/api/auth", authRoutes);
+  
+  // User management routes
+  app.use("/api/users", userRoutes);
 
   // Initialize default superuser if none exists
   const userService = await import("./services/userService");
@@ -164,8 +180,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File upload endpoint - ship-aware
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
+  // File upload endpoint - ship-aware (requires dispatch access)
+  app.post("/api/upload", 
+    authenticateToken, 
+    requireDispatchAccess, 
+    upload.single("file"), 
+    async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -236,8 +256,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Start processing endpoint
-  app.post("/api/process", async (req, res) => {
+  // Start processing endpoint (requires dispatch edit access)
+  app.post("/api/process", 
+    authenticateToken, 
+    requireDispatchEdit, 
+    async (req, res) => {
     try {
       const { fileId, templateType, dispatchFileId, eodTemplateFileId } = req.body;
 
@@ -264,8 +287,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get processing status
-  app.get("/api/process/:jobId", async (req, res) => {
+  // Get processing status (requires dispatch access)
+  app.get("/api/process/:jobId", 
+    authenticateToken, 
+    requireDispatchAccess, 
+    async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       const job = await storage.getProcessingJob(jobId);
@@ -281,8 +307,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download processed file
-  app.get("/api/download/:jobId", async (req, res) => {
+  // Download processed file (requires dispatch access)
+  app.get("/api/download/:jobId", 
+    authenticateToken, 
+    requireDispatchAccess, 
+    async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
       console.log('Requested job ID:', jobId);
@@ -320,8 +349,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get recent processing history
-  app.get("/api/history", async (req, res) => {
+  // Get recent processing history (requires dispatch access)
+  app.get("/api/history", 
+    authenticateToken, 
+    requireDispatchAccess, 
+    async (req, res) => {
     try {
       const shipId = req.query.ship as string;
       const history = await storage.getRecentProcessingJobs(10, shipId);

@@ -217,6 +217,10 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const updateUserSchema = insertUserSchema.partial().omit({
+  password: true, // Password updates should use separate endpoint
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
@@ -241,3 +245,12 @@ export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
 export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;
 export type User = typeof users.$inferSelect;
+
+// Role and Permission types
+export type UserRole = "superuser" | "admin" | "manager" | "supervisor" | "user";
+export type Permission = "create_users" | "edit_users" | "delete_users" | "view_all_users" | 
+  "view_dispatch_reports" | "edit_dispatch_reports" | "generate_dispatch_reports" |
+  "view_eod_reports" | "edit_eod_reports" | "generate_eod_reports" |
+  "view_pax_reports" | "edit_pax_reports" | "generate_pax_reports" |
+  "upload_templates" | "edit_templates" | "delete_templates" |
+  "view_system_logs" | "manage_system_settings" | "system_admin";
