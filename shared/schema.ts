@@ -135,6 +135,22 @@ export const extractedDispatchData = pgTable("extracted_dispatch_data", {
   extractedAt: timestamp("extracted_at").defaultNow().notNull(),
 });
 
+// User authentication and authorization tables
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("user"), // superuser, admin, manager, supervisor, user
+  position: text("position"),
+  employeeNumber: text("employee_number").unique(),
+  email: text("email").notNull().unique(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
   id: true,
   uploadedAt: true,
@@ -186,6 +202,21 @@ export const insertExtractedDispatchDataSchema = createInsertSchema(extractedDis
   extractedAt: true,
 });
 
+// User schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["superuser", "admin", "manager", "supervisor", "user"]).default("user"),
+});
+
+export const loginSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(1, "Password is required"),
+});
+
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type InsertExcelData = z.infer<typeof insertExcelDataSchema>;
 export type InsertProcessingJob = z.infer<typeof insertProcessingJobSchema>;
@@ -196,6 +227,8 @@ export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginCredentials = z.infer<typeof loginSchema>;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;
@@ -207,3 +240,4 @@ export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
 export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;
+export type User = typeof users.$inferSelect;

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import authRoutes from "./auth/routes";
 import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
@@ -66,6 +67,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const eodProcessor = new EODProcessor();
   const dispatchGenerator = new DispatchGenerator();
   const paxProcessor = new PaxProcessor();
+
+  // Authentication routes
+  app.use("/api/auth", authRoutes);
+
+  // Initialize default superuser if none exists
+  const userService = await import("./services/userService");
+  const userServiceInstance = new userService.UserService();
+  await userServiceInstance.createDefaultSuperuser();
 
   // Serve uploaded files - ship-aware
   app.get("/api/files/:shipId/:filename", async (req, res) => {
