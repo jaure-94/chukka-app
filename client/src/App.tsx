@@ -15,6 +15,9 @@ import SpreadsheetView from "@/pages/spreadsheet-view";
 import SpreadsheetEodView from "@/pages/spreadsheet-eod";
 import SpreadsheetDispatchView from "@/pages/spreadsheet-dispatch";
 import { ManualDispatch } from "@/pages/ManualDispatch";
+import LoginPage from "@/pages/login";
+import AccountManagement from "@/pages/account-management";
+import UserProfile from "@/pages/user-profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -36,6 +39,9 @@ function Router() {
           <Route path="/spreadsheet/eod/:filename" component={SpreadsheetEodView} />
           <Route path="/spreadsheet/dispatch/:filename" component={SpreadsheetDispatchView} />
           <Route path="/manual" component={ManualDispatch} />
+          <Route path="/login" component={LoginPage} />
+          <Route path="/account-management" component={AccountManagement} />
+          <Route path="/profile" component={UserProfile} />
           <Route component={NotFound} />
         </Switch>
       </main>
