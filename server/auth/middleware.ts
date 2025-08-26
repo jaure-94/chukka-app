@@ -6,7 +6,11 @@ import { cookieConfig, hasPermission, hasMinimumRole, type UserRole, type Permis
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: {
+        userId: number;
+        username: string;
+        role: string;
+      };
     }
   }
 }

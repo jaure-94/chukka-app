@@ -28,8 +28,9 @@ router.post(
         });
       }
       
-      // Set HTTP-only cookie
-      res.cookie(cookieConfig.name, result.token, cookieConfig);
+      // Set HTTP-only cookie with the token
+      const token = (result.user as any).token;
+      res.cookie(cookieConfig.name, token, cookieConfig);
       
       // Also return token in response body for flexibility
       res.json({
@@ -45,7 +46,7 @@ router.post(
           position: result.user!.position,
           employeeNumber: result.user!.employeeNumber,
         },
-        token: result.token,
+        token: token,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       });
     } catch (error) {

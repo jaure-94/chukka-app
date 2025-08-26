@@ -84,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
   
-  // User management routes
+  // User management routes  
   app.use("/api/users", userRoutes);
 
   // Initialize default superuser if none exists
