@@ -87,10 +87,10 @@ router.post("/logout", authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/auth/me
+ * GET /api/auth/user
  * Get current authenticated user info
  */
-router.get("/me", authenticateToken, async (req, res) => {
+router.get("/user", authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
     const user = await userService.getUserById(userId);

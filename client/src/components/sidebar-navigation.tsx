@@ -12,11 +12,26 @@ import {
   ChevronDown,
   ChevronUp,
   Ship,
-  Menu
+  Menu,
+  User,
+  LogOut,
+  Crown,
+  Shield,
+  Clipboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavigationItem {
   name: string;
@@ -118,6 +133,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
   const { isCollapsed, toggleCollapsed } = useSidebar();
   const [location] = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const { user, logoutMutation } = useAuth();
 
   const toggleExpanded = (itemName: string) => {
     setExpandedItems(prev => 
@@ -257,6 +273,68 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
           );
         })}
       </nav>
+
+      {/* User Info Section */}
+      {user && (
+        <div className="p-3 border-t border-gray-200">
+          {!isCollapsed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="w-full">
+                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
+                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <div className="flex items-center space-x-1">
+                      <Badge 
+                        variant={
+                          user.role === 'superuser' ? 'default' : 
+                          user.role === 'admin' ? 'secondary' : 
+                          user.role === 'dispatcher' ? 'outline' : 'outline'
+                        }
+                        className="text-xs"
+                      >
+                        {user.role === 'superuser' && <Crown className="w-3 h-3 mr-1" />}
+                        {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                        {user.role === 'dispatcher' && <Clipboard className="w-3 h-3 mr-1" />}
+                        {user.role === 'general' && <User className="w-3 h-3 mr-1" />}
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem>
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => logoutMutation.mutate()}
+                  className="text-red-600"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center justify-center">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
+                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
@@ -415,3 +493,5 @@ export function MobileNavigation() {
     </>
   );
 }
+
+export default SidebarNavigation;

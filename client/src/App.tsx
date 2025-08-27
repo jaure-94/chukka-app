@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/contexts/sidebar-context";
 import { ShipProvider } from "@/contexts/ship-context";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 import TemplateUpload from "@/pages/template-upload";
 import CreateDispatch from "@/pages/create-dispatch";
 import Templates from "@/pages/templates";
@@ -25,23 +27,87 @@ function Router() {
     <div className="min-h-screen bg-background">
       <main>
         <Switch>
-          <Route path="/" component={TemplateUpload} />
-          <Route path="/create-dispatch" component={CreateDispatch} />
-          <Route path="/create-dispatch/:ship" component={CreateDispatch} />
-          <Route path="/templates" component={Templates} />
-          <Route path="/templates/:ship" component={Templates} />
-          <Route path="/templates/edit" component={EditTemplates} />
-          <Route path="/templates/edit/:ship" component={EditTemplates} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/reports/:ship" component={Reports} />
-          <Route path="/users" component={Users} />
-          <Route path="/spreadsheet" component={SpreadsheetView} />
-          <Route path="/spreadsheet/eod/:filename" component={SpreadsheetEodView} />
-          <Route path="/spreadsheet/dispatch/:filename" component={SpreadsheetDispatchView} />
-          <Route path="/manual" component={ManualDispatch} />
           <Route path="/login" component={LoginPage} />
-          <Route path="/account-management" component={AccountManagement} />
-          <Route path="/profile" component={UserProfile} />
+          <Route path="/">
+            <ProtectedRoute>
+              <TemplateUpload />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/create-dispatch">
+            <ProtectedRoute>
+              <CreateDispatch />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/create-dispatch/:ship">
+            <ProtectedRoute>
+              <CreateDispatch />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/templates">
+            <ProtectedRoute>
+              <Templates />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/templates/:ship">
+            <ProtectedRoute>
+              <Templates />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/templates/edit">
+            <ProtectedRoute>
+              <EditTemplates />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/templates/edit/:ship">
+            <ProtectedRoute>
+              <EditTemplates />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/reports">
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/reports/:ship">
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/users">
+            <ProtectedRoute>
+              <Users />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/spreadsheet">
+            <ProtectedRoute>
+              <SpreadsheetView />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/spreadsheet/eod/:filename">
+            <ProtectedRoute>
+              <SpreadsheetEodView />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/spreadsheet/dispatch/:filename">
+            <ProtectedRoute>
+              <SpreadsheetDispatchView />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/manual">
+            <ProtectedRoute>
+              <ManualDispatch />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/account-management">
+            <ProtectedRoute>
+              <AccountManagement />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/profile">
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -52,14 +118,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ShipProvider>
-        <SidebarProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </SidebarProvider>
-      </ShipProvider>
+      <AuthProvider>
+        <ShipProvider>
+          <SidebarProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </SidebarProvider>
+        </ShipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
