@@ -18,6 +18,17 @@ router.get(
 );
 
 /**
+ * GET /api/users/stats
+ * Get user statistics (admin only)
+ */
+router.get(
+  "/stats",
+  authenticateToken,
+  requireAdmin,
+  userController.getUserStats
+);
+
+/**
  * GET /api/users/:id
  * Get user by ID (admin or self)
  */

@@ -121,6 +121,11 @@ export class UserController {
    */
   public getUserById = async (req: AuthenticatedRequest, res: Response) => {
     try {
+      // Check if this is the stats endpoint
+      if (req.params.id === 'stats') {
+        return this.getUserStats(req, res);
+      }
+      
       const userId = parseInt(req.params.id);
       
       if (isNaN(userId)) {
@@ -401,6 +406,29 @@ export class UserController {
       console.error("Get permissions error:", error);
       return this.sendErrorResponse(res, 500, "Internal server error", 
         "Failed to retrieve permissions");
+    }
+  };
+
+  /**
+   * GET /api/users/stats
+   * Get user statistics (admin only)
+   */
+  public getUserStats = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const allUsers = await this.userService.getAllUsers();
+      
+      const stats = {
+        totalUsers: allUsers.length,
+        activeUsers: allUsers.filter(user => user.isActive).length,
+        inactiveUsers: allUsers.filter(user => !user.isActive).length,
+        pendingUsers: 0, // We don't have pending status in our current schema
+      };
+
+      return this.sendSuccessResponse(res, 200, "User statistics retrieved successfully", stats);
+    } catch (error) {
+      console.error("Get user stats error:", error);
+      return this.sendErrorResponse(res, 500, "Internal server error", 
+        "Failed to retrieve user statistics");
     }
   };
 }
