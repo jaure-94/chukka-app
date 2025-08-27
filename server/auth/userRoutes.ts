@@ -63,13 +63,24 @@ router.put(
 
 /**
  * DELETE /api/users/:id
- * Delete user (admin only)
+ * Deactivate user (admin only) - soft delete for safety
  */
 router.delete(
   "/:id",
   authenticateToken,
   requireAdmin,
-  userController.deleteUser
+  userController.deactivateUser
+);
+
+/**
+ * DELETE /api/users/:id/permanent
+ * Permanently delete user from database (admin only)
+ */
+router.delete(
+  "/:id/permanent",
+  authenticateToken,
+  requireAdmin,
+  userController.deleteUserPermanently
 );
 
 /**

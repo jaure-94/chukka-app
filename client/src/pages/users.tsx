@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { User, MoreVertical, Crown, Shield, Clipboard, UserIcon, Loader2, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { User, MoreVertical, Crown, Shield, Clipboard, UserIcon, Loader2, Trash2, AlertTriangle, CheckCircle, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -73,12 +73,15 @@ export default function Users() {
   const queryClient = useQueryClient();
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
+  const [userToDeactivate, setUserToDeactivate] = useState<SystemUser | null>(null);
+  const [operationType, setOperationType] = useState<"delete" | "deactivate">("deactivate");
   const [, setLocation] = useLocation();
 
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
+  // Deactivate user mutation (current "delete" functionality)
+  const deactivateUserMutation = useMutation({
     mutationFn: async (userId: number) => {
       const response = await apiRequest("DELETE", `/api/users/${userId}`);
       return await response.json();
@@ -88,22 +91,59 @@ export default function Users() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       
-      // Close delete dialog and show success dialog
-      setDeleteDialogOpen(false);
+      // Close deactivate dialog and show success dialog
+      setDeactivateDialogOpen(false);
+      setOperationType("deactivate");
       setSuccessDialogOpen(true);
     },
     onError: (error: Error) => {
       toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete user. Please try again.",
+        title: "Deactivation Failed",
+        description: error.message || "Failed to deactivate user. Please try again.",
         variant: "destructive",
       });
     },
   });
 
+  // Delete user mutation (permanent deletion)
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest("DELETE", `/api/users/${userId}/permanent`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Refresh the users list and stats
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      
+      // Close delete dialog and show success dialog
+      setDeleteDialogOpen(false);
+      setOperationType("delete");
+      setSuccessDialogOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to permanently delete user. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeactivateClick = (user: SystemUser) => {
+    setUserToDeactivate(user);
+    setDeactivateDialogOpen(true);
+  };
+
   const handleDeleteClick = (user: SystemUser) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDeactivate = () => {
+    if (userToDeactivate) {
+      deactivateUserMutation.mutate(userToDeactivate.id);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -115,6 +155,7 @@ export default function Users() {
   const handleSuccessClose = () => {
     setSuccessDialogOpen(false);
     setUserToDelete(null);
+    setUserToDeactivate(null);
   };
   
   if (isLoading) {
@@ -309,15 +350,19 @@ export default function Users() {
                               <DropdownMenuItem>View Profile</DropdownMenuItem>
                               <DropdownMenuItem>Edit User</DropdownMenuItem>
                               <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                              <DropdownMenuItem className="text-orange-600">
-                                {user.isActive ? 'Deactivate User' : 'Activate User'}
+                              <DropdownMenuItem 
+                                className="text-orange-600"
+                                onClick={() => handleDeactivateClick(user)}
+                              >
+                                <UserX className="w-4 h-4 mr-2" />
+                                {user.isActive ? 'Deactivate User' : 'Reactivate User'}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-red-600 focus:text-red-600" 
                                 onClick={() => handleDeleteClick(user)}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Delete User
+                                Delete Permanently
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -331,19 +376,70 @@ export default function Users() {
             </Card>
           </div>
 
+          {/* Deactivate Confirmation Dialog */}
+          <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2 text-orange-600">
+                  <UserX className="w-5 h-5" />
+                  <span>Confirm User {userToDeactivate?.isActive ? 'Deactivation' : 'Reactivation'}</span>
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-4">
+                  Are you sure you want to {userToDeactivate?.isActive ? 'deactivate' : 'reactivate'} <strong>{userToDeactivate?.firstName} {userToDeactivate?.lastName}</strong> 
+                  (@{userToDeactivate?.username})?
+                  <br /><br />
+                  {userToDeactivate?.isActive ? 
+                    'The user will lose access to the system but their data will be preserved.' :
+                    'The user will regain access to the system with their previous permissions.'
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeactivateDialogOpen(false)}
+                  disabled={deactivateUserMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={userToDeactivate?.isActive ? "secondary" : "default"}
+                  onClick={handleConfirmDeactivate}
+                  disabled={deactivateUserMutation.isPending}
+                  className={userToDeactivate?.isActive ? "bg-orange-600 hover:bg-orange-700 text-white" : "bg-green-600 hover:bg-green-700"}
+                >
+                  {deactivateUserMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {userToDeactivate?.isActive ? 'Deactivating...' : 'Reactivating...'}
+                    </>
+                  ) : (
+                    <>
+                      <UserX className="w-4 h-4 mr-2" />
+                      {userToDeactivate?.isActive ? 'Deactivate User' : 'Reactivate User'}
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Delete Confirmation Dialog */}
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2 text-red-600">
                   <AlertTriangle className="w-5 h-5" />
-                  <span>Confirm Delete User</span>
+                  <span>Confirm Permanent Deletion</span>
                 </DialogTitle>
                 <DialogDescription className="text-gray-600 mt-4">
-                  Are you sure you want to delete <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> 
-                  (@{userToDelete?.username})? This action cannot be undone.
+                  <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+                    <strong className="text-red-800">⚠️ WARNING: This action is irreversible!</strong>
+                  </div>
+                  Are you sure you want to permanently delete <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> 
+                  (@{userToDelete?.username})?
                   <br /><br />
-                  The user will permanently lose access to the system and all associated data will be removed.
+                  This will completely remove the user and all their associated data from the database. This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="flex space-x-2 mt-6">
@@ -363,12 +459,12 @@ export default function Users() {
                   {deleteUserMutation.isPending ? (
                     <>
                       <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Deleting...
+                      Deleting Permanently...
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Delete User
+                      Delete Permanently
                     </>
                   )}
                 </Button>
@@ -382,11 +478,28 @@ export default function Users() {
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2 text-green-600">
                   <CheckCircle className="w-5 h-5" />
-                  <span>User Deleted Successfully</span>
+                  <span>
+                    {operationType === "delete" 
+                      ? "User Deleted Permanently" 
+                      : userToDeactivate?.isActive === false 
+                        ? "User Reactivated Successfully"
+                        : "User Deactivated Successfully"
+                    }
+                  </span>
                 </DialogTitle>
                 <DialogDescription className="text-gray-600 mt-4">
-                  <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> has been successfully 
-                  removed from the system. The user list has been updated to reflect this change.
+                  <strong>
+                    {operationType === "delete" 
+                      ? userToDelete?.firstName + " " + userToDelete?.lastName
+                      : userToDeactivate?.firstName + " " + userToDeactivate?.lastName
+                    }
+                  </strong> has been successfully {" "}
+                  {operationType === "delete" 
+                    ? "permanently removed from the system"
+                    : userToDeactivate?.isActive === false 
+                      ? "reactivated and now has access to the system"
+                      : "deactivated and no longer has access to the system"
+                  }. The user list has been updated to reflect this change.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="mt-6">

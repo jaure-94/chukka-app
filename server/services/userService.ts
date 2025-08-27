@@ -349,6 +349,42 @@ export class UserService {
   }
 
   /**
+   * Permanently delete user from database
+   */
+  public async deleteUserPermanently(id: number): Promise<UserServiceResult> {
+    try {
+      const existingUser = await this.getUserById(id);
+      if (!existingUser) {
+        return {
+          success: false,
+          message: "User not found",
+        };
+      }
+
+      // Permanently delete user from database
+      const result = await db.delete(users).where(eq(users.id, id)).returning();
+
+      if (result.length === 0) {
+        return {
+          success: false,
+          message: "User not found or could not be deleted",
+        };
+      }
+
+      return {
+        success: true,
+        message: "User permanently deleted from database",
+      };
+    } catch (error) {
+      console.error("Error permanently deleting user:", error);
+      return {
+        success: false,
+        message: "Failed to permanently delete user",
+      };
+    }
+  }
+
+  /**
    * Reactivate user account
    */
   public async reactivateUser(id: number): Promise<UserServiceResult<User>> {

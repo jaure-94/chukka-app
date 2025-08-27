@@ -28,6 +28,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Create user form schema
 const createUserSchema = z.object({
@@ -52,6 +53,21 @@ export default function CreateUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // Check if superuser already exists
+  const { data: users } = useQuery({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/users", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      const data = await response.json();
+      return data.users;
+    },
+  });
+
+  const hasSuperuser = users?.some((user: any) => user.role === "superuser");
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -284,7 +300,9 @@ export default function CreateUser() {
                                 <SelectItem value="general">General User</SelectItem>
                                 <SelectItem value="dispatcher">Dispatcher</SelectItem>
                                 <SelectItem value="admin">Administrator</SelectItem>
-                                <SelectItem value="superuser">Super User</SelectItem>
+                                <SelectItem value="superuser" disabled={hasSuperuser}>
+                                  Super User {hasSuperuser && "(Already exists)"}
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />

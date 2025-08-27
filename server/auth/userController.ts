@@ -258,9 +258,9 @@ export class UserController {
 
   /**
    * DELETE /api/users/:id
-   * Delete user (admin only)
+   * Deactivate user (admin only) - soft delete for safety
    */
-  public deleteUser = async (req: AuthenticatedRequest, res: Response) => {
+  public deactivateUser = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
       
@@ -272,7 +272,56 @@ export class UserController {
       // Check admin permission
       if (!this.hasUserAccess(req.user, 0, true)) {
         return this.sendErrorResponse(res, 403, "Insufficient permissions", 
-          "Admin access required to delete users");
+          "Admin access required to deactivate users");
+      }
+
+      // Prevent self-deactivation
+      if (req.user?.userId === userId) {
+        return this.sendErrorResponse(res, 400, "Invalid operation", 
+          "You cannot deactivate your own account");
+      }
+
+      // Check if user exists
+      const existingUser = await this.userService.getUserById(userId);
+      if (!existingUser) {
+        return this.sendErrorResponse(res, 404, "User not found", 
+          "The requested user does not exist");
+      }
+
+      // Deactivate user (soft delete for safety)
+      const result = await this.userService.deactivateUser(userId);
+      
+      if (!result.success) {
+        return this.sendErrorResponse(res, 400, "User deactivation failed", result.message);
+      }
+
+      return this.sendSuccessResponse(res, 200, "User deactivated successfully", {
+        deactivatedUserId: userId,
+      });
+    } catch (error) {
+      console.error("Deactivate user error:", error);
+      return this.sendErrorResponse(res, 500, "Internal server error", 
+        "Failed to deactivate user");
+    }
+  };
+
+  /**
+   * DELETE /api/users/:id/permanent
+   * Permanently delete user from database (admin only)
+   */
+  public deleteUserPermanently = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (isNaN(userId)) {
+        return this.sendErrorResponse(res, 400, "Invalid input", 
+          "User ID must be a valid number");
+      }
+
+      // Check admin permission
+      if (!this.hasUserAccess(req.user, 0, true)) {
+        return this.sendErrorResponse(res, 403, "Insufficient permissions", 
+          "Admin access required to permanently delete users");
       }
 
       // Prevent self-deletion
@@ -288,20 +337,20 @@ export class UserController {
           "The requested user does not exist");
       }
 
-      // For safety, we'll deactivate instead of hard delete
-      const result = await this.userService.deactivateUser(userId);
+      // Permanently delete user from database
+      const result = await this.userService.deleteUserPermanently(userId);
       
       if (!result.success) {
         return this.sendErrorResponse(res, 400, "User deletion failed", result.message);
       }
 
-      return this.sendSuccessResponse(res, 200, "User deleted successfully", {
+      return this.sendSuccessResponse(res, 200, "User permanently deleted", {
         deletedUserId: userId,
       });
     } catch (error) {
-      console.error("Delete user error:", error);
+      console.error("Permanent delete user error:", error);
       return this.sendErrorResponse(res, 500, "Internal server error", 
-        "Failed to delete user");
+        "Failed to permanently delete user");
     }
   };
 

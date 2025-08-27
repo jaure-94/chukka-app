@@ -28,7 +28,16 @@ export function useUsers() {
     queryFn: getQueryFn({ on401: "returnNull" }),
     select: (data: any) => {
       if (!data) return [];
-      return data.users || [];
+      const users = data.users || [];
+      // Sort users: active users first, then inactive users
+      return users.sort((a: SystemUser, b: SystemUser) => {
+        // First sort by active status (active users first)
+        if (a.isActive !== b.isActive) {
+          return b.isActive ? 1 : -1;
+        }
+        // Then sort by last name for users with same status
+        return a.lastName.localeCompare(b.lastName);
+      });
     },
   });
 }
