@@ -21,6 +21,7 @@ import LoginPage from "@/pages/login";
 import AccountManagement from "@/pages/account-management";
 import UserProfile from "@/pages/user-profile";
 import EditProfile from "@/pages/edit-profile";
+import CreateUser from "@/pages/create-user";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -77,6 +78,11 @@ function Router() {
           <Route path="/users">
             <ProtectedRoute>
               <Users />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/create-user">
+            <ProtectedRoute>
+              <CreateUser />
             </ProtectedRoute>
           </Route>
           <Route path="/spreadsheet">

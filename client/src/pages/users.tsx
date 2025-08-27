@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useLocation } from "wouter";
 
 const getRoleIcon = (role: string) => {
   switch (role) {
@@ -74,6 +75,7 @@ export default function Users() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
+  const [, setLocation] = useLocation();
 
   // Delete user mutation
   const deleteUserMutation = useMutation({
@@ -167,9 +169,12 @@ export default function Users() {
                     Manage user accounts and permissions
                   </p>
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setLocation("/create-user")}
+                >
                   <User className="w-4 h-4 mr-2" />
-                  Add New User
+                  Create New User
                 </Button>
               </div>
             </div>
