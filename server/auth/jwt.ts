@@ -22,6 +22,8 @@ export function generateToken(user: User): string {
     role: user.role,
   };
 
+  // JWT generation working correctly
+  
   return jwt.sign(payload, jwtConfig.secret, {
     expiresIn: jwtConfig.expiresIn,
     issuer: jwtConfig.issuer,

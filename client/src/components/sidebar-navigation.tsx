@@ -283,7 +283,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                 <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
-                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
@@ -310,13 +310,27 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
-                </DropdownMenuItem>
+                <Link href="/profile">
+                  <DropdownMenuItem>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/account-management">
+                  <DropdownMenuItem>
+                    <Users className="w-4 h-4 mr-2" />
+                    Account Management
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => logoutMutation.mutate()}
+                  onClick={() => {
+                    logoutMutation.mutate(undefined, {
+                      onSuccess: () => {
+                        window.location.href = '/login';
+                      }
+                    });
+                  }}
                   className="text-red-600"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
@@ -328,7 +342,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
             <div className="flex items-center justify-center">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
-                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                  {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
             </div>

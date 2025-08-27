@@ -1,597 +1,198 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { useSidebar } from "@/contexts/sidebar-context";
 import { 
-  Loader2, 
-  Edit, 
+  Crown, 
   Shield, 
-  User, 
+  Clipboard, 
+  User as UserIcon, 
   Mail, 
-  Building, 
-  Hash, 
-  Calendar, 
-  CheckCircle, 
-  Key,
-  Save,
-  X
+  MapPin, 
+  Calendar,
+  Edit
 } from "lucide-react";
-
-const updateProfileSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
-  position: z.string().optional(),
-  employeeNumber: z.string().optional(),
-});
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
-  confirmPassword: z.string().min(1, "Password confirmation is required"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type UpdateProfileForm = z.infer<typeof updateProfileSchema>;
-type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
-
-interface CurrentUser {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  role: "superuser" | "admin" | "manager" | "supervisor" | "user";
-  position?: string;
-  employeeNumber?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { useAuth } from "@/hooks/use-auth";
+import SidebarNavigation from "@/components/sidebar-navigation";
+import { useSidebar } from "@/contexts/sidebar-context";
+import { cn } from "@/lib/utils";
 
 export default function UserProfile() {
+  const { user } = useAuth();
   const { isCollapsed } = useSidebar();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  // Mock current user data - TODO: Replace with actual API call
-  const currentUser: CurrentUser = {
-    id: 1,
-    firstName: "System",
-    lastName: "Administrator",
-    username: "admin",
-    email: "admin@company.com",
-    role: "superuser",
-    position: "System Administrator",
-    employeeNumber: "ADMIN001",
-    isActive: true,
-    createdAt: "2025-08-26T15:12:55.871Z",
-    updatedAt: "2025-08-26T15:12:55.871Z",
-  };
-
-  const profileForm = useForm<UpdateProfileForm>({
-    resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      firstName: currentUser.firstName,
-      lastName: currentUser.lastName,
-      username: currentUser.username,
-      email: currentUser.email,
-      position: currentUser.position || "",
-      employeeNumber: currentUser.employeeNumber || "",
-    },
-  });
-
-  const passwordForm = useForm<ChangePasswordForm>({
-    resolver: zodResolver(changePasswordSchema),
-  });
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "superuser":
-        return "destructive";
-      case "admin":
-        return "default";
-      case "manager":
-        return "secondary";
-      case "supervisor":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
+  if (!user) {
+    return <div>Loading...</div>;
+  }
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "superuser":
-      case "admin":
-        return <Shield className="w-4 h-4" />;
-      case "manager":
-        return <Building className="w-4 h-4" />;
+      case 'superuser':
+        return <Crown className="w-4 h-4 text-yellow-600" />;
+      case 'admin':
+        return <Shield className="w-4 h-4 text-blue-600" />;
+      case 'dispatcher':
+        return <Clipboard className="w-4 h-4 text-green-600" />;
       default:
-        return <User className="w-4 h-4" />;
+        return <UserIcon className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  const onProfileSubmit = async (data: UpdateProfileForm) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: Connect to actual update profile API
-      console.log("Updating profile:", data);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccess("Profile updated successfully");
-      setIsEditDialogOpen(false);
-    } catch (err) {
-      setError("Failed to update profile. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onPasswordSubmit = async (data: ChangePasswordForm) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // TODO: Connect to actual change password API
-      console.log("Changing password for user:", currentUser.id);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccess("Password changed successfully");
-      setIsPasswordDialogOpen(false);
-      passwordForm.reset();
-    } catch (err) {
-      setError("Failed to change password. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'superuser':
+        return 'default';
+      case 'admin':
+        return 'secondary';
+      case 'dispatcher':
+        return 'outline';
+      default:
+        return 'outline';
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex">
       <SidebarNavigation />
-      <MobileNavigation />
-      
-      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-        <div className="p-6 max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-600">Manage your account information and preferences</p>
-          </div>
-
-          {/* Alerts */}
-          {error && (
-            <Alert variant="destructive" className="border-red-200 bg-red-50">
-              <AlertDescription className="text-red-800">{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {success && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <AlertDescription className="text-green-800">{success}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Profile Information Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Profile Information
-                  </CardTitle>
-                  <CardDescription>
-                    Your personal details and account information
-                  </CardDescription>
-                </div>
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                      <DialogDescription>
-                        Update your personal information. Your role and permissions cannot be changed here.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            {...profileForm.register("firstName")}
-                            className="h-9"
-                          />
-                          {profileForm.formState.errors.firstName && (
-                            <p className="text-xs text-red-600">
-                              {profileForm.formState.errors.firstName.message}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            {...profileForm.register("lastName")}
-                            className="h-9"
-                          />
-                          {profileForm.formState.errors.lastName && (
-                            <p className="text-xs text-red-600">
-                              {profileForm.formState.errors.lastName.message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          {...profileForm.register("username")}
-                          className="h-9"
-                        />
-                        {profileForm.formState.errors.username && (
-                          <p className="text-xs text-red-600">
-                            {profileForm.formState.errors.username.message}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          {...profileForm.register("email")}
-                          className="h-9"
-                        />
-                        {profileForm.formState.errors.email && (
-                          <p className="text-xs text-red-600">
-                            {profileForm.formState.errors.email.message}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="position">Position</Label>
-                          <Input
-                            id="position"
-                            {...profileForm.register("position")}
-                            className="h-9"
-                            placeholder="Optional"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="employeeNumber">Employee #</Label>
-                          <Input
-                            id="employeeNumber"
-                            {...profileForm.register("employeeNumber")}
-                            className="h-9"
-                            placeholder="Optional"
-                          />
-                        </div>
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsEditDialogOpen(false)}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4 mr-2" />
-                              Save Changes
-                            </>
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+      <div className={cn(
+        "flex-1 transition-all duration-300",
+        isCollapsed ? "ml-16" : "ml-64"
+      )}>
+        <div className="p-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
+                <p className="text-gray-600 mt-1">Manage your account information</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Full Name</Label>
-                    <div className="mt-1 text-lg font-semibold text-gray-900">
-                      {currentUser.firstName} {currentUser.lastName}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Username</Label>
-                    <div className="mt-1 flex items-center gap-2 text-gray-900">
-                      <User className="w-4 h-4 text-gray-500" />
-                      {currentUser.username}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Email Address</Label>
-                    <div className="mt-1 flex items-center gap-2 text-gray-900">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      {currentUser.email}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Role</Label>
-                    <div className="mt-1">
-                      <Badge variant={getRoleBadgeVariant(currentUser.role)} className="flex items-center gap-2 w-fit">
-                        {getRoleIcon(currentUser.role)}
-                        {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
+              <Button variant="outline">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            </div>
+
+            {/* Main Profile Card */}
+            <Card>
+              <CardHeader className="pb-6">
+                <div className="flex items-center space-x-4">
+                  <Avatar className="w-20 h-20">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-2xl font-semibold">
+                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {user.firstName} {user.lastName}
+                      </h2>
+                      <Badge 
+                        variant={getRoleBadgeVariant(user.role)}
+                        className="flex items-center space-x-1"
+                      >
+                        {getRoleIcon(user.role)}
+                        <span className="capitalize">{user.role}</span>
                       </Badge>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Position</Label>
-                    <div className="mt-1 flex items-center gap-2 text-gray-900">
-                      <Building className="w-4 h-4 text-gray-500" />
-                      {currentUser.position || "Not specified"}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Employee Number</Label>
-                    <div className="mt-1 flex items-center gap-2 text-gray-900">
-                      <Hash className="w-4 h-4 text-gray-500" />
-                      {currentUser.employeeNumber || "Not specified"}
-                    </div>
+                    <p className="text-gray-600">{user.position}</p>
                   </div>
                 </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Account Status</Label>
-                  <div className="mt-1">
-                    <Badge variant={currentUser.isActive ? "default" : "secondary"} className="flex items-center gap-2 w-fit">
-                      <CheckCircle className="w-4 h-4" />
-                      {currentUser.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Member Since</Label>
-                  <div className="mt-1 flex items-center gap-2 text-gray-900">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    {new Date(currentUser.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Security Settings Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Security Settings
-                  </CardTitle>
-                  <CardDescription>
-                    Manage your password and security preferences
-                  </CardDescription>
-                </div>
-                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Key className="w-4 h-4 mr-2" />
-                      Change Password
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Change Password</DialogTitle>
-                      <DialogDescription>
-                        Enter your current password and choose a new secure password
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Current Password</Label>
-                        <Input
-                          id="currentPassword"
-                          type="password"
-                          {...passwordForm.register("currentPassword")}
-                          className="h-9"
-                        />
-                        {passwordForm.formState.errors.currentPassword && (
-                          <p className="text-xs text-red-600">
-                            {passwordForm.formState.errors.currentPassword.message}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          {...passwordForm.register("newPassword")}
-                          className="h-9"
-                        />
-                        {passwordForm.formState.errors.newPassword && (
-                          <p className="text-xs text-red-600">
-                            {passwordForm.formState.errors.newPassword.message}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Must be at least 8 characters long
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          {...passwordForm.register("confirmPassword")}
-                          className="h-9"
-                        />
-                        {passwordForm.formState.errors.confirmPassword && (
-                          <p className="text-xs text-red-600">
-                            {passwordForm.formState.errors.confirmPassword.message}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setIsPasswordDialogOpen(false);
-                            passwordForm.reset();
-                          }}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Updating...
-                            </>
-                          ) : (
-                            <>
-                              <Key className="w-4 h-4 mr-2" />
-                              Change Password
-                            </>
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Password</Label>
-                  <div className="mt-1 text-gray-500">
-                    Last updated {new Date(currentUser.updatedAt).toLocaleDateString()}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Click "Change Password" to update your password. Use a strong password with at least 8 characters.
-                  </p>
-                </div>
-                
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <Separator />
                 
+                {/* Contact Information */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Security Tips</Label>
-                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                    <li>• Use a unique password that you don't use elsewhere</li>
-                    <li>• Include uppercase, lowercase, numbers, and special characters</li>
-                    <li>• Don't share your login credentials with others</li>
-                    <li>• Log out when you're finished using the system</li>
-                  </ul>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium text-gray-900">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                        <UserIcon className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Username</p>
+                        <p className="font-medium text-gray-900">{user.username}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Account Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Account Activity
-              </CardTitle>
-              <CardDescription>
-                Information about your account activity and access
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Separator />
+
+                {/* Work Information */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Account Created</Label>
-                  <div className="mt-1 text-gray-900">
-                    {new Date(currentUser.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Work Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Position</p>
+                        <p className="font-medium text-gray-900">{user.position}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Employee Number</p>
+                        <p className="font-medium text-gray-900">{user.employeeNumber}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
+
+                <Separator />
+
+                {/* Account Status */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
-                  <div className="mt-1 text-gray-900">
-                    {new Date(currentUser.updatedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Active Account</span>
+                  </div>
+                  <div className="mt-2 text-sm text-gray-500">
+                    Account created on {new Date(user.createdAt).toLocaleDateString('en-GB')}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Security Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Security Settings</CardTitle>
+                <CardDescription>
+                  Manage your account security and authentication preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">Password</p>
+                    <p className="text-sm text-gray-600">Last updated recently</p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Change Password
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

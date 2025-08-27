@@ -16,6 +16,9 @@ type User = {
   email: string;
   position?: string;
   employeeNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
 };
 
 type AuthContextType = {
@@ -91,22 +94,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/auth/logout");
       if (!res.ok) {
-        throw new Error('Logout failed');
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Logout failed');
       }
+      return res;
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
-      queryClient.clear(); // Clear all cached data on logout
+      queryClient.clear(); // Clear all queries
+      // Clear any stored tokens
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
     },
     onError: (error: Error) => {
+      // Even if logout fails on server, clear client-side data
+      queryClient.setQueryData(["/api/auth/user"], null);
+      queryClient.clear();
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Logged out",
+        description: "Session ended",
+        variant: "default",
       });
     },
   });

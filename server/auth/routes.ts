@@ -92,8 +92,9 @@ router.post("/logout", authenticateToken, async (req, res) => {
  */
 router.get("/user", authenticateToken, async (req, res) => {
   try {
-    const userId = req.user!.userId;
-    const user = await userService.getUserById(userId);
+    // The JWT payload contains username, not userId, so we need to look up by username
+    const username = req.user!.username;
+    const user = await userService.getUserByUsername(username);
     
     if (!user) {
       return res.status(404).json({

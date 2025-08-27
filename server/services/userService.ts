@@ -456,11 +456,7 @@ export class UserService {
 
       // Generate JWT token
       const { generateToken } = await import("../auth/jwt");
-      const token = generateToken({
-        userId: user.id,
-        username: user.username,
-        role: user.role,
-      });
+      const token = generateToken(user);
 
       return {
         success: true,
