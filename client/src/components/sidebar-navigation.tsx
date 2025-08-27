@@ -288,7 +288,9 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user.firstName || 'Unknown'} {user.lastName || 'User'}
+                      {user.firstName && user.lastName 
+                        ? `${user.firstName} ${user.lastName}` 
+                        : user.username || 'Loading...'}
                     </p>
                     <div className="flex items-center space-x-1">
                       <Badge 

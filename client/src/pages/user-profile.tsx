@@ -88,7 +88,9 @@ export default function UserProfile() {
                   <div className="space-y-2">
                     <div className="flex items-center space-x-3">
                       <h2 className="text-2xl font-bold text-gray-900">
-                        {user.firstName || 'Unknown'} {user.lastName || 'User'}
+                        {user.firstName && user.lastName 
+                          ? `${user.firstName} ${user.lastName}` 
+                          : user.username || 'Loading...'}
                       </h2>
                       <Badge 
                         variant={getRoleBadgeVariant(user.role)}

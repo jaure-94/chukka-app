@@ -56,7 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!response.ok) {
           throw new Error('Failed to fetch user');
         }
-        return await response.json();
+        const data = await response.json();
+        // Backend returns {success: true, user: {...}}, we need just the user
+        return data.user || data;
       } catch (error) {
         return null; // Return null for auth errors
       }
