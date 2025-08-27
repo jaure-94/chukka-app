@@ -79,13 +79,13 @@ export default function UserProfile() {
                 <div className="flex items-center space-x-4">
                   <Avatar className="w-20 h-20">
                     <AvatarFallback className="bg-blue-100 text-blue-700 text-2xl font-semibold">
-                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-3">
                       <h2 className="text-2xl font-bold text-gray-900">
-                        {user.firstName} {user.lastName}
+                        {user.firstName || 'Unknown'} {user.lastName || 'User'}
                       </h2>
                       <Badge 
                         variant={getRoleBadgeVariant(user.role)}
