@@ -3,8 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { User, MoreVertical, Crown, Shield, Clipboard, UserIcon, Loader2 } from "lucide-react";
+import { User, MoreVertical, Crown, Shield, Clipboard, UserIcon, Loader2, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useUsers, useUserStats, type SystemUser } from "@/hooks/use-users";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +68,52 @@ export default function Users() {
   const { isCollapsed } = useSidebar();
   const { data: users, isLoading, error } = useUsers();
   const { data: stats } = useUserStats();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest("DELETE", `/api/users/${userId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Refresh the users list and stats
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      
+      // Close delete dialog and show success dialog
+      setDeleteDialogOpen(false);
+      setSuccessDialogOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = (user: SystemUser) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      deleteUserMutation.mutate(userToDelete.id);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessDialogOpen(false);
+    setUserToDelete(null);
+  };
   
   if (isLoading) {
     return (
@@ -245,8 +304,15 @@ export default function Users() {
                               <DropdownMenuItem>View Profile</DropdownMenuItem>
                               <DropdownMenuItem>Edit User</DropdownMenuItem>
                               <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem className="text-orange-600">
                                 {user.isActive ? 'Deactivate User' : 'Activate User'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600 focus:text-red-600" 
+                                onClick={() => handleDeleteClick(user)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete User
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -259,6 +325,76 @@ export default function Users() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2 text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span>Confirm Delete User</span>
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-4">
+                  Are you sure you want to delete <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> 
+                  (@{userToDelete?.username})? This action cannot be undone.
+                  <br /><br />
+                  The user will permanently lose access to the system and all associated data will be removed.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={deleteUserMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleConfirmDelete}
+                  disabled={deleteUserMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deleteUserMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete User
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Success Dialog */}
+          <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2 text-green-600">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>User Deleted Successfully</span>
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-4">
+                  <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong> has been successfully 
+                  removed from the system. The user list has been updated to reflect this change.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="mt-6">
+                <Button
+                  onClick={handleSuccessClose}
+                  className="bg-green-600 hover:bg-green-700 w-full"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Continue
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
