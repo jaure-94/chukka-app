@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import SidebarNavigation from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 export default function UserProfile() {
   const { user } = useAuth();
@@ -67,10 +68,12 @@ export default function UserProfile() {
                 <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
                 <p className="text-gray-600 mt-1">Manage your account information</p>
               </div>
-              <Button variant="outline">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
+              <Link href="/profile/edit">
+                <Button variant="outline">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </Link>
             </div>
 
             {/* Main Profile Card */}

@@ -25,13 +25,27 @@ export type UserStats = {
 export function useUsers() {
   return useQuery<SystemUser[]>({
     queryKey: ["/api/users"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    select: (data: any) => {
+      if (!data) return [];
+      return data.users || [];
+    },
   });
 }
 
 export function useUserStats() {
   return useQuery<UserStats>({
     queryKey: ["/api/users/stats"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    select: (data: any) => {
+      if (!data) return { totalUsers: 0, activeUsers: 0, inactiveUsers: 0, pendingUsers: 0 };
+      // The API returns the stats directly in the response, not nested
+      return {
+        totalUsers: data.totalUsers || 0,
+        activeUsers: data.activeUsers || 0,
+        inactiveUsers: data.inactiveUsers || 0,
+        pendingUsers: data.pendingUsers || 0,
+      };
+    },
   });
 }

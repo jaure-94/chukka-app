@@ -20,6 +20,7 @@ import { ManualDispatch } from "@/pages/ManualDispatch";
 import LoginPage from "@/pages/login";
 import AccountManagement from "@/pages/account-management";
 import UserProfile from "@/pages/user-profile";
+import EditProfile from "@/pages/edit-profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -106,6 +107,11 @@ function Router() {
           <Route path="/profile">
             <ProtectedRoute>
               <UserProfile />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/profile/edit">
+            <ProtectedRoute>
+              <EditProfile />
             </ProtectedRoute>
           </Route>
           <Route component={NotFound} />

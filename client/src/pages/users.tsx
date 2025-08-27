@@ -214,7 +214,7 @@ export default function Users() {
                       </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {users?.map((user: SystemUser) => (
+                    {(users || []).map((user: SystemUser) => (
                       <TableRow key={user.id} className="hover:bg-gray-50">
                         <TableCell>
                           <div className="flex items-center space-x-3">
