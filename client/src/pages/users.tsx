@@ -58,69 +58,47 @@ export default function Users() {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          <div className="hidden lg:block">
-            <SidebarNavigation />
+      <div className="flex min-h-screen bg-gray-50">
+        <SidebarNavigation />
+        <main className={`flex-1 transition-all duration-300 ${
+          isCollapsed ? 'ml-16' : 'ml-64'
+        } overflow-hidden`}>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           </div>
-          <div className="lg:hidden">
-            <MobileNavigation />
-          </div>
-          <main className={`flex-1 p-6 transition-all duration-300 ${
-            isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-          }`}>
-            <div className="flex items-center justify-center min-h-[400px]">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            </div>
-          </main>
-        </div>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          <div className="hidden lg:block">
-            <SidebarNavigation />
-          </div>
-          <div className="lg:hidden">
-            <MobileNavigation />
-          </div>
-          <main className={`flex-1 p-6 transition-all duration-300 ${
-            isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-          }`}>
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900">Error Loading Users</h2>
-                <p className="text-gray-600 mt-2">Unable to fetch user data. Please try again.</p>
-              </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <SidebarNavigation />
+        <main className={`flex-1 transition-all duration-300 ${
+          isCollapsed ? 'ml-16' : 'ml-64'
+        } overflow-hidden`}>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-900">Error Loading Users</h2>
+              <p className="text-gray-600 mt-2">Unable to fetch user data. Please try again.</p>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <SidebarNavigation />
-        </div>
-
-        {/* Mobile Navigation */}
-        <div className="lg:hidden">
-          <MobileNavigation />
-        </div>
-
-        {/* Main Content */}
-        <main className={`flex-1 p-6 transition-all duration-300 ${
-          isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-        }`}>
-          <div className="max-w-7xl mx-auto">
+    <div className="flex min-h-screen bg-gray-50">
+      <SidebarNavigation />
+      
+      {/* Main Content */}
+      <main className={`flex-1 transition-all duration-300 ${
+        isCollapsed ? 'ml-16' : 'ml-64'
+      } overflow-hidden`}>
+        <div className="p-6 h-full overflow-y-auto">
+          <div className="w-full max-w-full">
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -203,13 +181,13 @@ export default function Users() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[200px]">User</TableHead>
-                        <TableHead className="min-w-[120px]">Role</TableHead>
-                        <TableHead className="min-w-[150px] hidden md:table-cell">Position</TableHead>
-                        <TableHead className="min-w-[200px]">Email</TableHead>
-                        <TableHead className="min-w-[120px] hidden lg:table-cell">Employee #</TableHead>
-                        <TableHead className="min-w-[80px]">Status</TableHead>
-                        <TableHead className="min-w-[100px] hidden sm:table-cell">Join Date</TableHead>
+                        <TableHead className="w-[200px]">User</TableHead>
+                        <TableHead className="w-[120px]">Role</TableHead>
+                        <TableHead className="w-[150px] hidden md:table-cell">Position</TableHead>
+                        <TableHead className="w-[180px] hidden lg:table-cell">Email</TableHead>
+                        <TableHead className="w-[120px] hidden lg:table-cell">Employee #</TableHead>
+                        <TableHead className="w-[80px]">Status</TableHead>
+                        <TableHead className="w-[100px] hidden sm:table-cell">Join Date</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -242,7 +220,7 @@ export default function Users() {
                         <TableCell className="hidden md:table-cell">
                           {user.position || 'Not specified'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <div className="text-sm text-gray-900 truncate max-w-[150px]">{user.email}</div>
                         </TableCell>
                         <TableCell className="text-sm hidden lg:table-cell">
@@ -281,8 +259,8 @@ export default function Users() {
               </CardContent>
             </Card>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

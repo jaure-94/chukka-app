@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Save, User } from "lucide-react";
+import { ArrowLeft, Save, User, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -114,19 +114,28 @@ export default function EditProfile() {
       )}>
         <div className="p-8">
           <div className="max-w-2xl mx-auto space-y-8">
+            {/* Breadcrumbs */}
+            <nav className="flex items-center space-x-1 text-sm text-gray-500">
+              <Link href="/" className="hover:text-gray-700">Dashboard</Link>
+              <ChevronRight className="w-4 h-4" />
+              <Link href="/profile" className="hover:text-gray-700">Profile</Link>
+              <ChevronRight className="w-4 h-4" />
+              <span className="text-gray-900 font-medium">Edit Profile</span>
+            </nav>
+
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-start">
                 <Link href="/profile">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="mb-4">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Profile
                   </Button>
                 </Link>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Edit Profile</h1>
-                  <p className="text-gray-600 mt-1">Update your account information</p>
-                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Edit Profile</h1>
+                <p className="text-gray-600 mt-1">Update your account information</p>
               </div>
             </div>
 
