@@ -288,7 +288,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user.firstName} {user.lastName}
+                      {user.firstName || 'Unknown'} {user.lastName || 'User'}
                     </p>
                     <div className="flex items-center space-x-1">
                       <Badge 
@@ -303,7 +303,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                         {user.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
                         {user.role === 'dispatcher' && <Clipboard className="w-3 h-3 mr-1" />}
                         {user.role === 'general' && <User className="w-3 h-3 mr-1" />}
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {(user.role?.charAt(0).toUpperCase() || '') + (user.role?.slice(1) || '')}
                       </Badge>
                     </div>
                   </div>
