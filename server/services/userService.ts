@@ -152,7 +152,7 @@ export class UserService {
         username: userData.username,
         email: userData.email,
         passwordHash,
-        role: userData.role || "user",
+        role: userData.role || "general",
         position: userData.position || null,
         employeeNumber: userData.employeeNumber || null,
         isActive: true,

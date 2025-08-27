@@ -32,20 +32,18 @@ export const passwordValidation = {
 export const USER_ROLES = {
   SUPERUSER: "superuser",
   ADMIN: "admin", 
-  MANAGER: "manager",
-  SUPERVISOR: "supervisor",
-  USER: "user",
+  DISPATCHER: "dispatcher",
+  GENERAL: "general",
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 // Role hierarchy (higher number = more permissions)
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  [USER_ROLES.USER]: 1,
-  [USER_ROLES.SUPERVISOR]: 2,
-  [USER_ROLES.MANAGER]: 3,
-  [USER_ROLES.ADMIN]: 4,
-  [USER_ROLES.SUPERUSER]: 5,
+  [USER_ROLES.GENERAL]: 1,
+  [USER_ROLES.DISPATCHER]: 2,
+  [USER_ROLES.ADMIN]: 3,
+  [USER_ROLES.SUPERUSER]: 4,
 };
 
 // Permissions mapping
@@ -82,21 +80,14 @@ export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
 // Role-based permissions
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [USER_ROLES.USER]: [
+  [USER_ROLES.GENERAL]: [
+    // General users can only view basic reports
     PERMISSIONS.VIEW_DISPATCH_REPORTS,
     PERMISSIONS.VIEW_EOD_REPORTS,
   ],
   
-  [USER_ROLES.SUPERVISOR]: [
-    PERMISSIONS.VIEW_DISPATCH_REPORTS,
-    PERMISSIONS.EDIT_DISPATCH_REPORTS,
-    PERMISSIONS.GENERATE_DISPATCH_REPORTS,
-    PERMISSIONS.VIEW_EOD_REPORTS,
-    PERMISSIONS.EDIT_EOD_REPORTS,
-    PERMISSIONS.GENERATE_EOD_REPORTS,
-  ],
-  
-  [USER_ROLES.MANAGER]: [
+  [USER_ROLES.DISPATCHER]: [
+    // Dispatchers can view, edit and generate dispatch and EOD reports
     PERMISSIONS.VIEW_DISPATCH_REPORTS,
     PERMISSIONS.EDIT_DISPATCH_REPORTS,
     PERMISSIONS.GENERATE_DISPATCH_REPORTS,
@@ -111,7 +102,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   
   [USER_ROLES.ADMIN]: [
-    // All manager permissions plus user management
+    // Admins have all dispatcher permissions plus user management
     PERMISSIONS.VIEW_DISPATCH_REPORTS,
     PERMISSIONS.EDIT_DISPATCH_REPORTS,
     PERMISSIONS.GENERATE_DISPATCH_REPORTS,
@@ -131,7 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   
   [USER_ROLES.SUPERUSER]: [
-    // All permissions (veto power)
+    // All permissions (complete system access)
     ...Object.values(PERMISSIONS),
   ],
 };

@@ -142,7 +142,7 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull(),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull().default("user"), // superuser, admin, manager, supervisor, user
+  role: text("role").notNull().default("general"), // superuser, admin, dispatcher, general
   position: text("position"),
   employeeNumber: text("employee_number").unique(),
   email: text("email").notNull().unique(),
@@ -214,7 +214,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please provide a valid email address"),
-  role: z.enum(["superuser", "admin", "manager", "supervisor", "user"]).default("user"),
+  role: z.enum(["superuser", "admin", "dispatcher", "general"]).default("general"),
 });
 
 export const loginSchema = z.object({

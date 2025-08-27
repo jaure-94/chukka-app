@@ -4,12 +4,13 @@
 This is a full-stack web application designed for uploading, processing, and exporting Excel files, coupled with template-based document generation. The system aims to streamline document creation, enhance data management, and provide robust reporting capabilities for maritime operations. Key capabilities include data preview, template selection, export, and complete multi-ship data management with Ship A, Ship B, and Ship C support.
 
 ## Recent Changes (August 2025)
+- **Updated Role System**: Revised user roles from 5-tier to 4-tier system per client requirements: superuser, admin, dispatcher, and general user, with updated permissions mapping and database schema
 - **Ship-Specific Template Upload System**: Fixed critical bug where Ship B/C templates were incorrectly saved to Ship A's directory
 - **Frontend Template Logic**: Corrected API endpoints and FormData handling for proper ship-aware uploads
 - **Database Path Alignment**: Resolved file path mismatches between database records and actual file storage locations
 - **Complete Ship Isolation**: Implemented full ship-specific architecture with dedicated directories, database isolation, and parameter-based routing
 - **JWT Authentication System**: Implemented secure authentication with bcrypt password hashing, HTTP-only cookies, and JWT tokens
-- **Role-Based Access Control**: Created 5-tier user role system (superuser, admin, manager, supervisor, user) with granular permissions
+- **Role-Based Access Control**: Updated to 4-tier user role system (superuser, admin, dispatcher, general) with granular permissions
 - **User Management API**: Built comprehensive user CRUD operations with role-based restrictions and validation
 
 ## User Preferences
@@ -44,7 +45,7 @@ Preferred communication style: Simple, everyday language.
 - **Report Generation**: Automatic dual report (dispatch and EOD/PAX) generation with downloadable files and processing history. Supports both generating new reports from templates and appending new records to existing reports (successive reports).
 - **User Management**: Comprehensive user management with details, status, and actions.
 - **Authentication & Authorization**: JWT-based authentication with role-based access control, secure password management, and HTTP-only cookie sessions.
-- **Role-Based Security**: Five user roles (superuser, admin, manager, supervisor, user) with granular permissions for different system operations.
+- **Role-Based Security**: Four user roles (superuser, admin, dispatcher, general) with granular permissions for different system operations.
 - **Spreadsheet View**: In-browser Excel editing capabilities (upload, edit, save, download).
 - **Auto-Calculations**: Real-time calculations for relevant fields.
 - **Responsive Design**: Global sidebar navigation and responsive layouts.
