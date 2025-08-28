@@ -107,10 +107,10 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
       <SidebarNavigation />
       <div className={cn(
-        "flex-1 transition-all duration-300 h-screen flex flex-col",
+        "flex-1 transition-all duration-300 flex flex-col",
         isCollapsed ? "ml-16" : "ml-64"
       )}>
         {/* Breadcrumbs - Sticky at top */}
