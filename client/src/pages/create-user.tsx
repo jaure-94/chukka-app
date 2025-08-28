@@ -67,7 +67,7 @@ export default function CreateUser() {
     },
   });
 
-  const hasSuperuser = users?.some((user: any) => user.role === "superuser");
+  const hasSuperuser = Array.isArray(users) && users.some((user: any) => user.role === "superuser");
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
