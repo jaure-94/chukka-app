@@ -288,6 +288,12 @@ export class UserController {
           "The requested user does not exist");
       }
 
+      // Prevent superuser deactivation - system must have one superuser
+      if (existingUser.role === 'superuser') {
+        return this.sendErrorResponse(res, 403, "Operation not allowed", 
+          "Superuser accounts cannot be deactivated. The system must maintain one active superuser.");
+      }
+
       // Deactivate user (soft delete for safety)
       const result = await this.userService.deactivateUser(userId);
       
@@ -379,6 +385,12 @@ export class UserController {
           "The requested user does not exist");
       }
 
+      // Prevent superuser deletion - system must have one superuser
+      if (existingUser.role === 'superuser') {
+        return this.sendErrorResponse(res, 403, "Operation not allowed", 
+          "Superuser accounts cannot be deleted. The system must maintain one active superuser.");
+      }
+
       // Permanently delete user from database
       const result = await this.userService.deleteUserPermanently(userId);
       
@@ -432,47 +444,7 @@ export class UserController {
     }
   };
 
-  /**
-   * POST /api/users/:id/deactivate
-   * Deactivate user account (admin only)
-   */
-  public deactivateUser = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = parseInt(req.params.id);
-      
-      if (isNaN(userId)) {
-        return this.sendErrorResponse(res, 400, "Invalid input", 
-          "User ID must be a valid number");
-      }
 
-      // Check admin permission
-      if (!this.hasUserAccess(req.user, 0, true)) {
-        return this.sendErrorResponse(res, 403, "Insufficient permissions", 
-          "Admin access required to deactivate users");
-      }
-
-      // Prevent self-deactivation
-      if (req.user?.userId === userId) {
-        return this.sendErrorResponse(res, 400, "Invalid operation", 
-          "You cannot deactivate your own account");
-      }
-
-      const result = await this.userService.deactivateUser(userId);
-      
-      if (!result.success) {
-        return this.sendErrorResponse(res, 400, "User deactivation failed", result.message);
-      }
-
-      const safeUser = this.sanitizeUser(result.user);
-      return this.sendSuccessResponse(res, 200, "User deactivated successfully", {
-        user: safeUser,
-      });
-    } catch (error) {
-      console.error("Deactivate user error:", error);
-      return this.sendErrorResponse(res, 500, "Internal server error", 
-        "Failed to deactivate user");
-    }
-  };
 
   /**
    * GET /api/users/profile/permissions

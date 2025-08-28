@@ -383,20 +383,25 @@ export default function Users() {
                               <DropdownMenuItem>View Profile</DropdownMenuItem>
                               <DropdownMenuItem>Edit User</DropdownMenuItem>
                               <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-orange-600"
-                                onClick={() => handleDeactivateClick(user)}
-                              >
-                                <UserX className="w-4 h-4 mr-2" />
-                                {user.isActive ? 'Deactivate User' : 'Reactivate User'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-red-600 focus:text-red-600" 
-                                onClick={() => handleDeleteClick(user)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete Permanently
-                              </DropdownMenuItem>
+                              {/* Prevent superuser from being deactivated or deleted */}
+                              {user.role !== 'superuser' && (
+                                <>
+                                  <DropdownMenuItem 
+                                    className="text-orange-600"
+                                    onClick={() => handleDeactivateClick(user)}
+                                  >
+                                    <UserX className="w-4 h-4 mr-2" />
+                                    {user.isActive ? 'Deactivate User' : 'Reactivate User'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-red-600 focus:text-red-600" 
+                                    onClick={() => handleDeleteClick(user)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Permanently
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
