@@ -192,14 +192,15 @@ export default function Users() {
   }
   
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <SidebarNavigation />
       
       {/* Main Content */}
       <main className={`flex-1 transition-all duration-300 ${
         isCollapsed ? 'ml-16' : 'ml-64'
-      } overflow-hidden`}>
-        <div className="p-6 h-full overflow-y-auto">
+      } flex flex-col`}>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
           <div className="w-full max-w-full">
             {/* Header */}
             <div className="mb-8">
@@ -513,6 +514,7 @@ export default function Users() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </main>
     </div>
