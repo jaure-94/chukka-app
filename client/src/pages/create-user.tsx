@@ -68,7 +68,7 @@ export default function CreateUser() {
     },
   });
 
-  const hasSuperuser = Array.isArray(users) && users.some((user: any) => user.role === "superuser");
+  const hasSuperuser = Array.isArray(users) && users.some((user: any) => user.role === "superuser" && user.isActive);
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -282,7 +282,7 @@ export default function CreateUser() {
                                 <SelectItem value="dispatcher">Dispatcher</SelectItem>
                                 <SelectItem value="admin">Administrator</SelectItem>
                                 <SelectItem value="superuser" disabled={hasSuperuser}>
-                                  Super User {hasSuperuser && "(Already exists)"}
+                                  Super User {hasSuperuser ? "(Already exists)" : ""}
                                 </SelectItem>
                               </SelectContent>
                             </Select>
