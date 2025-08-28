@@ -73,6 +73,17 @@ router.delete(
 );
 
 /**
+ * PATCH /api/users/:id/reactivate
+ * Reactivate user (admin only)
+ */
+router.patch(
+  "/:id/reactivate",
+  authenticateToken,
+  requireAdmin,
+  userController.reactivateUser
+);
+
+/**
  * DELETE /api/users/:id/permanent
  * Permanently delete user from database (admin only)
  */

@@ -306,6 +306,48 @@ export class UserController {
   };
 
   /**
+   * Reactivate a user account
+   */
+  public reactivateUser = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (isNaN(userId)) {
+        return this.sendErrorResponse(res, 400, "Invalid input", 
+          "User ID must be a valid number");
+      }
+
+      // Check admin permission
+      if (!this.hasUserAccess(req.user, 0, true)) {
+        return this.sendErrorResponse(res, 403, "Insufficient permissions", 
+          "Admin access required to reactivate users");
+      }
+
+      // Check if user exists
+      const existingUser = await this.userService.getUserById(userId);
+      if (!existingUser) {
+        return this.sendErrorResponse(res, 404, "User not found", 
+          "The requested user does not exist");
+      }
+
+      // Reactivate user
+      const result = await this.userService.reactivateUser(userId);
+      
+      if (!result.success) {
+        return this.sendErrorResponse(res, 400, "User reactivation failed", result.message);
+      }
+
+      return this.sendSuccessResponse(res, 200, "User reactivated successfully", {
+        reactivatedUserId: userId,
+      });
+    } catch (error) {
+      console.error("Reactivate user error:", error);
+      return this.sendErrorResponse(res, 500, "Internal server error", 
+        "Failed to reactivate user");
+    }
+  };
+
+  /**
    * DELETE /api/users/:id/permanent
    * Permanently delete user from database (admin only)
    */

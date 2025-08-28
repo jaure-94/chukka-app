@@ -77,7 +77,7 @@ export default function Users() {
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null);
   const [userToDeactivate, setUserToDeactivate] = useState<SystemUser | null>(null);
-  const [operationType, setOperationType] = useState<"delete" | "deactivate">("deactivate");
+  const [operationType, setOperationType] = useState<"delete" | "deactivate" | "reactivate">("deactivate");
   const [, setLocation] = useLocation();
 
   // Deactivate user mutation (current "delete" functionality)
@@ -100,6 +100,31 @@ export default function Users() {
       toast({
         title: "Deactivation Failed",
         description: error.message || "Failed to deactivate user. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reactivate user mutation
+  const reactivateUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest("PATCH", `/api/users/${userId}/reactivate`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Refresh the users list and stats
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      
+      // Close deactivate dialog and show success dialog
+      setDeactivateDialogOpen(false);
+      setOperationType("reactivate");
+      setSuccessDialogOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reactivation Failed",
+        description: error.message || "Failed to reactivate user. Please try again.",
         variant: "destructive",
       });
     },
@@ -142,7 +167,14 @@ export default function Users() {
 
   const handleConfirmDeactivate = () => {
     if (userToDeactivate) {
-      deactivateUserMutation.mutate(userToDeactivate.id);
+      // Check if user is currently active or inactive
+      if (userToDeactivate.isActive) {
+        // User is active, so deactivate them
+        deactivateUserMutation.mutate(userToDeactivate.id);
+      } else {
+        // User is inactive, so reactivate them
+        reactivateUserMutation.mutate(userToDeactivate.id);
+      }
     }
   };
 
@@ -399,17 +431,17 @@ export default function Users() {
                 <Button
                   variant="outline"
                   onClick={() => setDeactivateDialogOpen(false)}
-                  disabled={deactivateUserMutation.isPending}
+                  disabled={deactivateUserMutation.isPending || reactivateUserMutation.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant={userToDeactivate?.isActive ? "secondary" : "default"}
                   onClick={handleConfirmDeactivate}
-                  disabled={deactivateUserMutation.isPending}
+                  disabled={deactivateUserMutation.isPending || reactivateUserMutation.isPending}
                   className={userToDeactivate?.isActive ? "bg-orange-600 hover:bg-orange-700 text-white" : "bg-green-600 hover:bg-green-700"}
                 >
-                  {deactivateUserMutation.isPending ? (
+                  {(deactivateUserMutation.isPending || reactivateUserMutation.isPending) ? (
                     <>
                       <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       {userToDeactivate?.isActive ? 'Deactivating...' : 'Reactivating...'}
