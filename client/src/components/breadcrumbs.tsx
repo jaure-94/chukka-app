@@ -15,32 +15,33 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
   return (
-    <nav 
-      className={`sticky top-0 z-40 bg-white border-b border-gray-100 py-4 -mx-6 px-6 ${className}`} 
-      aria-label="Breadcrumb"
-    >
-      <ol className="inline-flex items-center space-x-1 md:space-x-3">
-        {items.map((item, index) => (
-          <li key={index} className={index === 0 ? "inline-flex items-center" : ""}>
-            {index > 0 && (
-              <ChevronRight className="w-3 h-3 text-gray-400 mx-1" />
-            )}
-            {item.isCurrentPage ? (
-              <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">
-                {item.label}
-              </span>
-            ) : item.href ? (
-              <Link href={item.href} className={`${index === 0 ? "" : "ml-1 md:ml-2"} text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors`}>
-                {item.label}
-              </Link>
-            ) : (
-              <span className={`${index === 0 ? "" : "ml-1 md:ml-2"} text-sm font-medium text-gray-700`}>
-                {item.label}
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
+    <div className={`sticky top-0 z-50 bg-white shadow-sm ${className}`}>
+      <nav className="py-3 px-6 border-b border-gray-200" aria-label="Breadcrumb">
+        <ol className="flex items-center space-x-2">
+          {items.map((item, index) => (
+            <li key={index} className="flex items-center">
+              {index > 0 && (
+                <ChevronRight className="w-4 h-4 text-gray-400 mx-2 flex-shrink-0" />
+              )}
+              {item.isCurrentPage ? (
+                <span className="text-sm font-medium text-gray-900 truncate">
+                  {item.label}
+                </span>
+              ) : item.href ? (
+                <Link href={item.href}>
+                  <span className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors duration-200 cursor-pointer truncate">
+                    {item.label}
+                  </span>
+                </Link>
+              ) : (
+                <span className="text-sm font-medium text-gray-600 truncate">
+                  {item.label}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </div>
   );
 }

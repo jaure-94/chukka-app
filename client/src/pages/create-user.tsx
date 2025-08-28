@@ -127,17 +127,16 @@ export default function CreateUser() {
       <main className={`flex-1 transition-all duration-300 ${
         isCollapsed ? 'ml-16' : 'ml-64'
       } overflow-hidden`}>
+        {/* Breadcrumbs - Outside main container for full width sticky */}
+        <Breadcrumbs 
+          items={[
+            { label: "Dashboard", href: "/" },
+            { label: "Users", href: "/users" },
+            { label: "Create New User", isCurrentPage: true }
+          ]}
+        />
         <div className="p-6 h-full overflow-y-auto">
           <div className="w-full max-w-4xl mx-auto">
-            {/* Breadcrumbs */}
-            <Breadcrumbs 
-              items={[
-                { label: "Dashboard", href: "/" },
-                { label: "Users", href: "/users" },
-                { label: "Create New User", isCurrentPage: true }
-              ]}
-              className="mb-6"
-            />
 
             {/* Back Button */}
             <Button 

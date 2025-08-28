@@ -113,17 +113,16 @@ export default function EditProfile() {
         "flex-1 transition-all duration-300",
         isCollapsed ? "ml-16" : "ml-64"
       )}>
+        {/* Breadcrumbs - Outside main container for full width sticky */}
+        <Breadcrumbs 
+          items={[
+            { label: "Dashboard", href: "/" },
+            { label: "Profile", href: "/profile" },
+            { label: "Edit Profile", isCurrentPage: true }
+          ]}
+        />
         <div className="p-8">
           <div className="max-w-2xl mx-auto space-y-8">
-            {/* Breadcrumbs */}
-            <Breadcrumbs 
-              items={[
-                { label: "Dashboard", href: "/" },
-                { label: "Profile", href: "/profile" },
-                { label: "Edit Profile", isCurrentPage: true }
-              ]}
-              className="-mx-8 mb-8"
-            />
 
             {/* Header */}
             <div className="space-y-4">
