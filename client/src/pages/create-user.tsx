@@ -128,8 +128,8 @@ export default function CreateUser() {
       } overflow-hidden`}>
         <div className="p-6 h-full overflow-y-auto">
           <div className="w-full max-w-4xl mx-auto">
-            {/* Breadcrumbs */}
-            <nav className="flex mb-6" aria-label="Breadcrumb">
+            {/* Breadcrumbs - Sticky */}
+            <nav className="sticky top-0 z-40 bg-white border-b border-gray-100 flex mb-6 py-4 -mx-6 px-6" aria-label="Breadcrumb">
               <ol className="inline-flex items-center space-x-1 md:space-x-3">
                 <li className="inline-flex items-center">
                   <a href="/" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
