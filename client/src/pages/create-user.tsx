@@ -120,13 +120,13 @@ export default function CreateUser() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <SidebarNavigation />
       
       {/* Main Content */}
       <main className={`flex-1 transition-all duration-300 ${
         isCollapsed ? 'ml-16' : 'ml-64'
-      } h-screen flex flex-col`}>
+      } flex flex-col`}>
         {/* Breadcrumbs - Sticky at top */}
         <Breadcrumbs 
           items={[
@@ -135,8 +135,9 @@ export default function CreateUser() {
             { label: "Create New User", isCurrentPage: true }
           ]}
         />
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="w-full max-w-4xl mx-auto">
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <div className="w-full max-w-4xl mx-auto">
 
             {/* Back Button */}
             <Button 
@@ -352,6 +353,7 @@ export default function CreateUser() {
                 </Form>
               </CardContent>
             </Card>
+            </div>
           </div>
         </div>
       </main>
