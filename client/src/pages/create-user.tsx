@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ArrowLeft, User, UserPlus, Save, Loader2 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useForm } from "react-hook-form";
@@ -128,34 +129,15 @@ export default function CreateUser() {
       } overflow-hidden`}>
         <div className="p-6 h-full overflow-y-auto">
           <div className="w-full max-w-4xl mx-auto">
-            {/* Breadcrumbs - Sticky */}
-            <nav className="sticky top-0 z-40 bg-white border-b border-gray-100 flex mb-6 py-4 -mx-6 px-6" aria-label="Breadcrumb">
-              <ol className="inline-flex items-center space-x-1 md:space-x-3">
-                <li className="inline-flex items-center">
-                  <a href="/" className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    Dashboard
-                  </a>
-                </li>
-                <li>
-                  <div className="flex items-center">
-                    <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
-                    </svg>
-                    <a href="/users" className="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
-                      Users
-                    </a>
-                  </div>
-                </li>
-                <li aria-current="page">
-                  <div className="flex items-center">
-                    <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
-                    </svg>
-                    <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Create New User</span>
-                  </div>
-                </li>
-              </ol>
-            </nav>
+            {/* Breadcrumbs */}
+            <Breadcrumbs 
+              items={[
+                { label: "Dashboard", href: "/" },
+                { label: "Users", href: "/users" },
+                { label: "Create New User", isCurrentPage: true }
+              ]}
+              className="mb-6"
+            />
 
             {/* Back Button */}
             <Button 

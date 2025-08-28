@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import SidebarNavigation from "@/components/sidebar-navigation";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { useAuth } from "@/hooks/use-auth";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useForm } from "react-hook-form";
@@ -115,13 +116,14 @@ export default function EditProfile() {
         <div className="p-8">
           <div className="max-w-2xl mx-auto space-y-8">
             {/* Breadcrumbs */}
-            <nav className="flex items-center space-x-1 text-sm text-gray-500">
-              <Link href="/" className="hover:text-gray-700">Dashboard</Link>
-              <ChevronRight className="w-4 h-4" />
-              <Link href="/profile" className="hover:text-gray-700">Profile</Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">Edit Profile</span>
-            </nav>
+            <Breadcrumbs 
+              items={[
+                { label: "Dashboard", href: "/" },
+                { label: "Profile", href: "/profile" },
+                { label: "Edit Profile", isCurrentPage: true }
+              ]}
+              className="-mx-8 mb-8"
+            />
 
             {/* Header */}
             <div className="space-y-4">
