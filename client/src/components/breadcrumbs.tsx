@@ -15,8 +15,8 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
   return (
-    <div className={`sticky top-0 z-50 bg-white shadow-sm ${className}`}>
-      <nav className="py-3 px-6 border-b border-gray-200" aria-label="Breadcrumb">
+    <div className={`sticky top-0 z-50 flex-shrink-0 bg-white shadow-sm border-b border-gray-200 ${className}`}>
+      <nav className="py-3 px-6" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2">
           {items.map((item, index) => (
             <li key={index} className="flex items-center">

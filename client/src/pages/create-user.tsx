@@ -126,8 +126,8 @@ export default function CreateUser() {
       {/* Main Content */}
       <main className={`flex-1 transition-all duration-300 ${
         isCollapsed ? 'ml-16' : 'ml-64'
-      } overflow-hidden`}>
-        {/* Breadcrumbs - Outside main container for full width sticky */}
+      } h-screen flex flex-col`}>
+        {/* Breadcrumbs - Sticky at top */}
         <Breadcrumbs 
           items={[
             { label: "Dashboard", href: "/" },
@@ -135,7 +135,7 @@ export default function CreateUser() {
             { label: "Create New User", isCurrentPage: true }
           ]}
         />
-        <div className="p-6 h-full overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto">
           <div className="w-full max-w-4xl mx-auto">
 
             {/* Back Button */}

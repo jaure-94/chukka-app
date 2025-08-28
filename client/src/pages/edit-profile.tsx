@@ -110,10 +110,10 @@ export default function EditProfile() {
     <div className="flex">
       <SidebarNavigation />
       <div className={cn(
-        "flex-1 transition-all duration-300",
+        "flex-1 transition-all duration-300 h-screen flex flex-col",
         isCollapsed ? "ml-16" : "ml-64"
       )}>
-        {/* Breadcrumbs - Outside main container for full width sticky */}
+        {/* Breadcrumbs - Sticky at top */}
         <Breadcrumbs 
           items={[
             { label: "Dashboard", href: "/" },
@@ -121,7 +121,7 @@ export default function EditProfile() {
             { label: "Edit Profile", isCurrentPage: true }
           ]}
         />
-        <div className="p-8">
+        <div className="flex-1 p-8 overflow-y-auto">
           <div className="max-w-2xl mx-auto space-y-8">
 
             {/* Header */}
