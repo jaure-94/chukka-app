@@ -110,6 +110,11 @@ function Router() {
               <AccountManagement />
             </ProtectedRoute>
           </Route>
+          <Route path="/users/:id">
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          </Route>
           <Route path="/profile">
             <ProtectedRoute>
               <UserProfile />

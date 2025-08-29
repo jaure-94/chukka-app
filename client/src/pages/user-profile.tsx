@@ -17,13 +17,31 @@ import { useAuth } from "@/hooks/use-auth";
 import SidebarNavigation from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { cn } from "@/lib/utils";
-import { Link } from "wouter";
+import { Link, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
 
 export default function UserProfile() {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const { isCollapsed } = useSidebar();
+  const params = useParams();
+  
+  // If there's an ID in the URL, fetch that user's data, otherwise use current user
+  const userId = params.id;
+  const isViewingOtherUser = !!userId;
+  
+  const { data: otherUserResponse, isLoading } = useQuery({
+    queryKey: [`/api/users/${userId}`],
+    queryFn: getQueryFn({}),
+    enabled: isViewingOtherUser,
+  });
+  
+  const otherUser = (otherUserResponse as any)?.user;
+  
+  // Use the appropriate user data
+  const user = isViewingOtherUser ? otherUser : currentUser;
 
-  if (!user) {
+  if (!user || (isViewingOtherUser && isLoading)) {
     return <div>Loading...</div>;
   }
 
@@ -65,15 +83,21 @@ export default function UserProfile() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-                <p className="text-gray-600 mt-1">Manage your account information</p>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {isViewingOtherUser ? `${user.firstName} ${user.lastName}'s Profile` : 'Profile'}
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  {isViewingOtherUser ? 'View user account information' : 'Manage your account information'}
+                </p>
               </div>
-              <Link href="/profile/edit">
-                <Button variant="outline">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-              </Link>
+              {!isViewingOtherUser && (
+                <Link href="/profile/edit">
+                  <Button variant="outline">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {/* Main Profile Card */}
