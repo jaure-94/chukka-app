@@ -144,6 +144,10 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       if (user.role === 'general') {
         return item.name !== 'Create New Record' && item.name !== 'Users';
       }
+      // Dispatchers cannot access "Users" page
+      if (user.role === 'dispatcher') {
+        return item.name !== 'Users';
+      }
       return true;
     });
   };
