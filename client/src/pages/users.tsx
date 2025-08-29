@@ -387,29 +387,34 @@ export default function Users() {
                               <DropdownMenuItem onClick={() => setLocation(`/users/${user.id}`)}>
                                 View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setLocation(`/users/${user.id}/edit`)}>
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                              {/* Prevent superuser from being deactivated or deleted */}
-                              {user.role !== 'superuser' && (
+                              {/* Admin users can only view superuser profiles, not edit them */}
+                              {!(currentUser?.role === 'admin' && user.role === 'superuser') && (
                                 <>
-                                  <DropdownMenuItem 
-                                    className="text-orange-600"
-                                    onClick={() => handleDeactivateClick(user)}
-                                  >
-                                    <UserX className="w-4 h-4 mr-2" />
-                                    {user.isActive ? 'Deactivate User' : 'Reactivate User'}
+                                  <DropdownMenuItem onClick={() => setLocation(`/users/${user.id}/edit`)}>
+                                    Edit User
                                   </DropdownMenuItem>
-                                  {/* Only superusers can permanently delete users */}
-                                  {currentUser?.role === 'superuser' && (
-                                    <DropdownMenuItem 
-                                      className="text-red-600 focus:text-red-600" 
-                                      onClick={() => handleDeleteClick(user)}
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Delete Permanently
-                                    </DropdownMenuItem>
+                                  <DropdownMenuItem>Reset Password</DropdownMenuItem>
+                                  {/* Prevent superuser from being deactivated or deleted */}
+                                  {user.role !== 'superuser' && (
+                                    <>
+                                      <DropdownMenuItem 
+                                        className="text-orange-600"
+                                        onClick={() => handleDeactivateClick(user)}
+                                      >
+                                        <UserX className="w-4 h-4 mr-2" />
+                                        {user.isActive ? 'Deactivate User' : 'Reactivate User'}
+                                      </DropdownMenuItem>
+                                      {/* Only superusers can permanently delete users */}
+                                      {currentUser?.role === 'superuser' && (
+                                        <DropdownMenuItem 
+                                          className="text-red-600 focus:text-red-600" 
+                                          onClick={() => handleDeleteClick(user)}
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete Permanently
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
                                   )}
                                 </>
                               )}
