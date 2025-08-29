@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useShipContext } from "@/contexts/ship-context";
 import { Link, useParams, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Template {
   id: number;
@@ -23,6 +24,7 @@ interface Template {
 function Templates() {
   const { isCollapsed } = useSidebar();
   const { setCurrentShip, getShipDisplayName } = useShipContext();
+  const { user } = useAuth();
   const params = useParams();
   const [location] = useLocation();
   
@@ -103,12 +105,14 @@ function Templates() {
                   </p>
                 </div>
               </div>
-              <Link href={`/templates/edit/${currentShip}`}>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Templates
-                </Button>
-              </Link>
+              {user?.role !== 'general' && (
+                <Link href={`/templates/edit/${currentShip}`}>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Templates
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </header>

@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 import { ShipProvider } from "@/contexts/ship-context";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { RoleProtectedRoute } from "@/lib/role-protected-route";
 import Home from "@/pages/home";
 import CreateDispatch from "@/pages/create-dispatch";
 import Templates from "@/pages/templates";
@@ -38,12 +39,16 @@ function Router() {
           </Route>
           <Route path="/create-dispatch">
             <ProtectedRoute>
-              <CreateDispatch />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin', 'dispatcher']}>
+                <CreateDispatch />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/create-dispatch/:ship">
             <ProtectedRoute>
-              <CreateDispatch />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin', 'dispatcher']}>
+                <CreateDispatch />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/templates">
@@ -78,12 +83,16 @@ function Router() {
           </Route>
           <Route path="/users">
             <ProtectedRoute>
-              <Users />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin']}>
+                <Users />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/create-user">
             <ProtectedRoute>
-              <CreateUser />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin']}>
+                <CreateUser />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/spreadsheet">
@@ -113,12 +122,16 @@ function Router() {
           </Route>
           <Route path="/users/:id/edit">
             <ProtectedRoute>
-              <EditUser />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin']}>
+                <EditUser />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/users/:id">
             <ProtectedRoute>
-              <UserProfile />
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin']}>
+                <UserProfile />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route path="/profile">

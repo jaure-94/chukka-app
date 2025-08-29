@@ -135,6 +135,21 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const { user, logoutMutation } = useAuth();
 
+  // Filter navigation items based on user role
+  const getFilteredNavigationItems = () => {
+    if (!user) return navigationItems;
+    
+    return navigationItems.filter(item => {
+      // General users cannot access "Create New Record" and "Users" pages
+      if (user.role === 'general') {
+        return item.name !== 'Create New Record' && item.name !== 'Users';
+      }
+      return true;
+    });
+  };
+
+  const filteredNavigationItems = getFilteredNavigationItems();
+
   const toggleExpanded = (itemName: string) => {
     setExpandedItems(prev => 
       prev.includes(itemName) 
@@ -174,7 +189,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 
       {/* Navigation Items */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {navigationItems.map((item) => {
+        {filteredNavigationItems.map((item) => {
           const Icon = item.icon;
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isActive = item.href ? location === item.href : false;
