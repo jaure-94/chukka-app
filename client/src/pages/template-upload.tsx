@@ -1,26 +1,15 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SingleFileUpload } from "@/components/single-file-upload";
-import { DataPreview } from "@/components/data-preview";
+import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { ShipSelector } from "@/components/ship-selector";
-import { CheckCircle, X, Upload, FileSpreadsheet, Settings, Download } from "lucide-react";
+import { Crown, Shield, Clipboard, User, Ship, Database, Lock, FileText, BarChart3, Users, ArrowRight } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
-import { useShipContext } from "@/contexts/ship-context";
-import { useToast } from "@/hooks/use-toast";
-import type { UploadResponse } from "@/lib/types";
+import { useAuth } from "@/hooks/use-auth";
 
-export default function TemplateUpload() {
-  const [, setLocation] = useLocation();
-  const [dispatchUpload, setDispatchUpload] = useState<UploadResponse | null>(null);
-  const [eodUpload, setEodUpload] = useState<UploadResponse | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+export default function Home() {
   const { isCollapsed } = useSidebar();
-  const { currentShip, getShipDisplayName } = useShipContext();
-  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Auto-hide success notification after 3 seconds
   useEffect(() => {

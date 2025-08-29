@@ -7,7 +7,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context";
 import { ShipProvider } from "@/contexts/ship-context";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
-import TemplateUpload from "@/pages/template-upload";
+import Home from "@/pages/home";
 import CreateDispatch from "@/pages/create-dispatch";
 import Templates from "@/pages/templates";
 import EditTemplates from "@/pages/edit-templates";
@@ -33,7 +33,7 @@ function Router() {
           <Route path="/login" component={LoginPage} />
           <Route path="/">
             <ProtectedRoute>
-              <TemplateUpload />
+              <Home />
             </ProtectedRoute>
           </Route>
           <Route path="/create-dispatch">

@@ -15,6 +15,8 @@ This is a full-stack web application designed for uploading, processing, and exp
 - **Component-Driven Development**: Implemented reusable UserProfile component supporting both current user (/profile) and individual user viewing (/users/:id) with smart parameter detection and dynamic UI adaptation
 - **View Profile Feature**: Added complete "View Profile" functionality with breadcrumbs navigation, supporting seamless navigation from Users table dropdown to individual user profiles
 - **Edit User Feature**: Created comprehensive edit user functionality with dedicated /users/:id/edit route, pre-populated forms, permission checking, and seamless integration with Users table dropdown actions
+- **Home Page Redesign**: Completely redesigned home page to be informational about 3-ship system and role-based access control, removing upload template functionality (moved to /templates page)
+- **Application-Wide Scroll Fix**: Applied consistent scroll behavior pattern across all major pages using h-screen overflow-hidden with single overflow-y-auto scroll context
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
