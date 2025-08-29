@@ -91,10 +91,10 @@ export default function CreateUser() {
       const response = await apiRequest("POST", "/api/users", userData);
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Refresh the users list
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       
       toast({
         title: "User Created Successfully",
@@ -102,8 +102,10 @@ export default function CreateUser() {
         variant: "default",
       });
       
-      // Redirect to users page
-      setLocation("/users");
+      // Small delay to ensure cache invalidation completes before redirect
+      setTimeout(() => {
+        setLocation("/users");
+      }, 100);
     },
     onError: (error: Error) => {
       toast({

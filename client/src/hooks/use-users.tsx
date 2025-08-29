@@ -26,6 +26,8 @@ export function useUsers() {
   return useQuery<SystemUser[]>({
     queryKey: ["/api/users"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    refetchOnMount: "always",
+    staleTime: 0,
     select: (data: any) => {
       if (!data) return [];
       const users = data.users || [];
@@ -46,6 +48,8 @@ export function useUserStats() {
   return useQuery<UserStats>({
     queryKey: ["/api/users/stats"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    refetchOnMount: "always",
+    staleTime: 0,
     select: (data: any) => {
       if (!data) return { totalUsers: 0, activeUsers: 0, inactiveUsers: 0, pendingUsers: 0 };
       // The API returns the stats directly in the response, not nested
