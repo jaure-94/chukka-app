@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 const getRoleIcon = (role: string) => {
   switch (role) {
@@ -67,6 +68,7 @@ const getInitials = (firstName: string, lastName: string) => {
 
 export default function Users() {
   const { isCollapsed } = useSidebar();
+  const { user: currentUser } = useAuth();
   const { data: users, isLoading, error } = useUsers();
   const { data: stats } = useUserStats();
   const { toast } = useToast();
@@ -243,13 +245,15 @@ export default function Users() {
                     Manage user accounts and permissions
                   </p>
                 </div>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => setLocation("/create-user")}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Create New User
-                </Button>
+                {currentUser?.role === 'superuser' && (
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setLocation("/create-user")}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Create New User
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -397,13 +401,16 @@ export default function Users() {
                                     <UserX className="w-4 h-4 mr-2" />
                                     {user.isActive ? 'Deactivate User' : 'Reactivate User'}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-red-600 focus:text-red-600" 
-                                    onClick={() => handleDeleteClick(user)}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Permanently
-                                  </DropdownMenuItem>
+                                  {/* Only superusers can permanently delete users */}
+                                  {currentUser?.role === 'superuser' && (
+                                    <DropdownMenuItem 
+                                      className="text-red-600 focus:text-red-600" 
+                                      onClick={() => handleDeleteClick(user)}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete Permanently
+                                    </DropdownMenuItem>
+                                  )}
                                 </>
                               )}
                             </DropdownMenuContent>
