@@ -226,14 +226,14 @@ export default function Reports() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Fixed Desktop Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 h-full z-10">
         <SidebarNavigation />
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 overflow-y-auto ${
         isCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
         {/* Header */}
@@ -264,7 +264,7 @@ export default function Reports() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
           {/* Ship Selector */}
           <div className="mb-8">
             <ShipSelector />
