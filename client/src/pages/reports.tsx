@@ -226,7 +226,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Fixed Desktop Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 h-full z-10">
         <SidebarNavigation />
@@ -264,8 +264,7 @@ export default function Reports() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Ship Selector */}
           <div className="mb-8">
             <ShipSelector />
