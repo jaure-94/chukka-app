@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 export default function UserProfile() {
   const { user: currentUser } = useAuth();
@@ -32,7 +33,7 @@ export default function UserProfile() {
   
   const { data: otherUserResponse, isLoading } = useQuery({
     queryKey: [`/api/users/${userId}`],
-    queryFn: getQueryFn({}),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: isViewingOtherUser,
   });
   
@@ -80,6 +81,19 @@ export default function UserProfile() {
       )}>
         <div className="p-8">
           <div className="max-w-4xl mx-auto space-y-8">
+            {/* Breadcrumbs */}
+            <Breadcrumbs 
+              items={
+                isViewingOtherUser 
+                  ? [
+                      { label: "Users", href: "/users" },
+                      { label: `${user.firstName} ${user.lastName}`, href: `/users/${userId}` }
+                    ]
+                  : [
+                      { label: "Profile", href: "/profile" }
+                    ]
+              } 
+            />
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>

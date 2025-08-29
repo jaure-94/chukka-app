@@ -12,6 +12,8 @@ This is a full-stack web application designed for uploading, processing, and exp
 - **JWT Authentication System**: Implemented secure authentication with bcrypt password hashing, HTTP-only cookies, and JWT tokens
 - **Role-Based Access Control**: Updated to 4-tier user role system (superuser, admin, dispatcher, general) with granular permissions
 - **User Management API**: Built comprehensive user CRUD operations with role-based restrictions and validation
+- **Component-Driven Development**: Implemented reusable UserProfile component supporting both current user (/profile) and individual user viewing (/users/:id) with smart parameter detection and dynamic UI adaptation
+- **View Profile Feature**: Added complete "View Profile" functionality with breadcrumbs navigation, supporting seamless navigation from Users table dropdown to individual user profiles
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
