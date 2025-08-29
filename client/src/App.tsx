@@ -27,7 +27,7 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
-    <div className="h-full bg-background">
+    <div className="min-h-screen bg-background">
       <main>
         <Switch>
           <Route path="/login" component={LoginPage} />
