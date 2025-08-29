@@ -614,15 +614,15 @@ export default function CreateDispatch() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 overflow-hidden flex">
       <SidebarNavigation />
-      <MobileNavigation />
       
       <div 
-        className={`transition-all duration-300 ${
+        className={`flex-1 transition-all duration-300 ${
           isCollapsed ? 'ml-16' : 'ml-64'
-        } p-6`}
+        } overflow-y-auto`}
       >
+        <div className="p-6">
         <div className="max-w-7xl mx-auto">
           {/* Ship Selector */}
           <div className="mb-6">
@@ -1126,6 +1126,9 @@ export default function CreateDispatch() {
           </div>
         </DialogContent>
       </Dialog>
+        </div>
+        </div>
+      </div>
     </div>
   );
 }
