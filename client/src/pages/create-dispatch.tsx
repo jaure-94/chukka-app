@@ -614,12 +614,12 @@ export default function CreateDispatch() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <SidebarNavigation />
       <MobileNavigation />
       
       <div 
-        className={`transition-all duration-300 ${
+        className={`flex-1 transition-all duration-300 overflow-y-auto ${
           isCollapsed ? 'ml-16' : 'ml-64'
         } p-6`}
       >
