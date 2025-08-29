@@ -73,10 +73,10 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
       <SidebarNavigation />
       <div className={cn(
-        "flex-1 transition-all duration-300",
+        "flex-1 transition-all duration-300 overflow-y-auto",
         isCollapsed ? "ml-16" : "ml-64"
       )}>
         <div className="p-8">
