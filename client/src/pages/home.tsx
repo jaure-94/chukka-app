@@ -38,14 +38,14 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Fixed Desktop Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 h-full z-10">
         <SidebarNavigation />
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 overflow-y-auto ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
         isCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
         {/* Header */}
@@ -77,7 +77,7 @@ export default function Home() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 overflow-y-auto">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-7xl mx-auto space-y-16">
             {/* Three Ship System Overview */}
             <section className="text-center">
