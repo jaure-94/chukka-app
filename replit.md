@@ -14,6 +14,7 @@ This is a full-stack web application designed for uploading, processing, and exp
 - **User Management API**: Built comprehensive user CRUD operations with role-based restrictions and validation
 - **Component-Driven Development**: Implemented reusable UserProfile component supporting both current user (/profile) and individual user viewing (/users/:id) with smart parameter detection and dynamic UI adaptation
 - **View Profile Feature**: Added complete "View Profile" functionality with breadcrumbs navigation, supporting seamless navigation from Users table dropdown to individual user profiles
+- **Edit User Feature**: Created comprehensive edit user functionality with dedicated /users/:id/edit route, pre-populated forms, permission checking, and seamless integration with Users table dropdown actions
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

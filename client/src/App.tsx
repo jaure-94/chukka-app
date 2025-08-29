@@ -22,6 +22,7 @@ import AccountManagement from "@/pages/account-management";
 import UserProfile from "@/pages/user-profile";
 import EditProfile from "@/pages/edit-profile";
 import CreateUser from "@/pages/create-user";
+import EditUser from "@/pages/edit-user";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -108,6 +109,11 @@ function Router() {
           <Route path="/account-management">
             <ProtectedRoute>
               <AccountManagement />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/users/:id/edit">
+            <ProtectedRoute>
+              <EditUser />
             </ProtectedRoute>
           </Route>
           <Route path="/users/:id">

@@ -383,7 +383,9 @@ export default function Users() {
                               <DropdownMenuItem onClick={() => setLocation(`/users/${user.id}`)}>
                                 View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Edit User</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/users/${user.id}/edit`)}>
+                                Edit User
+                              </DropdownMenuItem>
                               <DropdownMenuItem>Reset Password</DropdownMenuItem>
                               {/* Prevent superuser from being deactivated or deleted */}
                               {user.role !== 'superuser' && (
