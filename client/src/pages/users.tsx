@@ -397,13 +397,16 @@ export default function Users() {
                                   {/* Prevent superuser from being deactivated or deleted */}
                                   {user.role !== 'superuser' && (
                                     <>
-                                      <DropdownMenuItem 
-                                        className="text-orange-600"
-                                        onClick={() => handleDeactivateClick(user)}
-                                      >
-                                        <UserX className="w-4 h-4 mr-2" />
-                                        {user.isActive ? 'Deactivate User' : 'Reactivate User'}
-                                      </DropdownMenuItem>
+                                      {/* Admin users cannot deactivate other admin users */}
+                                      {!(currentUser?.role === 'admin' && user.role === 'admin') && (
+                                        <DropdownMenuItem 
+                                          className="text-orange-600"
+                                          onClick={() => handleDeactivateClick(user)}
+                                        >
+                                          <UserX className="w-4 h-4 mr-2" />
+                                          {user.isActive ? 'Deactivate User' : 'Reactivate User'}
+                                        </DropdownMenuItem>
+                                      )}
                                       {/* Only superusers can permanently delete users */}
                                       {currentUser?.role === 'superuser' && (
                                         <DropdownMenuItem 
