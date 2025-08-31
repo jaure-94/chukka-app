@@ -17,7 +17,8 @@ import {
   LogOut,
   Crown,
   Shield,
-  Clipboard
+  Clipboard,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -424,9 +425,9 @@ export function MobileNavigation() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="p-2"
+                className="p-2 text-gray-900 hover:text-gray-700 hover:bg-gray-100"
               >
-                ×
+                <X className="h-5 w-5" />
               </Button>
             </div>
             

@@ -620,25 +620,25 @@ export default function CreateDispatch() {
       
       <div 
         className={`flex-1 transition-all duration-300 overflow-y-auto ${
-          isCollapsed ? 'ml-16' : 'ml-64'
-        } p-6`}
+          isCollapsed ? 'md:ml-16' : 'md:ml-64'
+        } p-3 sm:p-4 md:p-6`}
       >
         <div className="max-w-7xl mx-auto">
           {/* Ship Selector */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <ShipSelector />
           </div>
 
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
               Create New Dispatch Record
               {currentShip && (
-                <span className="text-lg font-normal text-blue-600 block mt-1">
+                <span className="text-base sm:text-lg font-normal text-blue-600 block mt-1">
                   for {getShipDisplayName(currentShip)}
                 </span>
               )}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               {currentShip 
                 ? `Edit the dispatch template spreadsheet to create a new record for ${getShipDisplayName(currentShip)}`
                 : 'Please select a ship above to begin editing the dispatch template'
@@ -648,46 +648,46 @@ export default function CreateDispatch() {
 
           {!currentShip ? (
             <Card>
-              <CardContent className="text-center py-8">
-                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Please select a ship above to begin creating dispatch records.</p>
-                <p className="text-sm text-gray-500">Each ship maintains separate templates and data for complete isolation.</p>
+              <CardContent className="text-center py-6 sm:py-8">
+                <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500 mx-auto mb-3 sm:mb-4" />
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 px-2">Please select a ship above to begin creating dispatch records.</p>
+                <p className="text-xs sm:text-sm text-gray-500 px-2">Each ship maintains separate templates and data for complete isolation.</p>
               </CardContent>
             </Card>
           ) : isLoadingDispatch ? (
             <Card>
-              <CardContent className="flex items-center justify-center py-8">
+              <CardContent className="flex items-center justify-center py-6 sm:py-8">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading dispatch template for {getShipDisplayName(currentShip)}...</p>
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+                  <p className="text-sm sm:text-base text-gray-600 px-2">Loading dispatch template for {getShipDisplayName(currentShip)}...</p>
                 </div>
               </CardContent>
             </Card>
           ) : !dispatchTemplate ? (
             <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-gray-600 mb-4">No dispatch template found for {getShipDisplayName(currentShip)}. Please upload a template first.</p>
-                <Button onClick={() => setLocation("/templates/edit")}>
+              <CardContent className="text-center py-6 sm:py-8">
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 px-2">No dispatch template found for {getShipDisplayName(currentShip)}. Please upload a template first.</p>
+                <Button onClick={() => setLocation("/templates/edit")} className="text-sm sm:text-base">
                   Upload Template
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Template Information */}
               <Card className="shadow-sm border-gray-200 hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">Dispatch Template</h3>
-                      <p className="text-sm text-gray-500 truncate">{dispatchTemplate.originalFilename}</p>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">Dispatch Template</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{dispatchTemplate.originalFilename}</p>
                     </div>
                     
                     {/* Status Badge */}
                     {showUpdateEOD && (
                       <div className="shrink-0">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           Ready for Reports
                         </span>
                       </div>
@@ -695,49 +695,50 @@ export default function CreateDispatch() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {!isEditing && !showUpdateEOD ? (
                       <Button 
                         onClick={handleEditSpreadsheet}
                         disabled={isLoading}
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 font-medium"
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 font-medium text-sm sm:text-base"
                         size="lg"
                       >
-                        <Edit className="w-4 h-4 mr-2" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Edit Dispatch Sheet
                       </Button>
                     ) : isEditing ? (
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <Button 
                           onClick={handleSave}
                           disabled={isLoading}
-                          className="flex-1 bg-green-600 hover:bg-green-700 font-medium"
+                          className="flex-1 bg-green-600 hover:bg-green-700 font-medium text-sm sm:text-base"
                           size="lg"
                         >
-                          <Save className="w-4 h-4 mr-2" />
+                          <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           {isLoading ? 'Saving Changes...' : 'Save Changes'}
                         </Button>
                         <Button 
                           onClick={handleCancel}
                           variant="outline"
                           disabled={isLoading}
-                          className="flex-1 border-gray-300 hover:bg-gray-50"
+                          className="flex-1 border-gray-300 hover:bg-gray-50 text-sm sm:text-base"
                           size="lg"
                         >
-                          <X className="w-4 h-4 mr-2" />
+                          <X className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Cancel
                         </Button>
                       </div>
                     ) : showUpdateEOD ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                         <Button 
                           onClick={handleUpdateEOD}
                           disabled={updateEODMutation.isPending}
-                          className="bg-purple-600 hover:bg-purple-700 font-medium"
+                          className="bg-purple-600 hover:bg-purple-700 font-medium text-xs sm:text-sm"
                           size="lg"
                         >
-                          <FileText className="w-4 h-4 mr-2" />
-                          {updateEODMutation.isPending ? 'Generating...' : 'Generate New EOD Report'}
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">{updateEODMutation.isPending ? 'Generating...' : 'Generate New EOD Report'}</span>
+                          <span className="sm:hidden">{updateEODMutation.isPending ? 'Generating...' : 'New EOD'}</span>
                         </Button>
                         <Button 
                           onClick={() => {
@@ -756,11 +757,12 @@ export default function CreateDispatch() {
                             file.filename.startsWith('eod_') && !file.filename.includes(savedFileId)
                           )}
                           variant="outline"
-                          className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 font-medium"
+                          className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 font-medium text-xs sm:text-sm"
                           size="lg"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          {successiveDispatchMutation.isPending ? 'Updating...' : 'Update Existing EOD Report'}
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">{successiveDispatchMutation.isPending ? 'Updating...' : 'Update Existing EOD Report'}</span>
+                          <span className="sm:hidden">{successiveDispatchMutation.isPending ? 'Updating...' : 'Update EOD'}</span>
                         </Button>
                         <Button 
                           onClick={() => {
@@ -768,11 +770,12 @@ export default function CreateDispatch() {
                             setSavedFileId(null);
                           }}
                           variant="outline"
-                          className="border-gray-300 hover:bg-gray-50 font-medium"
+                          className="border-gray-300 hover:bg-gray-50 font-medium text-xs sm:text-sm"
                           size="lg"
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Again
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">Edit Again</span>
+                          <span className="sm:hidden">Edit</span>
                         </Button>
                       </div>
                     ) : null}
@@ -780,10 +783,10 @@ export default function CreateDispatch() {
                   
                   {/* Warning Notice */}
                   {hasUnsavedChanges && (
-                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <div className="flex items-center">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 mr-2" />
-                        <p className="text-sm text-amber-800">You have unsaved changes</p>
+                        <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 mr-2" />
+                        <p className="text-xs sm:text-sm text-amber-800">You have unsaved changes</p>
                       </div>
                     </div>
                   )}
@@ -793,42 +796,44 @@ export default function CreateDispatch() {
               {/* PAX Template Card - Only show when file is saved */}
               {showUpdateEOD && savedFileId && (
                 <Card className="shadow-sm border-gray-200 hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">PAX Template</h3>
-                        <p className="text-sm text-gray-500">Generate PAX reports from dispatch data</p>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">PAX Template</h3>
+                        <p className="text-xs sm:text-sm text-gray-500">Generate PAX reports from dispatch data</p>
                       </div>
                       
                       {/* Status Badge */}
                       <div className="shrink-0">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        <span className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                           PAX Ready
                         </span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                       <Button 
                         onClick={handleUpdatePax}
                         disabled={updatePaxMutation.isPending || updateExistingPaxMutation.isPending}
-                        className="bg-orange-600 hover:bg-orange-700 font-medium"
+                        className="bg-orange-600 hover:bg-orange-700 font-medium text-xs sm:text-sm"
                         size="lg"
                       >
-                        <Users className="w-4 h-4 mr-2" />
-                        {updatePaxMutation.isPending ? 'Generating...' : 'Generate New PAX Report'}
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">{updatePaxMutation.isPending ? 'Generating...' : 'Generate New PAX Report'}</span>
+                        <span className="sm:hidden">{updatePaxMutation.isPending ? 'Generating...' : 'New PAX'}</span>
                       </Button>
                       <Button 
                         onClick={handleUpdateExistingPax}
                         disabled={updateExistingPaxMutation.isPending || updatePaxMutation.isPending}
                         variant="outline"
-                        className="border-orange-300 text-orange-700 hover:bg-orange-50 font-medium"
+                        className="border-orange-300 text-orange-700 hover:bg-orange-50 font-medium text-xs sm:text-sm"
                         size="lg"
                       >
-                        <FileText className="w-4 h-4 mr-2" />
-                        {updateExistingPaxMutation.isPending ? 'Updating...' : 'Update Existing PAX Report'}
+                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">{updateExistingPaxMutation.isPending ? 'Updating...' : 'Update Existing PAX Report'}</span>
+                        <span className="sm:hidden">{updateExistingPaxMutation.isPending ? 'Updating...' : 'Update PAX'}</span>
                       </Button>
                     </div>
                   </CardContent>
@@ -838,13 +843,13 @@ export default function CreateDispatch() {
               {/* Spreadsheet Editor */}
               {isEditing && file && (
                 <Card>
-                  <CardContent className="py-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Edit Dispatch Sheet</h3>
+                  <CardContent className="p-4 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Edit Dispatch Sheet</h3>
                       
                       {/* Horizontal Scroll Controls */}
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 mr-2">
+                        <span className="text-xs sm:text-sm text-gray-600 mr-1 sm:mr-2 hidden sm:inline">
                           Scroll by {getColumnsToScroll()} columns:
                         </span>
                         <Button
@@ -852,9 +857,9 @@ export default function CreateDispatch() {
                           variant="outline"
                           onClick={handleScrollLeft}
                           disabled={!canScrollLeft}
-                          className="flex items-center space-x-1"
+                          className="flex items-center space-x-1 px-2 sm:px-3"
                         >
-                          <ChevronLeft className="h-4 w-4" />
+                          <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                           <span className="hidden sm:inline">Left</span>
                         </Button>
                         <Button
@@ -862,10 +867,10 @@ export default function CreateDispatch() {
                           variant="outline"
                           onClick={handleScrollRight}
                           disabled={!canScrollRight}
-                          className="flex items-center space-x-1"
+                          className="flex items-center space-x-1 px-2 sm:px-3"
                         >
                           <span className="hidden sm:inline">Right</span>
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </div>
