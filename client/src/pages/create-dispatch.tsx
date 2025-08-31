@@ -700,45 +700,45 @@ export default function CreateDispatch() {
                       <Button 
                         onClick={handleEditSpreadsheet}
                         disabled={isLoading}
-                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 font-medium text-sm sm:text-base"
-                        size="lg"
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 font-medium text-sm py-3"
+                        size="default"
                       >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <Edit className="w-4 h-4 mr-2" />
                         Edit Dispatch Sheet
                       </Button>
                     ) : isEditing ? (
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                      <div className="space-y-2 sm:space-y-0 sm:flex sm:gap-3">
                         <Button 
                           onClick={handleSave}
                           disabled={isLoading}
-                          className="flex-1 bg-green-600 hover:bg-green-700 font-medium text-sm sm:text-base"
-                          size="lg"
+                          className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 font-medium text-sm py-3"
+                          size="default"
                         >
-                          <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          <Save className="w-4 h-4 mr-2" />
                           {isLoading ? 'Saving Changes...' : 'Save Changes'}
                         </Button>
                         <Button 
                           onClick={handleCancel}
                           variant="outline"
                           disabled={isLoading}
-                          className="flex-1 border-gray-300 hover:bg-gray-50 text-sm sm:text-base"
-                          size="lg"
+                          className="w-full sm:flex-1 border-gray-300 hover:bg-gray-50 text-sm py-3"
+                          size="default"
                         >
-                          <X className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          <X className="w-4 h-4 mr-2" />
                           Cancel
                         </Button>
                       </div>
                     ) : showUpdateEOD ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                      <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3">
                         <Button 
                           onClick={handleUpdateEOD}
                           disabled={updateEODMutation.isPending}
-                          className="bg-purple-600 hover:bg-purple-700 font-medium text-xs sm:text-sm"
-                          size="lg"
+                          className="w-full bg-purple-600 hover:bg-purple-700 font-medium text-sm py-3"
+                          size="default"
                         >
-                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <FileText className="w-4 h-4 mr-2" />
                           <span className="hidden sm:inline">{updateEODMutation.isPending ? 'Generating...' : 'Generate New EOD Report'}</span>
-                          <span className="sm:hidden">{updateEODMutation.isPending ? 'Generating...' : 'New EOD'}</span>
+                          <span className="sm:hidden">{updateEODMutation.isPending ? 'Generating...' : 'Generate New EOD'}</span>
                         </Button>
                         <Button 
                           onClick={() => {
@@ -757,12 +757,12 @@ export default function CreateDispatch() {
                             file.filename.startsWith('eod_') && !file.filename.includes(savedFileId)
                           )}
                           variant="outline"
-                          className="bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 font-medium text-xs sm:text-sm"
-                          size="lg"
+                          className="w-full bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 font-medium text-sm py-3"
+                          size="default"
                         >
-                          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <Plus className="w-4 h-4 mr-2" />
                           <span className="hidden sm:inline">{successiveDispatchMutation.isPending ? 'Updating...' : 'Update Existing EOD Report'}</span>
-                          <span className="sm:hidden">{successiveDispatchMutation.isPending ? 'Updating...' : 'Update EOD'}</span>
+                          <span className="sm:hidden">{successiveDispatchMutation.isPending ? 'Updating...' : 'Update Existing EOD'}</span>
                         </Button>
                         <Button 
                           onClick={() => {
@@ -770,12 +770,12 @@ export default function CreateDispatch() {
                             setSavedFileId(null);
                           }}
                           variant="outline"
-                          className="border-gray-300 hover:bg-gray-50 font-medium text-xs sm:text-sm"
-                          size="lg"
+                          className="w-full border-gray-300 hover:bg-gray-50 font-medium text-sm py-3"
+                          size="default"
                         >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                          <Edit className="w-4 h-4 mr-2" />
                           <span className="hidden sm:inline">Edit Again</span>
-                          <span className="sm:hidden">Edit</span>
+                          <span className="sm:hidden">Edit Again</span>
                         </Button>
                       </div>
                     ) : null}
@@ -813,27 +813,27 @@ export default function CreateDispatch() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                    <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
                       <Button 
                         onClick={handleUpdatePax}
                         disabled={updatePaxMutation.isPending || updateExistingPaxMutation.isPending}
-                        className="bg-orange-600 hover:bg-orange-700 font-medium text-xs sm:text-sm"
-                        size="lg"
+                        className="w-full bg-orange-600 hover:bg-orange-700 font-medium text-sm py-3"
+                        size="default"
                       >
-                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <Users className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">{updatePaxMutation.isPending ? 'Generating...' : 'Generate New PAX Report'}</span>
-                        <span className="sm:hidden">{updatePaxMutation.isPending ? 'Generating...' : 'New PAX'}</span>
+                        <span className="sm:hidden">{updatePaxMutation.isPending ? 'Generating...' : 'Generate New PAX'}</span>
                       </Button>
                       <Button 
                         onClick={handleUpdateExistingPax}
                         disabled={updateExistingPaxMutation.isPending || updatePaxMutation.isPending}
                         variant="outline"
-                        className="border-orange-300 text-orange-700 hover:bg-orange-50 font-medium text-xs sm:text-sm"
-                        size="lg"
+                        className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 font-medium text-sm py-3"
+                        size="default"
                       >
-                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <FileText className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">{updateExistingPaxMutation.isPending ? 'Updating...' : 'Update Existing PAX Report'}</span>
-                        <span className="sm:hidden">{updateExistingPaxMutation.isPending ? 'Updating...' : 'Update PAX'}</span>
+                        <span className="sm:hidden">{updateExistingPaxMutation.isPending ? 'Updating...' : 'Update Existing PAX'}</span>
                       </Button>
                     </div>
                   </CardContent>

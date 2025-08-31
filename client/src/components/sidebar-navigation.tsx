@@ -417,14 +417,23 @@ export function MobileNavigation() {
       {/* Mobile Overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="fixed inset-0 bg-black/20" onClick={() => setIsOpen(false)} />
-          <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
+          <div 
+            className="fixed inset-0 bg-black/20" 
+            onClick={() => {
+              console.log('Mobile overlay clicked, closing navigation');
+              setIsOpen(false);
+            }} 
+          />
+          <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  console.log('Mobile X button clicked, closing navigation');
+                  setIsOpen(false);
+                }}
                 className="p-2 text-gray-900 hover:text-gray-700 hover:bg-gray-100"
               >
                 <X className="h-5 w-5" />
@@ -446,7 +455,10 @@ export function MobileNavigation() {
                       // Regular mobile navigation item with direct link
                       <Link
                         href={item.href}
-                        onClick={() => setIsOpen(false)}
+                        onClick={(e) => {
+                          console.log('Mobile navigation link clicked:', item.name);
+                          setIsOpen(false);
+                        }}
                         className={cn(
                           "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                           isActive
@@ -501,7 +513,10 @@ export function MobileNavigation() {
                             <Link
                               key={subItem.name}
                               href={subItem.href}
-                              onClick={() => setIsOpen(false)}
+                              onClick={(e) => {
+                                console.log('Mobile sub-navigation link clicked:', subItem.name);
+                                setIsOpen(false);
+                              }}
                               className={cn(
                                 "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                                 isSubActive
