@@ -190,6 +190,8 @@ Generated on ${format(new Date(), 'PPpp')}
     fromEmail: string,
     options: ShareReportOptions
   ): Promise<{ success: boolean; message: string; failedRecipients?: string[] }> {
+    // Use a verified sender email for SendGrid
+    const verifiedSenderEmail = process.env.VERIFIED_SENDER_EMAIL || 'noreply@replit.app';
     try {
       // Check rate limit for sender
       if (!this.checkRateLimit(fromEmail)) {
@@ -224,7 +226,7 @@ Generated on ${format(new Date(), 'PPpp')}
               await this.sendgridService.send({
                 to: recipient,
                 from: {
-                  email: fromEmail,
+                  email: verifiedSenderEmail,
                   name: 'Maritime Reporting System'
                 },
                 subject: template.subject,
@@ -252,7 +254,7 @@ Generated on ${format(new Date(), 'PPpp')}
           for (let attempt = 1; attempt <= 2; attempt++) {
             try {
               await this.smtpTransporter.sendMail({
-                from: `"Maritime Reporting System" <${fromEmail}>`,
+                from: `"Maritime Reporting System" <${verifiedSenderEmail}>`,
                 to: recipient,
                 subject: template.subject,
                 html: template.html,

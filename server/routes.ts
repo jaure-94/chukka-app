@@ -1490,7 +1490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareMethod,
         recipients: recipients || [],
         reportFiles: reportFiles,
-        userEmail: 'admin@maritime.com',
+        userEmail: 'noreply@replit.app',
         userName: user.username,
       });
 
