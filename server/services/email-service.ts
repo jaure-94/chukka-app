@@ -302,7 +302,7 @@ Generated on ${format(new Date(), 'PPpp')}
             for (let attempt = 1; attempt <= 2; attempt++) {
               try {
                 await this.smtpTransporter.sendMail({
-                  from: `"Maritime Reporting System" <${verifiedSenderEmail}>`,
+                  from: `"Maritime Reporting System" <${senderEmail}>`,
                   to: recipient,
                   subject: template.subject,
                   html: template.html,
