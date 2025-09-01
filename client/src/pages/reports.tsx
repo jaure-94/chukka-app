@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { ShipSelector } from "@/components/ship-selector";
-import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X, AlertTriangle } from "lucide-react";
+import { ShareReportsModal } from "@/components/sharing/ShareReportsModal";
+import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X, AlertTriangle, Share } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,6 +49,8 @@ export default function Reports() {
   const [loadingEod, setLoadingEod] = useState(false);
   const [loadingDispatch, setLoadingDispatch] = useState(false);
   const [paxGenerating, setPaxGenerating] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedReportsToShare, setSelectedReportsToShare] = useState<('eod' | 'dispatch' | 'pax')[]>([]);
 
   const { isCollapsed } = useSidebar();
   const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
@@ -176,6 +179,30 @@ export default function Reports() {
     } finally {
       setLoadingEod(false);
     }
+  };
+
+  const openShareModal = (reportTypes: ('eod' | 'dispatch' | 'pax')[]) => {
+    setSelectedReportsToShare(reportTypes);
+    setShareModalOpen(true);
+  };
+
+  const getAvailableReports = () => {
+    // Check which reports are available based on actual data
+    const available: any = {};
+    
+    if (outputFiles.find((file: any) => file.filename.includes('eod'))) {
+      available.eod = { filename: `eod_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/eod_latest.xlsx` };
+    }
+    
+    if (dispatchVersions.length > 0) {
+      available.dispatch = { filename: `dispatch_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/dispatch_latest.xlsx` };
+    }
+    
+    if (outputFiles.find((file: any) => file.filename.includes('pax'))) {
+      available.pax = { filename: `pax_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/pax_latest.xlsx` };
+    }
+    
+    return available;
   };
 
   const handleViewDispatchSheet = async (filename: string) => {
@@ -333,10 +360,10 @@ export default function Reports() {
                             File: {latestEOD.filename}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <Button 
                             size="sm" 
-                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                             onClick={() => window.open(`/api/output/${latestEOD.filename}?ship=${currentShip}`, '_blank')}
                           >
                             <Download className="w-3 h-3 mr-2" />
@@ -345,12 +372,21 @@ export default function Reports() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
+                            className="border-blue-600 text-blue-600 hover:bg-blue-50"
                             onClick={() => handleViewEodReport(latestEOD.filename)}
                             disabled={loadingEod}
                           >
                             <FileText className="w-3 h-3 mr-2" />
                             {loadingEod ? 'Loading...' : 'View'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => openShareModal(['eod'])}
+                          >
+                            <Share className="w-3 h-3 mr-2" />
+                            Share Report
                           </Button>
                         </div>
                       </div>
@@ -402,11 +438,11 @@ export default function Reports() {
                             File: {latestDispatch.originalFilename}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="flex-1 border-green-600 text-green-600 hover:bg-green-50"
+                            className="border-green-600 text-green-600 hover:bg-green-50"
                             onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
                           >
                             <Download className="w-3 h-3 mr-2" />
@@ -414,12 +450,21 @@ export default function Reports() {
                           </Button>
                           <Button 
                             size="sm" 
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => handleViewDispatchSheet(latestDispatch.filename)}
                             disabled={loadingDispatch}
                           >
                             <FileText className="w-3 h-3 mr-2" />
                             {loadingDispatch ? 'Loading...' : 'View'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => openShareModal(['dispatch'])}
+                          >
+                            <Share className="w-3 h-3 mr-2" />
+                            Share Report
                           </Button>
                         </div>
                       </div>
@@ -473,10 +518,10 @@ export default function Reports() {
                             File: {latestPAX.filename}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <Button 
                             size="sm" 
-                            className="flex-1 bg-orange-600 hover:bg-orange-700"
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
                             onClick={() => {
                               console.log('Attempting to download PAX file:', latestPAX.filename);
                               const downloadUrl = `/api/output/${latestPAX.filename}?ship=${currentShip}`;
@@ -498,12 +543,21 @@ export default function Reports() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="flex-1 border-orange-600 text-orange-600 hover:bg-orange-50"
+                            className="border-orange-600 text-orange-600 hover:bg-orange-50"
                             onClick={handleGeneratePaxReport}
                             disabled={paxGenerating}
                           >
                             <Users className="w-3 h-3 mr-2" />
                             {paxGenerating ? 'Generating...' : 'Generate New'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => openShareModal(['pax'])}
+                          >
+                            <Share className="w-3 h-3 mr-2" />
+                            Share Report
                           </Button>
                         </div>
                       </div>
@@ -526,6 +580,21 @@ export default function Reports() {
                     );
                   })()}
                 </div>
+              </div>
+              
+              {/* Share All Reports Button */}
+              <div className="mt-6 text-center">
+                <Button 
+                  onClick={() => openShareModal(['eod', 'dispatch', 'pax'])}
+                  className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-6 py-2"
+                  size="lg"
+                >
+                  <Share className="w-4 h-4 mr-2" />
+                  Share All Available Reports
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Share EOD, Dispatch, and PAX reports via email or Dropbox
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -750,6 +819,15 @@ export default function Reports() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Share Reports Modal */}
+      <ShareReportsModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        shipId={shipToUse}
+        availableReports={getAvailableReports()}
+        preSelectedReports={selectedReportsToShare}
+      />
     </div>
   );
 }
