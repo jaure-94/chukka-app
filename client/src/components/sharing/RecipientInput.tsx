@@ -106,12 +106,12 @@ export function RecipientInput({
           <Label className="text-xs font-medium text-gray-600 dark:text-gray-400">
             Recipients ({recipients.length})
           </Label>
-          <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg min-h-[60px] max-h-32 overflow-y-auto">
+          <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg min-h-[60px] max-h-48 overflow-y-auto">
             {recipients.map((email, index) => (
               <Badge
                 key={index}
                 variant="secondary"
-                className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors shrink-0"
               >
                 <Mail className="h-3 w-3" />
                 <span className="max-w-[200px] truncate">{email}</span>
