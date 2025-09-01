@@ -202,6 +202,73 @@ export const insertExtractedDispatchDataSchema = createInsertSchema(extractedDis
   extractedAt: true,
 });
 
+// Sharing Activities Table for Phase 1 Implementation
+export const sharingActivities = pgTable("sharing_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  shipId: text("ship_id").notNull(),
+  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax')[]>().notNull(), // ['eod', 'dispatch', 'pax']
+  shareMethod: text("share_method").notNull(), // 'email', 'dropbox', 'both'
+  recipients: json("recipients").$type<string[]>(), // email addresses for email sharing
+  dropboxLinks: json("dropbox_links").$type<string[]>(), // generated Dropbox links
+  emailStatus: text("email_status").default("pending"), // 'pending', 'sent', 'failed'
+  dropboxStatus: text("dropbox_status").default("pending"), // 'pending', 'uploaded', 'failed'
+  status: text("status").notNull().default("pending"), // 'pending', 'completed', 'partial', 'failed'
+  errorMessage: text("error_message"),
+  metadata: json("metadata").$type<{
+    reportFilenames?: string[];
+    dropboxFolderPath?: string;
+    emailSubject?: string;
+    sharedBy?: string;
+    failedRecipients?: string[];
+  }>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Share Templates for common sharing configurations
+export const shareTemplates = pgTable("share_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // "Daily EOD to Stakeholders"
+  description: text("description"),
+  shipId: text("ship_id").notNull(),
+  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax')[]>().notNull(),
+  shareMethod: text("share_method").notNull(), // 'email', 'dropbox', 'both'
+  recipients: json("recipients").$type<string[]>(), // default email addresses
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Relations for sharing tables
+export const sharingActivitiesRelations = relations(sharingActivities, ({ one }) => ({
+  user: one(users, {
+    fields: [sharingActivities.userId],
+    references: [users.id],
+  }),
+}));
+
+export const shareTemplatesRelations = relations(shareTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [shareTemplates.userId],
+    references: [users.id],
+  }),
+}));
+
+// Sharing schema definitions
+export const insertSharingActivitySchema = createInsertSchema(sharingActivities).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertShareTemplateSchema = createInsertSchema(shareTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // User schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -238,6 +305,12 @@ export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
+
+// Sharing types
+export type InsertSharingActivity = z.infer<typeof insertSharingActivitySchema>;
+export type SharingActivity = typeof sharingActivities.$inferSelect;
+export type InsertShareTemplate = z.infer<typeof insertShareTemplateSchema>;
+export type ShareTemplate = typeof shareTemplates.$inferSelect;
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type ExcelData = typeof excelData.$inferSelect;

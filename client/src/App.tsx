@@ -24,6 +24,7 @@ import UserProfile from "@/pages/user-profile";
 import EditProfile from "@/pages/edit-profile";
 import CreateUser from "@/pages/create-user";
 import EditUser from "@/pages/edit-user";
+import SharingPage from "@/pages/sharing-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -142,6 +143,13 @@ function Router() {
           <Route path="/profile/edit">
             <ProtectedRoute>
               <EditProfile />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/sharing">
+            <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin', 'dispatcher']}>
+                <SharingPage />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           </Route>
           <Route component={NotFound} />

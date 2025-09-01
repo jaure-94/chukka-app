@@ -1446,6 +1446,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Document Sharing API Routes - Phase 1
+  const { SharingController } = await import("./services/sharing-controller.js");
+  const sharingController = new SharingController();
+
+  // Share reports endpoint
+  app.post("/api/sharing/share", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const { shareMethod, reportTypes, recipients, shipId } = req.body;
+      const user = req.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Validate input
+      if (!shareMethod || !reportTypes || !Array.isArray(reportTypes) || reportTypes.length === 0) {
+        return res.status(400).json({ message: "Share method and report types are required" });
+      }
+
+      if ((shareMethod === 'email' || shareMethod === 'both') && (!recipients || recipients.length === 0)) {
+        return res.status(400).json({ message: "Recipients required for email sharing" });
+      }
+
+      // For demo purposes, generate mock report files
+      // In production, this would reference actual generated reports
+      const mockReportFiles = reportTypes.map((type: string) => ({
+        path: `./uploads/${shipId}/reports/mock_${type}_report.xlsx`,
+        filename: `${type}_report_${new Date().toISOString().split('T')[0]}.xlsx`,
+        type: type as 'eod' | 'dispatch' | 'pax'
+      }));
+
+      const result = await sharingController.shareReports({
+        userId: user.userId,
+        shipId: shipId || 'ship-a',
+        reportTypes,
+        shareMethod,
+        recipients: recipients || [],
+        reportFiles: mockReportFiles,
+        userEmail: 'admin@maritime.com',
+        userName: user.username,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Share reports error:", error);
+      res.status(500).json({ 
+        message: "Failed to share reports", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Get sharing history
+  app.get("/api/sharing/history", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { shipId, limit } = req.query;
+      const history = await sharingController.getSharingHistory(
+        user.userId,
+        shipId as string,
+        parseInt(limit as string) || 50
+      );
+
+      res.json({ history });
+    } catch (error) {
+      console.error("Get sharing history error:", error);
+      res.status(500).json({ 
+        message: "Failed to get sharing history", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Share template management
+  app.get("/api/sharing/templates", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { shipId } = req.query;
+      const templates = await sharingController.getShareTemplates(user.userId, shipId as string);
+
+      res.json({ templates });
+    } catch (error) {
+      console.error("Get share templates error:", error);
+      res.status(500).json({ 
+        message: "Failed to get share templates", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  app.post("/api/sharing/templates", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { name, description, shipId, reportTypes, shareMethod, recipients } = req.body;
+      
+      if (!name || !shipId || !reportTypes || !shareMethod) {
+        return res.status(400).json({ message: "Name, ship ID, report types, and share method are required" });
+      }
+
+      const template = await sharingController.createShareTemplate({
+        userId: user.userId,
+        name,
+        description,
+        shipId,
+        reportTypes,
+        shareMethod,
+        recipients: recipients || [],
+        isActive: true,
+      });
+
+      res.status(201).json({ template });
+    } catch (error) {
+      console.error("Create share template error:", error);
+      res.status(500).json({ 
+        message: "Failed to create share template", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Test services connection
+  app.get("/api/sharing/test-services", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Only allow superuser and admin to test services
+      if (!['superuser', 'admin'].includes(user.role as string)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const testResults = await sharingController.testServices();
+      res.json(testResults);
+    } catch (error) {
+      console.error("Test services error:", error);
+      res.status(500).json({ 
+        message: "Failed to test services", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

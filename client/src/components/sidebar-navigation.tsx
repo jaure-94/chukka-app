@@ -5,7 +5,8 @@ import {
   Plus, 
   FileText, 
   BarChart3, 
-  Users, 
+  Users,
+  Share, 
   Table,
   ChevronLeft, 
   ChevronRight,
@@ -124,6 +125,11 @@ const navigationItems: NavigationItem[] = [
     href: "/users",
     icon: Users,
   },
+  {
+    name: "Share Reports",
+    href: "/sharing",
+    icon: Share,
+  },
 ];
 
 interface SidebarNavigationProps {
@@ -141,9 +147,9 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
     if (!user) return navigationItems;
     
     return navigationItems.filter(item => {
-      // General users cannot access "Create New Record" and "Users" pages
+      // General users cannot access "Create New Record", "Users", and "Share Reports" pages
       if (user.role === 'general') {
-        return item.name !== 'Create New Record' && item.name !== 'Users';
+        return item.name !== 'Create New Record' && item.name !== 'Users' && item.name !== 'Share Reports';
       }
       // Dispatchers cannot access "Users" page
       if (user.role === 'dispatcher') {
