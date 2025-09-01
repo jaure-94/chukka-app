@@ -76,6 +76,7 @@ export function ShareReportsModal({
       reportTypes: string[];
       recipients: string[];
       shipId: string;
+      availableReports: any;
     }): Promise<ShareResult> => {
       setShareProgress(prev => ({
         ...prev,
@@ -170,6 +171,7 @@ export function ShareReportsModal({
       reportTypes: selectedReports,
       recipients,
       shipId,
+      availableReports,
     });
   };
 

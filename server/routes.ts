@@ -1453,7 +1453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Share reports endpoint
   app.post("/api/sharing/share", authenticateToken, requireAuth, async (req, res) => {
     try {
-      const { shareMethod, reportTypes, recipients, shipId } = req.body;
+      const { shareMethod, reportTypes, recipients, shipId, availableReports } = req.body;
       const user = req.user;
       
       if (!user) {
@@ -1469,13 +1469,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Recipients required for email sharing" });
       }
 
-      // For demo purposes, generate mock report files
-      // In production, this would reference actual generated reports
-      const mockReportFiles = reportTypes.map((type: string) => ({
-        path: `./uploads/${shipId}/reports/mock_${type}_report.xlsx`,
-        filename: `${type}_report_${new Date().toISOString().split('T')[0]}.xlsx`,
-        type: type as 'eod' | 'dispatch' | 'pax'
-      }));
+      // Get actual report files from the availableReports sent by frontend
+      const reportFiles = reportTypes.map((type: string) => {
+        const reportInfo = availableReports?.[type];
+        if (!reportInfo) {
+          throw new Error(`Report type ${type} is not available`);
+        }
+        
+        return {
+          path: reportInfo.path,
+          filename: reportInfo.filename,
+          type: type as 'eod' | 'dispatch' | 'pax'
+        };
+      });
 
       const result = await sharingController.shareReports({
         userId: user.userId,
@@ -1483,7 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reportTypes,
         shareMethod,
         recipients: recipients || [],
-        reportFiles: mockReportFiles,
+        reportFiles: reportFiles,
         userEmail: 'admin@maritime.com',
         userName: user.username,
       });
