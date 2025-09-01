@@ -206,7 +206,7 @@ export default function Reports() {
       const latestDispatch = dispatchVersions[0]; // Already sorted by creation date
       available.dispatch = { 
         filename: latestDispatch.filename, 
-        path: `./uploads/${latestDispatch.filename}` 
+        path: `./uploads/${shipToUse}/${latestDispatch.filename}` 
       };
     }
     
