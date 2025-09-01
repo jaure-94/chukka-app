@@ -40,8 +40,22 @@ export class EmailService {
       console.warn('SendGrid API key not configured. Email functionality will be limited.');
     }
 
-    // Initialize SMTP fallback
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    // Initialize Gmail SMTP
+    if (process.env.GMAIL_APP_PASSWORD) {
+      this.smtpTransporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'tawandajaujau@gmail.com',
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      console.log('Gmail SMTP service initialized');
+    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
       this.smtpTransporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587'),
@@ -190,8 +204,8 @@ Generated on ${format(new Date(), 'PPpp')}
     fromEmail: string,
     options: ShareReportOptions
   ): Promise<{ success: boolean; message: string; failedRecipients?: string[] }> {
-    // Use a verified sender email for SendGrid
-    const verifiedSenderEmail = process.env.VERIFIED_SENDER_EMAIL || 'noreply@replit.app';
+    // Use Gmail address as primary sender
+    const senderEmail = 'tawandajaujau@gmail.com';
     try {
       // Check rate limit for sender
       if (!this.checkRateLimit(fromEmail)) {
@@ -219,14 +233,44 @@ Generated on ${format(new Date(), 'PPpp')}
         let success = false;
         let lastError: any = null;
 
-        // Try SendGrid first
-        if (this.sendgridService) {
+        // Try Gmail SMTP first (more reliable)
+        if (this.smtpTransporter) {
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              await this.smtpTransporter.sendMail({
+                from: `"Maritime Reporting System" <${senderEmail}>`,
+                to: recipient,
+                subject: template.subject,
+                html: template.html,
+                text: template.text,
+                attachments: options.attachments.map(attachment => ({
+                  filename: attachment.filename,
+                  content: attachment.content
+                }))
+              });
+              
+              success = true;
+              console.log(`✓ Email sent successfully to ${recipient} via Gmail SMTP (attempt ${attempt})`);
+              break;
+            } catch (error) {
+              lastError = error;
+              console.error(`Gmail SMTP attempt ${attempt} failed for ${recipient}:`, error);
+              
+              if (attempt < 3) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              }
+            }
+          }
+        }
+
+        // Fallback to SendGrid if Gmail fails
+        if (!success && this.sendgridService) {
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
               await this.sendgridService.send({
                 to: recipient,
                 from: {
-                  email: verifiedSenderEmail,
+                  email: senderEmail,
                   name: 'Maritime Reporting System'
                 },
                 subject: template.subject,
