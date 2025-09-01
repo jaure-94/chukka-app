@@ -418,13 +418,13 @@ export function MobileNavigation() {
       {isOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div 
-            className="fixed inset-0 bg-black/50" 
+            className="fixed inset-0 bg-black/20" 
             onClick={() => {
               console.log('Mobile overlay clicked, closing navigation');
               setIsOpen(false);
             }} 
           />
-          <div className="fixed left-0 top-0 h-full w-80 bg-white border-r border-gray-200 shadow-xl z-50">
+          <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
               <Button

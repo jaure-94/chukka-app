@@ -619,7 +619,7 @@ export default function CreateDispatch() {
       <MobileNavigation />
       
       <div 
-        className={`flex-1 transition-all duration-300 overflow-y-auto ml-0 ${
+        className={`flex-1 transition-all duration-300 overflow-y-auto ${
           isCollapsed ? 'md:ml-16' : 'md:ml-64'
         } p-3 sm:p-4 md:p-6`}
       >
