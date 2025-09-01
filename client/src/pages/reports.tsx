@@ -190,16 +190,35 @@ export default function Reports() {
     // Check which reports are available based on actual data
     const available: any = {};
     
-    if (outputFiles.find((file: any) => file.filename.includes('eod'))) {
-      available.eod = { filename: `eod_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/eod_latest.xlsx` };
+    // Find actual EOD files
+    const eodFiles = (outputFiles as any[]).filter((file: any) => file.filename.startsWith('eod_'));
+    if (eodFiles.length > 0) {
+      const latestEOD = eodFiles
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      available.eod = { 
+        filename: latestEOD.filename, 
+        path: `./output/${shipToUse}/${latestEOD.filename}` 
+      };
     }
     
+    // Find actual dispatch files
     if (dispatchVersions.length > 0) {
-      available.dispatch = { filename: `dispatch_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/dispatch_latest.xlsx` };
+      const latestDispatch = dispatchVersions[0]; // Already sorted by creation date
+      available.dispatch = { 
+        filename: latestDispatch.filename, 
+        path: `./uploads/${latestDispatch.filename}` 
+      };
     }
     
-    if (outputFiles.find((file: any) => file.filename.includes('pax'))) {
-      available.pax = { filename: `pax_${shipToUse}_latest.xlsx`, path: `./output/${shipToUse}/pax_latest.xlsx` };
+    // Find actual PAX files
+    const paxFiles = (outputFiles as any[]).filter((file: any) => file.filename.toLowerCase().includes('pax'));
+    if (paxFiles.length > 0) {
+      const latestPAX = paxFiles
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      available.pax = { 
+        filename: latestPAX.filename, 
+        path: `./output/${shipToUse}/${latestPAX.filename}` 
+      };
     }
     
     return available;
