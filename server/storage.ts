@@ -228,12 +228,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPaxTemplate(template: InsertPaxTemplate): Promise<PaxTemplate> {
-    // Deactivate existing templates for this ship only
-    const shipId = template.shipId || 'ship-a';
+    // Deactivate existing templates (PAX templates are system-wide)
     await db
       .update(paxTemplates)
       .set({ isActive: false })
-      .where(eq(paxTemplates.shipId, shipId));
+      .where(eq(paxTemplates.isActive, true));
     
     const [newTemplate] = await db
       .insert(paxTemplates)
@@ -243,14 +242,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActivePaxTemplate(shipId?: string): Promise<PaxTemplate | undefined> {
-    const targetShipId = shipId || 'ship-a';
+    // PAX templates are system-wide, no ship filtering needed
     const [template] = await db
       .select()
       .from(paxTemplates)
-      .where(and(
-        eq(paxTemplates.isActive, true),
-        eq(paxTemplates.shipId, targetShipId)
-      ))
+      .where(eq(paxTemplates.isActive, true))
       .orderBy(desc(paxTemplates.createdAt))
       .limit(1);
     return template || undefined;
