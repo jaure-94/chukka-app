@@ -66,9 +66,9 @@ export class ConsolidatedPaxProcessor {
 
     const files = fs.readdirSync(shipUploadsDir);
     const dispatchFiles = files.filter(file => 
-      file.toLowerCase().includes('cruise') && 
       file.toLowerCase().includes('dispatch') && 
-      file.endsWith('.xlsx')
+      file.endsWith('.xlsx') &&
+      !file.toLowerCase().includes('template') // Exclude templates
     );
 
     if (dispatchFiles.length === 0) {
