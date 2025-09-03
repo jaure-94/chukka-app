@@ -25,6 +25,7 @@ import EditProfile from "@/pages/edit-profile";
 import CreateUser from "@/pages/create-user";
 import EditUser from "@/pages/edit-user";
 import SharingPage from "@/pages/sharing-page";
+import ConsolidatedPaxReports from "@/pages/consolidated-pax-reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -80,6 +81,11 @@ function Router() {
           <Route path="/reports/:ship">
             <ProtectedRoute>
               <Reports />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/consolidated-pax-reports">
+            <ProtectedRoute>
+              <ConsolidatedPaxReports />
             </ProtectedRoute>
           </Route>
           <Route path="/users">

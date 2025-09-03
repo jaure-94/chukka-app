@@ -19,7 +19,8 @@ import {
   Crown,
   Shield,
   Clipboard,
-  X
+  X,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -114,6 +115,11 @@ const navigationItems: NavigationItem[] = [
         icon: Ship,
       },
     ],
+  },
+  {
+    name: "Consolidated PAX Reports",
+    href: "/consolidated-pax-reports",
+    icon: Globe,
   },
   {
     name: "Spreadsheet View",
