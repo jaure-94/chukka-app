@@ -1352,12 +1352,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add successive entry to the existing PAX report (ship-aware)
       const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId);
       
-      res.json({
-        success: true,
-        paxFile: updatedPaxFilename,
-        message: "Successive PAX entry added successfully",
-        originalPaxFile: latestPaxFile
-      });
+      // Auto-generate consolidated PAX report after updating individual ship report
+      console.log(`→ Auto-generating consolidated PAX after ${shipId} update`);
+      try {
+        const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+          consolidatedPaxTemplate,
+          shipId
+        );
+        
+        console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);
+        
+        res.json({
+          success: true,
+          paxFile: updatedPaxFilename,
+          message: "Successive PAX entry added successfully",
+          originalPaxFile: latestPaxFile,
+          consolidatedPaxGenerated: true,
+          consolidatedFilename: consolidatedResult.filename,
+          contributingShips: consolidatedResult.data.contributingShips
+        });
+      } catch (consolidatedError) {
+        console.error('→ Failed to auto-generate consolidated PAX:', consolidatedError);
+        // Still return success for the individual ship update
+        res.json({
+          success: true,
+          paxFile: updatedPaxFilename,
+          message: "Successive PAX entry added successfully (consolidated generation failed)",
+          originalPaxFile: latestPaxFile,
+          consolidatedPaxGenerated: false,
+          consolidatedError: consolidatedError instanceof Error ? consolidatedError.message : "Unknown error"
+        });
+      }
 
     } catch (error) {
       console.error("Successive PAX entry error:", error);
@@ -1421,8 +1447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Consolidated PAX report generated successfully",
         filename: consolidatedResult.filename,
         contributingShips: consolidatedResult.data.contributingShips,
-        totalRecords: consolidatedResult.data.totalRecordCount,
-        generatedAt: consolidatedResult.data.generatedAt
+        totalRecords: consolidatedResult.data.totalRecordCount
       });
       
     } catch (error) {
