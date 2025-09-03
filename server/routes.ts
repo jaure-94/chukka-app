@@ -26,6 +26,7 @@ import { DispatchGenerator } from "./services/dispatch-generator";
 import { simpleEODProcessor } from "./services/simple-eod-processor";
 import { cellExtractor } from "./services/cell-extractor";
 import { PaxProcessor } from "./services/pax-processor";
+import { ConsolidatedPaxProcessor } from "./services/consolidated-pax-processor";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { 
@@ -80,6 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const eodProcessor = new EODProcessor();
   const dispatchGenerator = new DispatchGenerator();
   const paxProcessor = new PaxProcessor();
+  const consolidatedPaxProcessor = new ConsolidatedPaxProcessor();
 
   // Authentication routes
   app.use("/api/auth", authRoutes);
@@ -156,7 +158,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       let filePath;
-      if (shipId) {
+      
+      // Check if this is a consolidated PAX file request
+      if (shipId === 'consolidated' && req.params.filename) {
+        // Consolidated PAX path: /api/output/consolidated/pax/filename.xlsx
+        const consolidatedType = req.params.filename; // Should be 'pax'
+        const actualFilename = req.query.file as string;
+        
+        if (consolidatedType === 'pax' && actualFilename) {
+          filePath = path.join(process.cwd(), "output", "consolidated", "pax", actualFilename);
+        } else {
+          return res.status(400).json({ message: "Invalid consolidated file request. Use format: /api/output/consolidated/pax?file=filename.xlsx" });
+        }
+      } else if (shipId) {
         // Ship-specific path
         filePath = path.join(process.cwd(), "output", shipId, filename);
       } else {
@@ -901,6 +915,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileList.push(...shipFileList);
           }
         }
+        
+        // Also include consolidated PAX files when showing all files
+        const consolidatedPaxDir = path.join(outputDir, "consolidated", "pax");
+        if (fs.existsSync(consolidatedPaxDir)) {
+          const consolidatedFiles = fs.readdirSync(consolidatedPaxDir).filter(file => file.endsWith('.xlsx'));
+          const consolidatedFileList = consolidatedFiles.map(filename => {
+            const filePath = path.join(consolidatedPaxDir, filename);
+            const stats = fs.statSync(filePath);
+            
+            return {
+              filename,
+              ship: 'consolidated',
+              type: 'Consolidated PAX Report',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              downloadUrl: `/api/output/consolidated/pax?file=${filename}`
+            };
+          });
+          fileList.push(...consolidatedFileList);
+        }
       } else {
         // Return files for specific ship
         const shipOutputDir = path.join(outputDir, shipId);
@@ -1107,6 +1141,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dispatchVersionId: dispatchVersion.id
       });
 
+      // After EOD generation, trigger consolidated PAX generation
+      try {
+        console.log(`→ Triggering consolidated PAX generation after EOD completion for ${shipId}`);
+        const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+          consolidatedPaxTemplate,
+          'eod-processor' // Triggered by EOD processing
+        );
+        
+        console.log(`→ Consolidated PAX generated after EOD: ${consolidatedResult.filename}`);
+        console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+      } catch (consolidatedError) {
+        console.error('→ Consolidated PAX generation failed after EOD:', consolidatedError);
+        // Don't fail the EOD process if consolidated PAX fails
+      }
+
     } catch (error) {
       console.error("EOD processing error:", error);
       res.status(500).json({ 
@@ -1162,6 +1212,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Successive dispatch entry added successfully for ${shipId}`,
         originalEodFile: existingEodFilename
       });
+
+      // After successive EOD update, trigger consolidated PAX generation
+      try {
+        console.log(`→ Triggering consolidated PAX generation after successive EOD update for ${shipId}`);
+        const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+          consolidatedPaxTemplate,
+          'successive-eod' // Triggered by successive EOD entry
+        );
+        
+        console.log(`→ Consolidated PAX generated after successive EOD: ${consolidatedResult.filename}`);
+        console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+      } catch (consolidatedError) {
+        console.error('→ Consolidated PAX generation failed after successive EOD:', consolidatedError);
+        // Don't fail the successive dispatch process if consolidated PAX fails
+      }
 
     } catch (error) {
       console.error("Successive dispatch entry error:", error);
@@ -1299,6 +1365,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to add successive PAX entry",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Consolidated PAX API Endpoints
+  
+  // Get recent consolidated PAX reports
+  app.get("/api/consolidated-pax-reports", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const reports = await storage.getRecentConsolidatedPaxReports(limit);
+      res.json(reports);
+    } catch (error) {
+      console.error("Consolidated PAX reports fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch consolidated PAX reports" });
+    }
+  });
+
+  // Get specific consolidated PAX report
+  app.get("/api/consolidated-pax-reports/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const report = await storage.getConsolidatedPaxReport(parseInt(id));
+      
+      if (!report) {
+        return res.status(404).json({ message: "Consolidated PAX report not found" });
+      }
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Consolidated PAX report fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch consolidated PAX report" });
+    }
+  });
+
+  // Manually generate consolidated PAX report
+  app.post("/api/consolidated-pax/generate", authenticateToken, requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      console.log('→ Manual consolidated PAX generation requested by:', user.username);
+      
+      const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+      const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+        consolidatedPaxTemplate,
+        user.username
+      );
+      
+      res.json({
+        success: true,
+        message: "Consolidated PAX report generated successfully",
+        filename: consolidatedResult.filename,
+        contributingShips: consolidatedResult.data.contributingShips,
+        totalRecords: consolidatedResult.data.totalRecordCount,
+        generatedAt: consolidatedResult.data.generatedAt
+      });
+      
+    } catch (error) {
+      console.error("Manual consolidated PAX generation error:", error);
+      res.status(500).json({ 
+        message: "Failed to generate consolidated PAX report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Download consolidated PAX report by filename
+  app.get("/api/consolidated-pax/download/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
+      const filePath = path.join(consolidatedOutputDir, filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Consolidated PAX file not found" });
+      }
+
+      console.log(`→ Downloading consolidated PAX file: ${filename}`);
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Consolidated PAX download error:", error);
+      res.status(500).json({ message: "Failed to download consolidated PAX file" });
     }
   });
 
@@ -1441,6 +1597,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(`Generated reports: dispatch=${dispatchOutputPath}, eod=${eodOutputPath}`);
+
+      // After EOD generation, trigger consolidated PAX generation
+      try {
+        console.log('→ Triggering consolidated PAX generation after EOD completion');
+        const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+          consolidatedPaxTemplate,
+          'system' // This is triggered by the system after EOD
+        );
+        
+        console.log(`→ Consolidated PAX generated: ${consolidatedResult.filename}`);
+        console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+        console.log(`→ Total records: ${consolidatedResult.data.totalRecordCount}`);
+      } catch (consolidatedError) {
+        console.error('→ Consolidated PAX generation failed:', consolidatedError);
+        // Don't fail the entire process if consolidated PAX fails
+      }
+
     } catch (error) {
       console.error("Report generation error:", error);
     }

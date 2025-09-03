@@ -225,6 +225,7 @@ export class SharingController {
       'ship-a': 'Ship A',
       'ship-b': 'Ship B', 
       'ship-c': 'Ship C',
+      'consolidated': 'All Ships (Consolidated)',
     };
     return shipNames[shipId as keyof typeof shipNames] || shipId.toUpperCase();
   }

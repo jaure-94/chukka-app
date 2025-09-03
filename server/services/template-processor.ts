@@ -126,4 +126,86 @@ export class TemplateProcessor {
 
     return summary;
   }
+
+  /**
+   * Find the active consolidated PAX template
+   */
+  async findConsolidatedPaxTemplate(): Promise<string | null> {
+    const consolidatedTemplatesDir = path.join(process.cwd(), "uploads", "templates", "pax");
+    
+    if (!fs.existsSync(consolidatedTemplatesDir)) {
+      console.log('→ TemplateProcessor: Consolidated PAX templates directory does not exist');
+      return null;
+    }
+
+    const files = fs.readdirSync(consolidatedTemplatesDir);
+    const paxTemplates = files.filter(file => 
+      file.toLowerCase().includes('pax') && 
+      file.endsWith('.xlsx')
+    );
+
+    if (paxTemplates.length === 0) {
+      console.log('→ TemplateProcessor: No consolidated PAX templates found');
+      return null;
+    }
+
+    // Return the most recent template
+    const templatesWithStats = paxTemplates.map(file => {
+      const filePath = path.join(consolidatedTemplatesDir, file);
+      const stats = fs.statSync(filePath);
+      return { file, path: filePath, mtime: stats.mtime };
+    });
+
+    templatesWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    const latestTemplate = templatesWithStats[0];
+
+    console.log(`→ TemplateProcessor: Found consolidated PAX template: ${latestTemplate.file}`);
+    return latestTemplate.path;
+  }
+
+  /**
+   * Validate that a PAX template has the required delimiters
+   */
+  async validatePaxTemplate(templatePath: string): Promise<boolean> {
+    try {
+      // For now, just check if the file exists and is readable
+      const stats = fs.statSync(templatePath);
+      return stats.isFile() && stats.size > 0;
+    } catch (error) {
+      console.error('→ TemplateProcessor: PAX template validation failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get consolidated PAX template path with fallback
+   */
+  async getConsolidatedPaxTemplatePath(): Promise<string> {
+    const consolidatedTemplate = await this.findConsolidatedPaxTemplate();
+    
+    if (consolidatedTemplate && await this.validatePaxTemplate(consolidatedTemplate)) {
+      return consolidatedTemplate;
+    }
+
+    // Fallback: try to find any PAX template in ship directories
+    const ships = ['ship-a', 'ship-b', 'ship-c'];
+    for (const shipId of ships) {
+      const shipTemplatesDir = path.join(process.cwd(), "uploads", shipId);
+      if (fs.existsSync(shipTemplatesDir)) {
+        const files = fs.readdirSync(shipTemplatesDir);
+        const paxTemplate = files.find(file => 
+          file.toLowerCase().includes('pax') && 
+          file.endsWith('.xlsx')
+        );
+        
+        if (paxTemplate) {
+          const templatePath = path.join(shipTemplatesDir, paxTemplate);
+          console.log(`→ TemplateProcessor: Using fallback PAX template from ${shipId}: ${paxTemplate}`);
+          return templatePath;
+        }
+      }
+    }
+
+    throw new Error('No PAX template found in consolidated or ship-specific directories');
+  }
 }

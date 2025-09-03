@@ -9,6 +9,7 @@ import {
   generatedReports,
   dispatchVersions,
   extractedDispatchData,
+  consolidatedPaxReports,
   type UploadedFile, 
   type ExcelData,
   type ProcessingJob,
@@ -19,6 +20,7 @@ import {
   type GeneratedReport,
   type DispatchVersion,
   type ExtractedDispatchData,
+  type ConsolidatedPaxReport,
   type InsertUploadedFile, 
   type InsertExcelData,
   type InsertProcessingJob,
@@ -28,7 +30,8 @@ import {
   type InsertDispatchRecord,
   type InsertGeneratedReport,
   type InsertDispatchVersion,
-  type InsertExtractedDispatchData
+  type InsertExtractedDispatchData,
+  type InsertConsolidatedPaxReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -75,6 +78,12 @@ export interface IStorage {
   // Extracted dispatch data operations
   createExtractedDispatchData(data: InsertExtractedDispatchData): Promise<ExtractedDispatchData>;
   getExtractedDispatchData(dispatchFileId: number): Promise<ExtractedDispatchData | undefined>;
+
+  // Consolidated PAX report operations
+  createConsolidatedPaxReport(report: InsertConsolidatedPaxReport): Promise<ConsolidatedPaxReport>;
+  getRecentConsolidatedPaxReports(limit?: number): Promise<ConsolidatedPaxReport[]>;
+  getConsolidatedPaxReport(id: number): Promise<ConsolidatedPaxReport | undefined>;
+  getConsolidatedPaxReportByFilename(filename: string): Promise<ConsolidatedPaxReport | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -343,6 +352,39 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(extractedDispatchData.extractedAt))
       .limit(1);
     return result[0];
+  }
+
+  // Consolidated PAX report operations
+  async createConsolidatedPaxReport(report: InsertConsolidatedPaxReport): Promise<ConsolidatedPaxReport> {
+    const [newReport] = await db
+      .insert(consolidatedPaxReports)
+      .values(report)
+      .returning();
+    return newReport;
+  }
+
+  async getRecentConsolidatedPaxReports(limit: number = 10): Promise<ConsolidatedPaxReport[]> {
+    return await db
+      .select()
+      .from(consolidatedPaxReports)
+      .orderBy(desc(consolidatedPaxReports.createdAt))
+      .limit(limit);
+  }
+
+  async getConsolidatedPaxReport(id: number): Promise<ConsolidatedPaxReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(consolidatedPaxReports)
+      .where(eq(consolidatedPaxReports.id, id));
+    return report || undefined;
+  }
+
+  async getConsolidatedPaxReportByFilename(filename: string): Promise<ConsolidatedPaxReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(consolidatedPaxReports)
+      .where(eq(consolidatedPaxReports.filename, filename));
+    return report || undefined;
   }
 }
 
