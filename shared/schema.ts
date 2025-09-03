@@ -24,7 +24,7 @@ export const excelData = pgTable("excel_data", {
 export const processingJobs = pgTable("processing_jobs", {
   id: serial("id").primaryKey(),
   fileId: integer("file_id").notNull().references(() => uploadedFiles.id),
-  templateType: text("template_type").notNull(),
+  templateType: text("template_type").notNull(), // dispatch, eod, pax, consolidated_pax
   shipId: text("ship_id").notNull().default("ship-a"),
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   progress: integer("progress").notNull().default(0),
@@ -80,7 +80,7 @@ export const paxTemplates = pgTable("pax_templates", {
   filename: text("filename").notNull(),
   originalFilename: text("original_filename").notNull(),
   filePath: text("file_path").notNull(),
-  shipId: text("ship_id").notNull().default("ship-a"),
+  isConsolidated: boolean("is_consolidated").default(true).notNull(), // PAX templates are now system-wide
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
@@ -133,6 +133,18 @@ export const extractedDispatchData = pgTable("extracted_dispatch_data", {
   cellB8Value: text("cell_b8_value"), // Departure time from B8
   cellH8Value: text("cell_h8_value"), // Notes from H8
   extractedAt: timestamp("extracted_at").defaultNow().notNull(),
+});
+
+// Consolidated PAX Reports Table for cross-ship reporting
+export const consolidatedPaxReports = pgTable("consolidated_pax_reports", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  filePath: text("file_path").notNull(),
+  contributingShips: json("contributing_ships").$type<string[]>().notNull(), // ["ship-a", "ship-b", "ship-c"]
+  totalRecordCount: integer("total_record_count").notNull().default(0),
+  lastUpdatedByShip: text("last_updated_by_ship").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // User authentication and authorization tables
@@ -200,6 +212,12 @@ export const insertDispatchVersionSchema = createInsertSchema(dispatchVersions).
 export const insertExtractedDispatchDataSchema = createInsertSchema(extractedDispatchData).omit({
   id: true,
   extractedAt: true,
+});
+
+export const insertConsolidatedPaxReportSchema = createInsertSchema(consolidatedPaxReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Sharing Activities Table for Phase 1 Implementation
@@ -303,6 +321,7 @@ export type InsertDispatchRecord = z.infer<typeof insertDispatchRecordSchema>;
 export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
+export type InsertConsolidatedPaxReport = z.infer<typeof insertConsolidatedPaxReportSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
@@ -322,6 +341,7 @@ export type DispatchRecord = typeof dispatchRecords.$inferSelect;
 export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
 export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;
+export type ConsolidatedPaxReport = typeof consolidatedPaxReports.$inferSelect;
 export type User = typeof users.$inferSelect;
 
 // Role and Permission types
