@@ -433,6 +433,12 @@ export default function CreateDispatch() {
       
       // Refresh output files to show the new PAX report for current ship
       queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
+      
+      // Refresh consolidated PAX reports to show the new consolidated report
+      if (result.consolidatedPaxGenerated) {
+        queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
+        console.log(`Updated consolidated PAX report: ${result.consolidatedFilename}`);
+      }
     },
     onError: (error: any) => {
       toast({
