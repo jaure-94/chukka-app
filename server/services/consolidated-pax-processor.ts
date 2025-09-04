@@ -332,8 +332,8 @@ export class ConsolidatedPaxProcessor {
   /**
    * Main entry point for consolidated PAX generation
    */
-  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system', forceCreateNew: boolean = false): Promise<{ filename: string; data: ConsolidatedPaxData }> {
-    console.log(`→ ConsolidatedPaxProcessor: Starting consolidated PAX generation (triggered by ${triggeringShipId}, forceCreateNew: ${forceCreateNew})`);
+  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system'): Promise<{ filename: string; data: ConsolidatedPaxData }> {
+    console.log(`→ ConsolidatedPaxProcessor: Starting consolidated PAX generation (triggered by ${triggeringShipId})`);
 
     try {
       // Step 1: Collect data from all ships
@@ -347,8 +347,8 @@ export class ConsolidatedPaxProcessor {
       const consolidatedData = this.validateCrossShipData(allShipData);
       consolidatedData.lastUpdatedByShip = triggeringShipId;
 
-      // Step 3: Create new or update existing based on mode
-      const filename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath, forceCreateNew);
+      // Step 3: Check if existing consolidated PAX exists and update it, or create new one
+      const filename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath);
 
       console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX processing completed - ${filename}`);
       return { filename, data: consolidatedData };
@@ -362,20 +362,13 @@ export class ConsolidatedPaxProcessor {
   /**
    * Update existing consolidated PAX or create new one
    */
-  private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string, forceCreateNew: boolean = false): Promise<string> {
+  private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
     const consolidatedOutputDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
     
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Checking for existing consolidated PAX in: ${consolidatedOutputDir}`);
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Directory exists: ${fs.existsSync(consolidatedOutputDir)}`);
-    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Force create new: ${forceCreateNew}`);
     
-    // If forceCreateNew is true, always create a new file
-    if (forceCreateNew) {
-      console.log(`→ ConsolidatedPaxProcessor: Forcing creation of new consolidated PAX report`);
-      return await this.generateConsolidatedPax(consolidatedData, templatePath);
-    }
-    
-    // Check if consolidated PAX files exist (only for update mode)
+    // Check if consolidated PAX files exist
     if (fs.existsSync(consolidatedOutputDir)) {
       const allFiles = fs.readdirSync(consolidatedOutputDir);
       console.log(`→ ConsolidatedPaxProcessor: DEBUG - All files in directory: ${allFiles.join(', ')}`);
