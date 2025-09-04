@@ -226,6 +226,12 @@ export class ConsolidatedPaxProcessor {
     
     // Load PAX template
     const workbook = new ExcelJS.Workbook();
+    
+    // Check if template file exists
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`PAX template not found at: ${templatePath}`);
+    }
+    
     await workbook.xlsx.readFile(templatePath);
     const worksheet = workbook.getWorksheet(1);
 
@@ -386,7 +392,16 @@ export class ConsolidatedPaxProcessor {
       if (existingFiles.length > 0) {
         const latestFile = existingFiles[0];
         const existingFilePath = path.join(consolidatedOutputDir, latestFile);
-        console.log(`→ ConsolidatedPaxProcessor: Updating existing consolidated PAX: ${latestFile}`);
+        
+        // Check if the file has content before trying to read it
+        const fileStats = fs.statSync(existingFilePath);
+        if (fileStats.size === 0) {
+          console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is empty (0 bytes), skipping and creating new file`);
+          // Skip empty/corrupted file and create a new one
+          return await this.generateConsolidatedPax(consolidatedData, templatePath);
+        }
+        
+        console.log(`→ ConsolidatedPaxProcessor: Updating existing consolidated PAX: ${latestFile} (${fileStats.size} bytes)`);
         
         // Update existing consolidated PAX
         await this.updateExistingConsolidatedPax(existingFilePath, consolidatedData);

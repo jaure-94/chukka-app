@@ -1362,7 +1362,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-generate consolidated PAX report
       try {
         const consolidatedProcessor = new ConsolidatedPaxProcessor();
-        const consolidatedPaxTemplate = path.join(process.cwd(), 'templates', 'pax_template.xlsx');
+        const templateProcessor = new TemplateProcessor();
+        const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         
         const consolidatedResult = await consolidatedProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
