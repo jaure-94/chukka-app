@@ -1083,20 +1083,32 @@ export default function CreateDispatch() {
               <p className="text-sm font-medium text-gray-700">Generated File:</p>
               <p className="text-sm text-gray-600">{paxFileName}</p>
             </div>
-            <div className="flex space-x-3">
-              <Button 
-                onClick={() => {
-                  setShowPaxSuccessModal(false);
-                  setLocation("/reports");
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                View Reports
-              </Button>
+            <div className="flex flex-col space-y-2">
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={() => {
+                    setShowPaxSuccessModal(false);
+                    setLocation("/consolidated-pax-reports");
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  View Consolidated PAX
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowPaxSuccessModal(false);
+                    setLocation("/reports");
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  View Reports
+                </Button>
+              </div>
               <Button 
                 onClick={() => setShowPaxSuccessModal(false)}
                 variant="outline"
-                className="flex-1"
+                className="w-full"
               >
                 Continue Here
               </Button>
