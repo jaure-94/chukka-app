@@ -164,13 +164,24 @@ export class ConsolidatedPaxProcessor {
       
       // Convert to cross-ship records
       for (const record of validatedRecords) {
+        // Use friendly ship name for consolidated reports instead of original ship name
+        const shipIdToName = {
+          'ship-a': 'Ship A',
+          'ship-b': 'Ship B', 
+          'ship-c': 'Ship C'
+        };
+        
+        const friendlyShipName = shipIdToName[shipId as keyof typeof shipIdToName] || shipData.shipName;
+        
         crossShipRecords.push({
           ...record,
           shipId,
-          shipName: shipData.shipName,
+          shipName: friendlyShipName,
           date: shipData.date,
           cruiseLine: shipData.cruiseLine
         });
+        
+        console.log(`→ ConsolidatedPaxProcessor: ${shipId} record attributed to "${friendlyShipName}"`);
       }
     }
 
