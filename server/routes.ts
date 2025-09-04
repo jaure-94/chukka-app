@@ -1147,8 +1147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
-          'eod-processor', // Triggered by EOD processing
-          false // forceNew: false for EOD processing (update existing)
+          'eod-processor' // Triggered by EOD processing
         );
         
         console.log(`→ Consolidated PAX generated after EOD: ${consolidatedResult.filename}`);
@@ -1363,12 +1362,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-generate consolidated PAX report
       try {
         const consolidatedProcessor = new ConsolidatedPaxProcessor();
-        const consolidatedPaxTemplate = path.join(process.cwd(), 'uploads', 'templates', 'pax', 'consolidated-pax-template.xlsx');
+        const consolidatedPaxTemplate = path.join(process.cwd(), 'templates', 'pax_template.xlsx');
         
         const consolidatedResult = await consolidatedProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
-          shipId, // Triggering ship
-          true // forceNew: true for "Create new PAX report"
+          shipId // Triggering ship
         );
         
         console.log(`→ Consolidated PAX generated after new PAX: ${consolidatedResult.filename}`);
@@ -1485,8 +1483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
-          shipId,
-          false // forceNew: false for successive PAX entry (update existing)
+          shipId
         );
         
         console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);
@@ -1577,8 +1574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
       const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
         consolidatedPaxTemplate,
-        user.username,
-        true // forceNew: true for manual generation (create new)
+        user.username
       );
       
       // Save consolidated PAX report to database
