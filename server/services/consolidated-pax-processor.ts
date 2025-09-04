@@ -347,16 +347,79 @@ export class ConsolidatedPaxProcessor {
       const consolidatedData = this.validateCrossShipData(allShipData);
       consolidatedData.lastUpdatedByShip = triggeringShipId;
 
-      // Step 3: Generate consolidated report
-      const filename = await this.generateConsolidatedPax(consolidatedData, templatePath);
+      // Step 3: Check if existing consolidated PAX exists and update it, or create new one
+      const filename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath);
 
-      console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX generation completed - ${filename}`);
+      console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX processing completed - ${filename}`);
       return { filename, data: consolidatedData };
 
     } catch (error) {
-      console.error('→ ConsolidatedPaxProcessor: Error in consolidated PAX generation:', error);
+      console.error('→ ConsolidatedPaxProcessor: Error in consolidated PAX processing:', error);
       throw error;
     }
+  }
+
+  /**
+   * Update existing consolidated PAX or create new one
+   */
+  private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
+    const consolidatedOutputDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
+    
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Checking for existing consolidated PAX in: ${consolidatedOutputDir}`);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Directory exists: ${fs.existsSync(consolidatedOutputDir)}`);
+    
+    // Check if consolidated PAX files exist
+    if (fs.existsSync(consolidatedOutputDir)) {
+      const allFiles = fs.readdirSync(consolidatedOutputDir);
+      console.log(`→ ConsolidatedPaxProcessor: DEBUG - All files in directory: ${allFiles.join(', ')}`);
+      
+      const existingFiles = allFiles
+        .filter(file => file.startsWith('consolidated_pax_') && file.endsWith('.xlsx'))
+        .sort((a, b) => {
+          const timestampA = parseInt(a.replace('consolidated_pax_', '').replace('.xlsx', ''));
+          const timestampB = parseInt(b.replace('consolidated_pax_', '').replace('.xlsx', ''));
+          return timestampB - timestampA; // Newest first
+        });
+
+      console.log(`→ ConsolidatedPaxProcessor: DEBUG - Filtered consolidated PAX files: ${existingFiles.join(', ')}`);
+
+      if (existingFiles.length > 0) {
+        const latestFile = existingFiles[0];
+        const existingFilePath = path.join(consolidatedOutputDir, latestFile);
+        console.log(`→ ConsolidatedPaxProcessor: Updating existing consolidated PAX: ${latestFile}`);
+        
+        // Update existing consolidated PAX
+        await this.updateExistingConsolidatedPax(existingFilePath, consolidatedData);
+        return latestFile;
+      }
+    }
+
+    // No existing file found, create new one
+    console.log(`→ ConsolidatedPaxProcessor: No existing consolidated PAX found, creating new one`);
+    return await this.generateConsolidatedPax(consolidatedData, templatePath);
+  }
+
+  /**
+   * Update existing consolidated PAX file
+   */
+  private async updateExistingConsolidatedPax(existingFilePath: string, consolidatedData: ConsolidatedPaxData): Promise<void> {
+    console.log(`→ ConsolidatedPaxProcessor: Loading existing consolidated PAX for update`);
+
+    // Load existing consolidated PAX file
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(existingFilePath);
+    const worksheet = workbook.getWorksheet(1);
+
+    if (!worksheet) {
+      throw new Error('Existing consolidated PAX worksheet not found');
+    }
+
+    // Update the consolidated data (same logic as populate but on existing file)
+    await this.populateConsolidatedReport(worksheet, consolidatedData);
+
+    // Save back to the same file (overwrite)
+    await workbook.xlsx.writeFile(existingFilePath);
+    console.log(`→ ConsolidatedPaxProcessor: Updated existing consolidated PAX file`);
   }
 
   // Helper methods (reusing logic from PaxProcessor)
