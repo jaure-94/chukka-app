@@ -183,6 +183,24 @@ export class TemplateProcessor {
     
     // If individual template fails, fallback to file system search
     console.log('→ TemplateProcessor: Individual PAX template not available, searching file system');
+    
+    // First check templates directory
+    const templatesDir = path.join(process.cwd(), "uploads", "templates", "pax");
+    if (fs.existsSync(templatesDir)) {
+      const files = fs.readdirSync(templatesDir);
+      const paxTemplate = files.find(file => 
+        file.toLowerCase().includes('pax') && 
+        file.endsWith('.xlsx')
+      );
+      
+      if (paxTemplate) {
+        const templatePath = path.join(templatesDir, paxTemplate);
+        console.log(`→ TemplateProcessor: Using consolidated PAX template: ${paxTemplate}`);
+        return templatePath;
+      }
+    }
+    
+    // Then check ship-specific directories
     const ships = ['ship-a', 'ship-b', 'ship-c'];
     for (const shipId of ships) {
       const shipTemplatesDir = path.join(process.cwd(), "uploads", shipId);
