@@ -36,10 +36,12 @@ export class ConsolidatedPaxProcessor {
 
     for (const shipId of ships) {
       try {
+        console.log(`→ ConsolidatedPaxProcessor: DEBUG - Processing ${shipId}...`);
         const latestPaxFile = await this.findLatestPaxFile(shipId);
         if (latestPaxFile) {
           console.log(`→ ConsolidatedPaxProcessor: Found PAX file for ${shipId}: ${latestPaxFile}`);
           const shipData = await this.extractPaxDataForShip(latestPaxFile, shipId);
+          console.log(`→ ConsolidatedPaxProcessor: DEBUG - ${shipId} extracted ${shipData.records.length} records`);
           allShipData[shipId] = shipData;
         } else {
           console.log(`→ ConsolidatedPaxProcessor: No PAX file found for ${shipId}, falling back to dispatch file`);
@@ -48,9 +50,11 @@ export class ConsolidatedPaxProcessor {
           if (latestDispatchFile) {
             console.log(`→ ConsolidatedPaxProcessor: Found dispatch file for ${shipId}: ${latestDispatchFile}`);
             const shipData = await this.extractDispatchDataForShip(latestDispatchFile, shipId);
+            console.log(`→ ConsolidatedPaxProcessor: DEBUG - ${shipId} extracted ${shipData.records.length} records from dispatch`);
             allShipData[shipId] = shipData;
           }
         }
+        console.log(`→ ConsolidatedPaxProcessor: DEBUG - ${shipId} processing completed`);
       } catch (error) {
         console.error(`→ ConsolidatedPaxProcessor: Error processing ${shipId}:`, error);
         // Continue with other ships even if one fails
@@ -127,18 +131,24 @@ export class ConsolidatedPaxProcessor {
    */
   private async findLatestPaxFile(shipId: string): Promise<string | null> {
     const shipOutputDir = path.join(process.cwd(), 'output', shipId);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Looking for PAX files in ${shipOutputDir}`);
     
     if (!fs.existsSync(shipOutputDir)) {
+      console.log(`→ ConsolidatedPaxProcessor: DEBUG - Directory does not exist: ${shipOutputDir}`);
       return null;
     }
 
     const files = fs.readdirSync(shipOutputDir);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Files in ${shipId} directory: ${files.length} files`);
+    
     const paxFiles = files.filter(file => 
       file.startsWith('pax_') && 
       file.endsWith('.xlsx')
     );
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - PAX files found for ${shipId}: ${paxFiles.length} (${paxFiles.join(', ')})`);
 
     if (paxFiles.length === 0) {
+      console.log(`→ ConsolidatedPaxProcessor: DEBUG - No PAX files found for ${shipId}`);
       return null;
     }
 
@@ -149,30 +159,34 @@ export class ConsolidatedPaxProcessor {
       return timestampB - timestampA; // Newest first
     });
 
-    return path.join(shipOutputDir, sortedFiles[0]);
+    const latestFile = path.join(shipOutputDir, sortedFiles[0]);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Latest PAX file for ${shipId}: ${latestFile}`);
+    return latestFile;
   }
 
   /**
    * Extract PAX data for a specific ship from PAX file
    */
   private async extractPaxDataForShip(filePath: string, shipId: string): Promise<PaxReportData> {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.getWorksheet(1);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Extracting PAX data for ${shipId} from ${filePath}`);
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+      const worksheet = workbook.getWorksheet(1);
 
-    if (!worksheet) {
-      throw new Error(`PAX worksheet not found in ${filePath}`);
-    }
+      if (!worksheet) {
+        throw new Error(`PAX worksheet not found in ${filePath}`);
+      }
 
-    // Extract header data from PAX file
-    const date = this.getCellValue(worksheet, 'A4') || '';
-    const cruiseLine = this.getCellValue(worksheet, 'B4') || '';  
-    const shipName = this.getCellValue(worksheet, 'C4') || shipId.toUpperCase();
+      // Extract header data from PAX file
+      const date = this.getCellValue(worksheet, 'A4') || '';
+      const cruiseLine = this.getCellValue(worksheet, 'B4') || '';  
+      const shipName = this.getCellValue(worksheet, 'C4') || shipId.toUpperCase();
 
-    console.log(`→ ConsolidatedPaxProcessor: ${shipId} PAX header - Date: ${date}, Cruise: ${cruiseLine}, Ship: ${shipName}`);
+      console.log(`→ ConsolidatedPaxProcessor: ${shipId} PAX header - Date: ${date}, Cruise: ${cruiseLine}, Ship: ${shipName}`);
 
-    // Extract PAX records (starting from row 5, skipping template row 4)
-    const records: any[] = [];
+      // Extract PAX records (starting from row 5, skipping template row 4)
+      const records: any[] = [];
     
     for (let row = 5; row <= 100; row++) { // Check up to row 100
       const dateCell = worksheet.getCell(row, 1);
@@ -203,12 +217,17 @@ export class ConsolidatedPaxProcessor {
       console.log(`→ ConsolidatedPaxProcessor: ${shipId} PAX row ${row} - ${tourNameValue}: ${sold}/${allotment}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
     }
 
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - ${shipId} PAX extraction completed with ${records.length} records`);
     return {
       date,
       cruiseLine,
       shipName,
       records
     };
+  } catch (error) {
+    console.error(`→ ConsolidatedPaxProcessor: ERROR - Failed to extract PAX data for ${shipId}:`, error);
+    throw error;
+  }
   }
 
   /**
@@ -378,28 +397,13 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Populate consolidated report with cross-ship data
+   * Populate consolidated report with cross-ship data (individual rows, not aggregated)
    */
   private async populateConsolidatedReport(worksheet: ExcelJS.Worksheet, consolidatedData: ConsolidatedPaxData): Promise<void> {
-    console.log(`→ ConsolidatedPaxProcessor: Populating consolidated report with ${consolidatedData.records.length} total records`);
+    console.log(`→ ConsolidatedPaxProcessor: Populating consolidated report with ${consolidatedData.records.length} individual records`);
 
-    // Aggregate data across all ships
-    const tourTotals = {
-      catamaran: { sold: 0, allotment: 0 },
-      champagne: { sold: 0, allotment: 0 },
-      invisible: { sold: 0, allotment: 0 }
-    };
-
-    let totalPaxOnBoard = 0;
-    let totalPaxOnTour = 0;
-
-    // Aggregate from all ships
-    for (const record of consolidatedData.records) {
-      tourTotals[record.tourType].sold += record.sold;
-      tourTotals[record.tourType].allotment += record.allotment;
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
-    }
+    // For consolidated PAX, we want to show individual rows from each ship, not aggregated totals
+    // This means we'll populate starting from row 5, with each record as a separate row
 
     // Get representative data (use triggering ship's data for headers)
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - lastUpdatedByShip: ${consolidatedData.lastUpdatedByShip}`);
@@ -413,45 +417,41 @@ export class ConsolidatedPaxProcessor {
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Found triggering ship record: ${triggeringShipRecord ? triggeringShipRecord.shipId : 'none'}`);
     
     const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
-    const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
+    const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'CCL';
     
-    // Format ship name to be user-friendly (e.g., "Ship A" instead of "SHIP-A" or "Liberty")
-    const shipIdToName = {
-      'ship-a': 'Ship A',
-      'ship-b': 'Ship B', 
-      'ship-c': 'Ship C'
-    };
-    
-    // Use the friendly name based on triggering ship
-    let consolidatedShipName = 'Unknown Ship';
-    if (consolidatedData.lastUpdatedByShip && shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName]) {
-      consolidatedShipName = shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName];
+    // For consolidated reports, show "All Ships" in the header
+    const consolidatedShipName = "All Ships";
+    console.log(`→ ConsolidatedPaxProcessor: Using ship name "${consolidatedShipName}" for consolidated header`);
+
+    // Set header information (consolidated view)
+    worksheet.getCell('A4').value = consolidatedDate; // Date
+    worksheet.getCell('B4').value = consolidatedCruiseLine; // Cruise Line  
+    worksheet.getCell('C4').value = consolidatedShipName; // "All Ships"
+
+    // Find the first empty row (starting from row 5)
+    let currentRow = 5;
+    while (worksheet.getCell(currentRow, 1).value && currentRow < 200) {
+      currentRow++;
     }
 
-    console.log(`→ ConsolidatedPaxProcessor: Using ship name "${consolidatedShipName}" from triggering ship ${consolidatedData.lastUpdatedByShip}`);
+    console.log(`→ ConsolidatedPaxProcessor: Adding ${consolidatedData.records.length} individual records starting from row ${currentRow}`);
 
-    // Use template row 4 for delimiter replacement (same as original logic)
-    const templateRow = 4;
+    // Add each record as a separate row (individual entries, not aggregated)
+    for (const record of consolidatedData.records) {
+      console.log(`→ ConsolidatedPaxProcessor: Adding ${record.shipName} - ${record.tourName} to row ${currentRow}`);
+      
+      // Set individual record data
+      worksheet.getCell(`A${currentRow}`).value = record.date;
+      worksheet.getCell(`B${currentRow}`).value = `${record.shipName} - ${record.tourName}`; // Show ship and tour
+      worksheet.getCell(`H${currentRow}`).value = record.allotment;
+      worksheet.getCell(`J${currentRow}`).value = record.sold;
+      worksheet.getCell(`BT${currentRow}`).value = record.paxOnBoard;
+      worksheet.getCell(`BU${currentRow}`).value = record.paxOnTour;
 
-    // Replace delimiters with consolidated data
-    this.replaceDelimiter(worksheet, templateRow, 1, '{{date}}', consolidatedDate);
-    this.replaceDelimiter(worksheet, templateRow, 2, '{{cruise_line}}', consolidatedCruiseLine);
-    this.replaceDelimiter(worksheet, templateRow, 3, '{{ship_name}}', consolidatedShipName);
+      currentRow++;
+    }
 
-    // Tour-specific aggregated data
-    this.replaceDelimiter(worksheet, templateRow, 4, '{{cat_sold}}', tourTotals.catamaran.sold);
-    this.replaceDelimiter(worksheet, templateRow, 5, '{{cat_allot}}', tourTotals.catamaran.allotment);
-    this.replaceDelimiter(worksheet, templateRow, 6, '{{champ_sold}}', tourTotals.champagne.sold);
-    this.replaceDelimiter(worksheet, templateRow, 7, '{{champ_allot}}', tourTotals.champagne.allotment);
-    this.replaceDelimiter(worksheet, templateRow, 8, '{{inv_sold}}', tourTotals.invisible.sold);
-    this.replaceDelimiter(worksheet, templateRow, 9, '{{inv_allot}}', tourTotals.invisible.allotment);
-
-    // Analysis data (columns BT=72, BU=73)
-    this.replaceDelimiter(worksheet, templateRow, 72, '{{pax_on_board}}', totalPaxOnBoard);
-    this.replaceDelimiter(worksheet, templateRow, 73, '{{pax_on_tour}}', totalPaxOnTour);
-
-    console.log(`→ ConsolidatedPaxProcessor: Consolidated totals - Catamaran: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champagne: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Invisible: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}`);
-    console.log(`→ ConsolidatedPaxProcessor: Overall totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
+    console.log(`→ ConsolidatedPaxProcessor: Added ${consolidatedData.records.length} individual records to consolidated PAX`);
   }
 
   /**
