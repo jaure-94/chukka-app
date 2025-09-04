@@ -265,11 +265,34 @@ export class ConsolidatedPaxProcessor {
       totalPaxOnTour += record.paxOnTour;
     }
 
-    // Get representative data (use first ship's data for headers)
-    const firstRecord = consolidatedData.records[0];
-    const consolidatedDate = firstRecord?.date || new Date().toLocaleDateString('en-GB');
-    const consolidatedCruiseLine = firstRecord?.cruiseLine || 'Multi-Ship Operation';
-    const consolidatedShipName = `All Ships (${consolidatedData.contributingShips.join(', ')})`;
+    // Get representative data (use triggering ship's data for headers)
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - lastUpdatedByShip: ${consolidatedData.lastUpdatedByShip}`);
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Available ship records: ${consolidatedData.records.map(r => r.shipId).join(', ')}`);
+    
+    // Find the triggering ship's record to use their ship name
+    const triggeringShipRecord = consolidatedData.records.find(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    ) || consolidatedData.records[0];
+    
+    console.log(`→ ConsolidatedPaxProcessor: DEBUG - Found triggering ship record: ${triggeringShipRecord ? triggeringShipRecord.shipId : 'none'}`);
+    
+    const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
+    const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
+    
+    // Format ship name to be user-friendly (e.g., "Ship A" instead of "SHIP-A" or "Liberty")
+    const shipIdToName = {
+      'ship-a': 'Ship A',
+      'ship-b': 'Ship B', 
+      'ship-c': 'Ship C'
+    };
+    
+    // Use the friendly name based on triggering ship
+    let consolidatedShipName = 'Unknown Ship';
+    if (consolidatedData.lastUpdatedByShip && shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName]) {
+      consolidatedShipName = shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName];
+    }
+
+    console.log(`→ ConsolidatedPaxProcessor: Using ship name "${consolidatedShipName}" from triggering ship ${consolidatedData.lastUpdatedByShip}`);
 
     // Use template row 4 for delimiter replacement (same as original logic)
     const templateRow = 4;
