@@ -1322,6 +1322,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate new PAX report with consolidated PAX auto-generation (ship-aware)
+  app.post("/api/generate-pax-report", async (req, res) => {
+    try {
+      const { dispatchFileId, shipId = 'ship-a' } = req.body;
+      
+      if (!dispatchFileId) {
+        return res.status(400).json({ message: "Dispatch file ID is required" });
+      }
+
+      // Get the most recent dispatch version (edited file) for the specific ship
+      const dispatchVersions = await storage.getDispatchVersions(1, shipId);
+      let dispatchFilePath;
+      
+      if (dispatchVersions.length > 0) {
+        // Use the latest edited dispatch file
+        const latestVersion = dispatchVersions[0];
+        dispatchFilePath = latestVersion.filePath;
+        console.log(`Using latest dispatch version for new PAX (${shipId}):`, latestVersion.filename);
+      } else {
+        // Fallback to original uploaded file
+        const dispatchFile = await storage.getUploadedFile(parseInt(dispatchFileId));
+        if (!dispatchFile) {
+          return res.status(404).json({ message: "Dispatch file not found" });
+        }
+        dispatchFilePath = path.join(process.cwd(), "uploads", dispatchFile.filename);
+      }
+
+      // Get active PAX template for the specific ship
+      const paxTemplate = await storage.getActivePaxTemplate(shipId);
+      if (!paxTemplate) {
+        return res.status(400).json({ message: `No active PAX template found for ${shipId}` });
+      }
+
+      // Generate new PAX report using PaxProcessor with ship ID
+      const paxTemplatePath = path.join(process.cwd(), paxTemplate.filePath);
+      const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath, shipId);
+
+      // Auto-generate consolidated PAX report
+      try {
+        const consolidatedProcessor = new ConsolidatedPaxProcessor();
+        const consolidatedPaxTemplate = path.join(process.cwd(), 'templates', 'pax_template.xlsx');
+        
+        const consolidatedResult = await consolidatedProcessor.processConsolidatedPax(
+          consolidatedPaxTemplate,
+          shipId // Triggering ship
+        );
+        
+        console.log(`→ Consolidated PAX generated after new PAX: ${consolidatedResult.filename}`);
+        console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+        
+        // Save consolidated PAX report to database
+        try {
+          const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+            filename: consolidatedResult.filename,
+            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            contributingShips: consolidatedResult.data.contributingShips,
+            totalRecordCount: consolidatedResult.data.totalRecordCount,
+            lastUpdatedByShip: shipId
+          });
+          console.log(`→ Consolidated PAX saved to database with ID: ${consolidatedPaxRecord.id}`);
+        } catch (dbError) {
+          console.error('→ Failed to save consolidated PAX to database:', dbError);
+        }
+
+        res.json({
+          success: true,
+          paxFile: paxOutputFilename,
+          shipId: shipId,
+          message: `PAX report generated successfully for ${shipId}`,
+          consolidatedPaxGenerated: true,
+          consolidatedFilename: consolidatedResult.filename,
+          contributingShips: consolidatedResult.data.contributingShips
+        });
+
+      } catch (consolidatedError) {
+        console.error('→ Consolidated PAX generation failed after new PAX:', consolidatedError);
+        
+        // Return success for individual PAX even if consolidated fails
+        res.json({
+          success: true,
+          paxFile: paxOutputFilename,
+          shipId: shipId,
+          message: `PAX report generated successfully for ${shipId}`,
+          consolidatedPaxGenerated: false,
+          consolidatedError: consolidatedError instanceof Error ? consolidatedError.message : 'Unknown error'
+        });
+      }
+
+    } catch (error) {
+      console.error("PAX report generation error:", error);
+      res.status(500).json({ 
+        message: "Failed to generate PAX report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Add successive PAX entry to existing PAX report (ship-aware)
   app.post("/api/add-successive-pax-entry", async (req, res) => {
     try {
