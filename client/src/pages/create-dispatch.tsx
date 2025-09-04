@@ -420,7 +420,7 @@ export default function CreateDispatch() {
         throw new Error('No saved file ID available');
       }
 
-      const response = await apiRequest("POST", "/api/process-pax-from-dispatch", {
+      const response = await apiRequest("POST", "/api/generate-pax-report", {
         dispatchFileId: savedFileId,
         shipId: currentShip
       });
