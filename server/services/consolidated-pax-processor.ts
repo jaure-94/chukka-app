@@ -26,7 +26,43 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Collect all dispatch data from all ships
+   * Collect all PAX data from all ships (from updated PAX files, not dispatch files)
+   */
+  async collectAllPaxData(): Promise<{ [shipId: string]: PaxReportData }> {
+    console.log('→ ConsolidatedPaxProcessor: Collecting PAX data from all ships (from updated PAX files)');
+    
+    const allShipData: { [shipId: string]: PaxReportData } = {};
+    const ships = ['ship-a', 'ship-b', 'ship-c'];
+
+    for (const shipId of ships) {
+      try {
+        const latestPaxFile = await this.findLatestPaxFile(shipId);
+        if (latestPaxFile) {
+          console.log(`→ ConsolidatedPaxProcessor: Found PAX file for ${shipId}: ${latestPaxFile}`);
+          const shipData = await this.extractPaxDataForShip(latestPaxFile, shipId);
+          allShipData[shipId] = shipData;
+        } else {
+          console.log(`→ ConsolidatedPaxProcessor: No PAX file found for ${shipId}, falling back to dispatch file`);
+          // Fallback to dispatch file if no PAX file exists
+          const latestDispatchFile = await this.findLatestDispatchFile(shipId);
+          if (latestDispatchFile) {
+            console.log(`→ ConsolidatedPaxProcessor: Found dispatch file for ${shipId}: ${latestDispatchFile}`);
+            const shipData = await this.extractDispatchDataForShip(latestDispatchFile, shipId);
+            allShipData[shipId] = shipData;
+          }
+        }
+      } catch (error) {
+        console.error(`→ ConsolidatedPaxProcessor: Error processing ${shipId}:`, error);
+        // Continue with other ships even if one fails
+      }
+    }
+
+    console.log(`→ ConsolidatedPaxProcessor: Collected data from ${Object.keys(allShipData).length} ships`);
+    return allShipData;
+  }
+
+  /**
+   * Collect all dispatch data from all ships (original method for fallback)
    */
   async collectAllDispatchData(): Promise<{ [shipId: string]: PaxReportData }> {
     console.log('→ ConsolidatedPaxProcessor: Collecting dispatch data from all ships');
@@ -84,6 +120,95 @@ export class ConsolidatedPaxProcessor {
 
     filesWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
     return filesWithStats[0].path;
+  }
+
+  /**
+   * Find the latest PAX file for a specific ship
+   */
+  private async findLatestPaxFile(shipId: string): Promise<string | null> {
+    const shipOutputDir = path.join(process.cwd(), 'output', shipId);
+    
+    if (!fs.existsSync(shipOutputDir)) {
+      return null;
+    }
+
+    const files = fs.readdirSync(shipOutputDir);
+    const paxFiles = files.filter(file => 
+      file.startsWith('pax_') && 
+      file.endsWith('.xlsx')
+    );
+
+    if (paxFiles.length === 0) {
+      return null;
+    }
+
+    // Sort by timestamp in filename and get the latest
+    const sortedFiles = paxFiles.sort((a, b) => {
+      const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
+      const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
+      return timestampB - timestampA; // Newest first
+    });
+
+    return path.join(shipOutputDir, sortedFiles[0]);
+  }
+
+  /**
+   * Extract PAX data for a specific ship from PAX file
+   */
+  private async extractPaxDataForShip(filePath: string, shipId: string): Promise<PaxReportData> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const worksheet = workbook.getWorksheet(1);
+
+    if (!worksheet) {
+      throw new Error(`PAX worksheet not found in ${filePath}`);
+    }
+
+    // Extract header data from PAX file
+    const date = this.getCellValue(worksheet, 'A4') || '';
+    const cruiseLine = this.getCellValue(worksheet, 'B4') || '';  
+    const shipName = this.getCellValue(worksheet, 'C4') || shipId.toUpperCase();
+
+    console.log(`→ ConsolidatedPaxProcessor: ${shipId} PAX header - Date: ${date}, Cruise: ${cruiseLine}, Ship: ${shipName}`);
+
+    // Extract PAX records (starting from row 5, skipping template row 4)
+    const records: any[] = [];
+    
+    for (let row = 5; row <= 100; row++) { // Check up to row 100
+      const dateCell = worksheet.getCell(row, 1);
+      if (!dateCell.value || dateCell.value === '') {
+        break; // Stop at first empty row
+      }
+
+      // Skip if this is just a template or header row
+      const tourNameValue = this.getCellValue(worksheet, `B${row}`);
+      if (!tourNameValue || tourNameValue === '' || tourNameValue === 'TOUR') {
+        continue;
+      }
+
+      // Extract the tour data from this PAX entry row
+      const allotment = this.extractNumericValue(worksheet.getCell(row, 8).value); // Column H
+      const sold = this.extractNumericValue(worksheet.getCell(row, 10).value); // Column J  
+      const paxOnBoard = this.extractNumericValue(worksheet.getCell(row, 72).value); // Column BT
+      const paxOnTour = this.extractNumericValue(worksheet.getCell(row, 73).value); // Column BU
+
+      records.push({
+        tourName: tourNameValue,
+        allotment,
+        sold,
+        paxOnBoard,
+        paxOnTour
+      });
+
+      console.log(`→ ConsolidatedPaxProcessor: ${shipId} PAX row ${row} - ${tourNameValue}: ${sold}/${allotment}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
+    }
+
+    return {
+      date,
+      cruiseLine,
+      shipName,
+      records
+    };
   }
 
   /**
@@ -336,11 +461,11 @@ export class ConsolidatedPaxProcessor {
     console.log(`→ ConsolidatedPaxProcessor: Starting consolidated PAX generation (triggered by ${triggeringShipId})`);
 
     try {
-      // Step 1: Collect data from all ships
-      const allShipData = await this.collectAllDispatchData();
+      // Step 1: Collect data from all ships (prefer PAX files over dispatch files)
+      const allShipData = await this.collectAllPaxData();
       
       if (Object.keys(allShipData).length === 0) {
-        throw new Error('No dispatch data found from any ship');
+        throw new Error('No PAX data found from any ship');
       }
 
       // Step 2: Validate and merge data
