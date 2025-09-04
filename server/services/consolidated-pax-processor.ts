@@ -414,12 +414,137 @@ export class ConsolidatedPaxProcessor {
       throw new Error('Existing consolidated PAX worksheet not found');
     }
 
-    // Update the consolidated data (same logic as populate but on existing file)
-    await this.populateConsolidatedReport(worksheet, consolidatedData);
+    // Find the next available row after existing data (same logic as individual PAX)
+    const nextRow = this.findNextAvailableRow(worksheet);
+    console.log(`→ ConsolidatedPaxProcessor: Adding new consolidated record at row ${nextRow}`);
+
+    // Add new consolidated record to existing file (instead of overwriting)
+    await this.addConsolidatedRecordToExistingFile(worksheet, consolidatedData, nextRow);
 
     // Save back to the same file (overwrite)
     await workbook.xlsx.writeFile(existingFilePath);
     console.log(`→ ConsolidatedPaxProcessor: Updated existing consolidated PAX file`);
+  }
+
+  /**
+   * Find the next available row in consolidated PAX report (same logic as individual PAX)
+   */
+  private findNextAvailableRow(worksheet: ExcelJS.Worksheet): number {
+    // Start checking from row 5 (after template row 4)
+    let currentRow = 5;
+    
+    // Look for the first empty row by checking column A (date column)
+    while (currentRow <= 1000) { // Safety limit
+      const cellA = worksheet.getCell(currentRow, 1); // Column A
+      if (!cellA.value || cellA.value === '') {
+        return currentRow;
+      }
+      currentRow++;
+    }
+    
+    // If we reach here, assume we can add at row 5 as fallback
+    return 5;
+  }
+
+  /**
+   * Add new consolidated record to existing file (same pattern as individual PAX)
+   */
+  private async addConsolidatedRecordToExistingFile(
+    worksheet: ExcelJS.Worksheet,
+    consolidatedData: ConsolidatedPaxData,
+    targetRow: number
+  ): Promise<void> {
+    console.log(`→ ConsolidatedPaxProcessor: Adding consolidated record to row ${targetRow}`);
+
+    // Copy the template row (row 4) formatting to preserve styling
+    const templateRow = worksheet.getRow(4);
+    const newRow = worksheet.getRow(targetRow);
+
+    // Copy template row formatting to new row
+    templateRow.eachCell((cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      
+      // Copy formatting
+      newCell.font = cell.font;
+      newCell.alignment = cell.alignment;
+      newCell.border = cell.border;
+      newCell.fill = cell.fill;
+      newCell.numFmt = cell.numFmt;
+    });
+
+    // Populate the new row with consolidated data (same logic as populateConsolidatedReport)
+    await this.populateConsolidatedRowData(newRow, consolidatedData);
+  }
+
+  /**
+   * Populate a single row with consolidated PAX data (extracted from populateConsolidatedReport)
+   */
+  private async populateConsolidatedRowData(row: ExcelJS.Row, consolidatedData: ConsolidatedPaxData): Promise<void> {
+    // Calculate consolidated totals (same aggregation logic)
+    const tourTotals = {
+      catamaran: { sold: 0, allotment: 0 },
+      champagne: { sold: 0, allotment: 0 },
+      invisible: { sold: 0, allotment: 0 }
+    };
+
+    let totalPaxOnBoard = 0;
+    let totalPaxOnTour = 0;
+
+    for (const record of consolidatedData.records) {
+      // Aggregate by tour type
+      if (record.tourType === 'catamaran') {
+        tourTotals.catamaran.sold += record.sold;
+        tourTotals.catamaran.allotment += record.allotment;
+      } else if (record.tourType === 'champagne') {
+        tourTotals.champagne.sold += record.sold;
+        tourTotals.champagne.allotment += record.allotment;
+      } else if (record.tourType === 'invisible') {
+        tourTotals.invisible.sold += record.sold;
+        tourTotals.invisible.allotment += record.allotment;
+      }
+
+      totalPaxOnBoard += record.paxOnBoard;
+      totalPaxOnTour += record.paxOnTour;
+    }
+
+    // Get representative data (use triggering ship's data for headers)
+    const triggeringShipRecord = consolidatedData.records.find(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    ) || consolidatedData.records[0];
+    
+    const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
+    const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
+    
+    // Format ship name to be user-friendly
+    const shipIdToName = {
+      'ship-a': 'Ship A',
+      'ship-b': 'Ship B', 
+      'ship-c': 'Ship C'
+    };
+    
+    let consolidatedShipName = 'Unknown Ship';
+    if (consolidatedData.lastUpdatedByShip && shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName]) {
+      consolidatedShipName = shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName];
+    }
+
+    // Set direct mapping values
+    row.getCell(1).value = consolidatedDate; // A: date
+    row.getCell(2).value = consolidatedCruiseLine; // B: cruise_line
+    row.getCell(3).value = consolidatedShipName; // C: ship_name
+
+    // Tour-specific aggregated data
+    row.getCell(4).value = tourTotals.catamaran.sold; // D: cat_sold
+    row.getCell(5).value = tourTotals.catamaran.allotment; // E: cat_allot
+    row.getCell(6).value = tourTotals.champagne.sold; // F: champ_sold
+    row.getCell(7).value = tourTotals.champagne.allotment; // G: champ_allot
+    row.getCell(8).value = tourTotals.invisible.sold; // H: inv_sold
+    row.getCell(9).value = tourTotals.invisible.allotment; // I: inv_allot
+
+    // Analysis data (columns BT=72, BU=73)
+    row.getCell(72).value = totalPaxOnBoard; // BT: pax_on_board
+    row.getCell(73).value = totalPaxOnTour; // BU: pax_on_tour
+
+    console.log(`→ ConsolidatedPaxProcessor: Added consolidated record - Ship: ${consolidatedShipName}, Date: ${consolidatedDate}, OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
   }
 
   // Helper methods (reusing logic from PaxProcessor)
