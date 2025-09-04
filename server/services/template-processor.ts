@@ -131,36 +131,15 @@ export class TemplateProcessor {
    * Find the active consolidated PAX template
    */
   async findConsolidatedPaxTemplate(): Promise<string | null> {
-    const consolidatedTemplatesDir = path.join(process.cwd(), "uploads", "templates", "pax");
+    console.log('→ TemplateProcessor: Legacy findConsolidatedPaxTemplate called - redirecting to getConsolidatedPaxTemplatePath');
     
-    if (!fs.existsSync(consolidatedTemplatesDir)) {
-      console.log('→ TemplateProcessor: Consolidated PAX templates directory does not exist');
+    // Redirect to the new method that uses individual PAX templates
+    try {
+      return await this.getConsolidatedPaxTemplatePath();
+    } catch (error) {
+      console.error('→ TemplateProcessor: Error redirecting to getConsolidatedPaxTemplatePath:', error);
       return null;
     }
-
-    const files = fs.readdirSync(consolidatedTemplatesDir);
-    const paxTemplates = files.filter(file => 
-      file.toLowerCase().includes('pax') && 
-      file.endsWith('.xlsx')
-    );
-
-    if (paxTemplates.length === 0) {
-      console.log('→ TemplateProcessor: No consolidated PAX templates found');
-      return null;
-    }
-
-    // Return the most recent template
-    const templatesWithStats = paxTemplates.map(file => {
-      const filePath = path.join(consolidatedTemplatesDir, file);
-      const stats = fs.statSync(filePath);
-      return { file, path: filePath, mtime: stats.mtime };
-    });
-
-    templatesWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-    const latestTemplate = templatesWithStats[0];
-
-    console.log(`→ TemplateProcessor: Found consolidated PAX template: ${latestTemplate.file}`);
-    return latestTemplate.path;
   }
 
   /**
@@ -181,13 +160,29 @@ export class TemplateProcessor {
    * Get consolidated PAX template path with fallback
    */
   async getConsolidatedPaxTemplatePath(): Promise<string> {
-    const consolidatedTemplate = await this.findConsolidatedPaxTemplate();
+    console.log('→ TemplateProcessor: Getting consolidated PAX template path');
     
-    if (consolidatedTemplate && await this.validatePaxTemplate(consolidatedTemplate)) {
-      return consolidatedTemplate;
+    // Always use the standard individual ship PAX template for consolidated reports
+    // This ensures consolidated reports have the same structure as individual ship reports
+    console.log('→ TemplateProcessor: Using standard individual PAX template for consolidated report');
+    
+    try {
+      const shipPaxTemplate = await storage.getActivePaxTemplate('ship-a');
+      
+      if (shipPaxTemplate) {
+        const templatePath = shipPaxTemplate.filePath;
+        console.log(`→ TemplateProcessor: Found individual PAX template: ${templatePath}`);
+        if (await this.validatePaxTemplate(templatePath)) {
+          console.log(`→ TemplateProcessor: Using individual PAX template for consolidated report: ${templatePath}`);
+          return templatePath;
+        }
+      }
+    } catch (error) {
+      console.error('→ TemplateProcessor: Error getting individual PAX template:', error);
     }
-
-    // Fallback: try to find any PAX template in ship directories
+    
+    // If individual template fails, fallback to file system search
+    console.log('→ TemplateProcessor: Individual PAX template not available, searching file system');
     const ships = ['ship-a', 'ship-b', 'ship-c'];
     for (const shipId of ships) {
       const shipTemplatesDir = path.join(process.cwd(), "uploads", shipId);
@@ -205,7 +200,7 @@ export class TemplateProcessor {
         }
       }
     }
-
-    throw new Error('No PAX template found in consolidated or ship-specific directories');
+    
+    throw new Error('No valid PAX template available for consolidated report generation');
   }
 }
