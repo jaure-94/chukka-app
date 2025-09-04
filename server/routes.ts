@@ -1367,7 +1367,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const consolidatedResult = await consolidatedProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
-          shipId // Triggering ship
+          shipId, // Triggering ship
+          true // Force create new file for "generate new PAX report" button
         );
         
         console.log(`→ Consolidated PAX generated after new PAX: ${consolidatedResult.filename}`);

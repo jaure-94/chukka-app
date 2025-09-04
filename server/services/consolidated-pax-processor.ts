@@ -338,7 +338,7 @@ export class ConsolidatedPaxProcessor {
   /**
    * Main entry point for consolidated PAX generation
    */
-  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system'): Promise<{ filename: string; data: ConsolidatedPaxData }> {
+  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system', forceCreateNew: boolean = false): Promise<{ filename: string; data: ConsolidatedPaxData }> {
     console.log(`→ ConsolidatedPaxProcessor: Starting consolidated PAX generation (triggered by ${triggeringShipId})`);
 
     try {
@@ -354,7 +354,7 @@ export class ConsolidatedPaxProcessor {
       consolidatedData.lastUpdatedByShip = triggeringShipId;
 
       // Step 3: Check if existing consolidated PAX exists and update it, or create new one
-      const filename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath);
+      const filename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath, forceCreateNew);
 
       console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX processing completed - ${filename}`);
       return { filename, data: consolidatedData };
@@ -368,7 +368,7 @@ export class ConsolidatedPaxProcessor {
   /**
    * Update existing consolidated PAX or create new one
    */
-  private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
+  private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string, forceCreateNew: boolean = false): Promise<string> {
     const consolidatedOutputDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
     
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Checking for existing consolidated PAX in: ${consolidatedOutputDir}`);
@@ -389,7 +389,7 @@ export class ConsolidatedPaxProcessor {
 
       console.log(`→ ConsolidatedPaxProcessor: DEBUG - Filtered consolidated PAX files: ${existingFiles.join(', ')}`);
 
-      if (existingFiles.length > 0) {
+      if (existingFiles.length > 0 && !forceCreateNew) {
         const latestFile = existingFiles[0];
         const existingFilePath = path.join(consolidatedOutputDir, latestFile);
         
