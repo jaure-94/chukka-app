@@ -1152,6 +1152,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`→ Consolidated PAX generated after EOD: ${consolidatedResult.filename}`);
         console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+        
+        // Save consolidated PAX report to database
+        try {
+          const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+            filename: consolidatedResult.filename,
+            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            contributingShips: consolidatedResult.data.contributingShips,
+            totalRecordCount: consolidatedResult.data.totalRecordCount,
+            lastUpdatedByShip: 'eod-processor'
+          });
+          console.log(`→ Consolidated PAX (after EOD) saved to database with ID: ${consolidatedPaxRecord.id}`);
+        } catch (dbError) {
+          console.error('→ Failed to save consolidated PAX to database:', dbError);
+        }
       } catch (consolidatedError) {
         console.error('→ Consolidated PAX generation failed after EOD:', consolidatedError);
         // Don't fail the EOD process if consolidated PAX fails
@@ -1224,6 +1238,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`→ Consolidated PAX generated after successive EOD: ${consolidatedResult.filename}`);
         console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
+        
+        // Save consolidated PAX report to database
+        try {
+          const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+            filename: consolidatedResult.filename,
+            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            contributingShips: consolidatedResult.data.contributingShips,
+            totalRecordCount: consolidatedResult.data.totalRecordCount,
+            lastUpdatedByShip: 'successive-eod'
+          });
+          console.log(`→ Consolidated PAX (after successive EOD) saved to database with ID: ${consolidatedPaxRecord.id}`);
+        } catch (dbError) {
+          console.error('→ Failed to save consolidated PAX to database:', dbError);
+        }
       } catch (consolidatedError) {
         console.error('→ Consolidated PAX generation failed after successive EOD:', consolidatedError);
         // Don't fail the successive dispatch process if consolidated PAX fails
@@ -1363,6 +1391,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);
         
+        // Save consolidated PAX report to database
+        const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+          filename: consolidatedResult.filename,
+          filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+          contributingShips: consolidatedResult.data.contributingShips,
+          totalRecordCount: consolidatedResult.data.totalRecordCount,
+          lastUpdatedByShip: shipId
+        });
+        console.log(`→ Consolidated PAX saved to database with ID: ${consolidatedPaxRecord.id}`);
+        
         res.json({
           success: true,
           paxFile: updatedPaxFilename,
@@ -1441,6 +1479,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         consolidatedPaxTemplate,
         user.username
       );
+      
+      // Save consolidated PAX report to database
+      const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+        filename: consolidatedResult.filename,
+        filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+        contributingShips: consolidatedResult.data.contributingShips,
+        totalRecordCount: consolidatedResult.data.totalRecordCount,
+        lastUpdatedByShip: user.username
+      });
+      console.log(`→ Manual consolidated PAX saved to database with ID: ${consolidatedPaxRecord.id}`);
       
       res.json({
         success: true,
@@ -1635,6 +1683,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`→ Consolidated PAX generated: ${consolidatedResult.filename}`);
         console.log(`→ Contributing ships: ${consolidatedResult.data.contributingShips.join(', ')}`);
         console.log(`→ Total records: ${consolidatedResult.data.totalRecordCount}`);
+        
+        // Save consolidated PAX report to database
+        try {
+          const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
+            filename: consolidatedResult.filename,
+            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            contributingShips: consolidatedResult.data.contributingShips,
+            totalRecordCount: consolidatedResult.data.totalRecordCount,
+            lastUpdatedByShip: 'system'
+          });
+          console.log(`→ Consolidated PAX (system-triggered) saved to database with ID: ${consolidatedPaxRecord.id}`);
+        } catch (dbError) {
+          console.error('→ Failed to save consolidated PAX to database:', dbError);
+        }
       } catch (consolidatedError) {
         console.error('→ Consolidated PAX generation failed:', consolidatedError);
         // Don't fail the entire process if consolidated PAX fails
