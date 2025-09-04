@@ -393,11 +393,19 @@ export class ConsolidatedPaxProcessor {
         const latestFile = existingFiles[0];
         const existingFilePath = path.join(consolidatedOutputDir, latestFile);
         
-        // Check if the file has content before trying to read it
+        // Check if the file has proper content before trying to read it
         const fileStats = fs.statSync(existingFilePath);
         if (fileStats.size === 0) {
           console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is empty (0 bytes), skipping and creating new file`);
           // Skip empty/corrupted file and create a new one
+          return await this.generateConsolidatedPax(consolidatedData, templatePath);
+        }
+        
+        // Check if file is too small (likely contains wrong template data)
+        // Proper consolidated PAX files should be 200KB+, dispatch templates are ~10KB
+        if (fileStats.size < 50000) {
+          console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is too small (${fileStats.size} bytes), likely contains wrong template data. Creating new file.`);
+          // Skip incorrectly templated file and create a new one
           return await this.generateConsolidatedPax(consolidatedData, templatePath);
         }
         

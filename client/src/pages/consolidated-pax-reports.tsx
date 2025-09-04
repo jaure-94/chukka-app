@@ -77,9 +77,7 @@ export default function ConsolidatedPaxReports() {
 
   // Download report
   const handleDownload = (report: ConsolidatedPaxReport) => {
-    console.log('Updated consolidated PAX report:', report);
     const downloadUrl = `/api/consolidated-pax/download/${encodeURIComponent(report.filename)}`;
-    console.log('Download URL:', downloadUrl);
     window.open(downloadUrl, '_blank');
   };
 
