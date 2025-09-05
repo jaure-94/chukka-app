@@ -1830,7 +1830,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get actual report files from the availableReports sent by frontend
-      const reportFiles = reportTypes.map((type: string) => {
+      const reportFiles = await Promise.all(reportTypes.map(async (type: string) => {
+        // Handle consolidated PAX specially if not provided in availableReports
+        if (type === 'consolidated-pax' && (!availableReports?.[type])) {
+          console.log('→ Fetching latest consolidated PAX file for sharing');
+          
+          // Get the latest consolidated PAX report from database
+          const consolidatedReports = await storage.getRecentConsolidatedPaxReports(1);
+          if (consolidatedReports.length === 0) {
+            throw new Error('No consolidated PAX reports available for sharing');
+          }
+          
+          const latestReport = consolidatedReports[0];
+          const consolidatedPaxPath = path.join(process.cwd(), latestReport.filePath);
+          
+          // Check if file exists
+          if (!fs.existsSync(consolidatedPaxPath)) {
+            throw new Error(`Consolidated PAX file not found: ${latestReport.filename}`);
+          }
+          
+          return {
+            path: consolidatedPaxPath,
+            filename: latestReport.filename,
+            type: 'consolidated-pax' as const
+          };
+        }
+        
         const reportInfo = availableReports?.[type];
         if (!reportInfo) {
           throw new Error(`Report type ${type} is not available`);
@@ -1841,7 +1866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filename: reportInfo.filename,
           type: type as 'eod' | 'dispatch' | 'pax' | 'consolidated-pax'
         };
-      });
+      }));
 
       const result = await sharingController.shareReports({
         userId: user.userId,

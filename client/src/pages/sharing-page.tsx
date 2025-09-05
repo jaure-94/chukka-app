@@ -337,17 +337,41 @@ export default function SharingPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge>{getShipName(selectedShip)}</Badge>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-600 dark:text-gray-300">Reports:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {selectedReports.map(type => (
-                            <Badge key={type} variant="outline">{type.toUpperCase()}</Badge>
-                          ))}
-                        </div>
-                      </div>
+                      {/* Ship-specific reports */}
+                      {selectedReports.length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Badge>{getShipName(selectedShip)}</Badge>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-600 dark:text-gray-300">Ship Reports:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedReports.map(type => (
+                                <Badge key={type} variant="outline">{type.toUpperCase()}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Consolidated reports */}
+                      {selectedConsolidatedReports.length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{getShipName('consolidated')}</Badge>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-600 dark:text-gray-300">Consolidated Reports:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedConsolidatedReports.map(type => (
+                                <Badge key={type} variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  {type === 'consolidated-pax' ? 'Consolidated PAX' : type.toUpperCase()}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                       <div>
                         <span className="text-sm text-gray-600 dark:text-gray-300">Method:</span>
                         <Badge variant="secondary" className="ml-2">
