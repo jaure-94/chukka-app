@@ -131,28 +131,28 @@ export default function SharingPage() {
         const dispatchVersions = await dispatchVersionsResponse.json();
 
         // Find most recent EOD file
-        const eodFiles = outputFiles.files?.filter((f: any) => f.name.startsWith('eod_')) || [];
+        const eodFiles = outputFiles.filter((f: any) => f.filename.startsWith('eod_')) || [];
         if (eodFiles.length > 0) {
           const latestEod = eodFiles.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
           availableReports.eod = {
-            filename: latestEod.name,
-            path: latestEod.path
+            filename: latestEod.filename,
+            path: `output/${selectedShip}/${latestEod.filename}`
           };
         }
 
         // Find most recent PAX file
-        const paxFiles = outputFiles.files?.filter((f: any) => f.name.startsWith('pax_')) || [];
+        const paxFiles = outputFiles.filter((f: any) => f.filename.startsWith('pax_')) || [];
         if (paxFiles.length > 0) {
           const latestPax = paxFiles.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
           availableReports.pax = {
-            filename: latestPax.name,
-            path: latestPax.path
+            filename: latestPax.filename,
+            path: `output/${selectedShip}/${latestPax.filename}`
           };
         }
 
         // Get latest dispatch version
-        if (dispatchVersions.versions?.length > 0) {
-          const latestDispatch = dispatchVersions.versions[0];
+        if (dispatchVersions?.length > 0) {
+          const latestDispatch = dispatchVersions[0];
           availableReports.dispatch = {
             filename: latestDispatch.filename,
             path: latestDispatch.filePath
