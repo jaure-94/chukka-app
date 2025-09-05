@@ -314,15 +314,18 @@ export default function ConsolidatedPaxReports() {
       {selectedReport && (
         <ShareReportsModal
           isOpen={shareModalOpen}
-          onClose={() => setShareModalOpen(false)}
-          shipId="all"
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedReport(null);
+          }}
+          shipId="consolidated"
           availableReports={{
-            pax: {
+            'consolidated-pax': {
               filename: selectedReport.filename,
               path: selectedReport.filePath
             }
           }}
-          preSelectedReports={['pax']}
+          preSelectedReports={['consolidated-pax']}
         />
       )}
     </div>

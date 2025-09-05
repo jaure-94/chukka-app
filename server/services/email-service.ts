@@ -15,7 +15,7 @@ interface EmailTemplate {
 }
 
 interface ShareReportOptions {
-  reportTypes: ('eod' | 'dispatch' | 'pax')[];
+  reportTypes: ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[];
   shipName: string;
   shipId: string;
   attachments: EmailAttachment[];
@@ -92,7 +92,8 @@ export class EmailService {
     const reportTypeNames = {
       eod: 'End of Day (EOD)',
       dispatch: 'Dispatch Sheet',
-      pax: 'PAX Report'
+      pax: 'PAX Report',
+      'consolidated-pax': 'Consolidated PAX Report'
     };
 
     const reportList = reportTypes.map(type => reportTypeNames[type]).join(', ');
@@ -186,7 +187,7 @@ Generated on ${format(new Date(), 'PPpp')}
     return { subject, html, text };
   }
 
-  private getReportDescription(type: 'eod' | 'dispatch' | 'pax'): string {
+  private getReportDescription(type: 'eod' | 'dispatch' | 'pax' | 'consolidated-pax'): string {
     switch (type) {
       case 'eod':
         return 'Daily operational summary with key metrics and activities';
@@ -194,6 +195,8 @@ Generated on ${format(new Date(), 'PPpp')}
         return 'Crew dispatch schedule and assignments';
       case 'pax':
         return 'Passenger manifest and accommodation details';
+      case 'consolidated-pax':
+        return 'Unified passenger report combining data from all ships';
       default:
         return 'Maritime operational report';
     }

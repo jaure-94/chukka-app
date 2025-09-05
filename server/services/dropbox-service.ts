@@ -87,6 +87,9 @@ export class DropboxService {
       if (part.startsWith('ship-')) {
         return part;
       }
+      if (part.toLowerCase() === 'consolidated') {
+        return 'consolidated';
+      }
     }
     return 'unknown';
   }
@@ -95,17 +98,21 @@ export class DropboxService {
     const filename = path.basename(dropboxPath).toLowerCase();
     if (filename.includes('eod')) return 'eod';
     if (filename.includes('dispatch')) return 'dispatch';
+    if (filename.includes('consolidated_pax') || filename.includes('consolidated-pax')) return 'consolidated-pax';
     if (filename.includes('pax')) return 'pax';
     return 'unknown';
   }
 
   private generateOrganizedPath(shipId: string, reportType: string, filename: string): string {
     const today = format(new Date(), 'yyyy-MM-dd');
+    if (reportType === 'consolidated-pax') {
+      return `/Maritime_Reports/Consolidated/${today}/PAX/${filename}`;
+    }
     return `/Maritime_Reports/${shipId}/${today}/${reportType}/${filename}`;
   }
 
   async batchUploadReports(
-    files: Array<{ localPath: string; reportType: 'eod' | 'dispatch' | 'pax'; filename: string }>,
+    files: Array<{ localPath: string; reportType: 'eod' | 'dispatch' | 'pax' | 'consolidated-pax'; filename: string }>,
     shipId: string,
     createSharedFolder: boolean = true
   ): Promise<BatchUploadResult> {

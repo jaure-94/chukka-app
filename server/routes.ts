@@ -1839,7 +1839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           path: reportInfo.path,
           filename: reportInfo.filename,
-          type: type as 'eod' | 'dispatch' | 'pax'
+          type: type as 'eod' | 'dispatch' | 'pax' | 'consolidated-pax'
         };
       });
 

@@ -225,7 +225,7 @@ export const sharingActivities = pgTable("sharing_activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   shipId: text("ship_id").notNull(),
-  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax')[]>().notNull(), // ['eod', 'dispatch', 'pax']
+  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[]>().notNull(), // ['eod', 'dispatch', 'pax', 'consolidated-pax']
   shareMethod: text("share_method").notNull(), // 'email', 'dropbox', 'both'
   recipients: json("recipients").$type<string[]>(), // email addresses for email sharing
   dropboxLinks: json("dropbox_links").$type<string[]>(), // generated Dropbox links
@@ -251,7 +251,7 @@ export const shareTemplates = pgTable("share_templates", {
   name: text("name").notNull(), // "Daily EOD to Stakeholders"
   description: text("description"),
   shipId: text("ship_id").notNull(),
-  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax')[]>().notNull(),
+  reportTypes: json("report_types").$type<('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[]>().notNull(),
   shareMethod: text("share_method").notNull(), // 'email', 'dropbox', 'both'
   recipients: json("recipients").$type<string[]>(), // default email addresses
   isActive: boolean("is_active").default(true).notNull(),

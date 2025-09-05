@@ -25,10 +25,10 @@ export class SharingController {
   async shareReports(params: {
     userId: number;
     shipId: string;
-    reportTypes: ('eod' | 'dispatch' | 'pax')[];
+    reportTypes: ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[];
     shareMethod: 'email' | 'dropbox' | 'both';
     recipients?: string[];
-    reportFiles: Array<{ path: string; filename: string; type: 'eod' | 'dispatch' | 'pax' }>;
+    reportFiles: Array<{ path: string; filename: string; type: 'eod' | 'dispatch' | 'pax' | 'consolidated-pax' }>;
     userEmail: string;
     userName: string;
   }): Promise<{
@@ -44,7 +44,7 @@ export class SharingController {
     const sharingActivity: InsertSharingActivity = {
       userId: params.userId,
       shipId: params.shipId,
-      reportTypes: params.reportTypes as ('eod' | 'dispatch' | 'pax')[],
+      reportTypes: params.reportTypes as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[],
       shareMethod: params.shareMethod,
       recipients: params.recipients || [],
       dropboxLinks: [],
@@ -253,7 +253,7 @@ export class SharingController {
   async createShareTemplate(template: InsertShareTemplate): Promise<ShareTemplate> {
     const templateData = {
       ...template,
-      reportTypes: template.reportTypes as ('eod' | 'dispatch' | 'pax')[]
+      reportTypes: template.reportTypes as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[]
     };
     const [newTemplate] = await db.insert(shareTemplates).values([templateData]).returning();
     return newTemplate;

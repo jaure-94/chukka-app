@@ -35,8 +35,9 @@ interface ShareReportsModalProps {
     eod?: { filename: string; path: string; };
     dispatch?: { filename: string; path: string; };
     pax?: { filename: string; path: string; };
+    'consolidated-pax'?: { filename: string; path: string; };
   };
-  preSelectedReports?: ('eod' | 'dispatch' | 'pax')[];
+  preSelectedReports?: ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[];
 }
 
 interface ShareResult {
@@ -58,7 +59,7 @@ export function ShareReportsModal({
 }: ShareReportsModalProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("configure");
-  const [selectedReports, setSelectedReports] = useState<('eod' | 'dispatch' | 'pax')[]>(preSelectedReports);
+  const [selectedReports, setSelectedReports] = useState<('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[]>(preSelectedReports);
   const [shareMethod, setShareMethod] = useState<'email' | 'dropbox' | 'both'>('email');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [currentSharingId, setCurrentSharingId] = useState<number | null>(null);
@@ -200,8 +201,19 @@ export function ShareReportsModal({
       'ship-a': 'Ship A',
       'ship-b': 'Ship B',
       'ship-c': 'Ship C',
+      'consolidated': 'All Ships (Consolidated)',
     };
     return names[shipId as keyof typeof names] || shipId.toUpperCase();
+  };
+
+  const getReportTypeLabel = (reportType: string) => {
+    const labels = {
+      'eod': 'End of Day (EOD)',
+      'dispatch': 'Dispatch Sheet',
+      'pax': 'PAX Report',
+      'consolidated-pax': 'Consolidated PAX Report',
+    };
+    return labels[reportType as keyof typeof labels] || reportType.toUpperCase();
   };
 
   const getAvailableReportCount = () => {
@@ -263,7 +275,7 @@ export function ShareReportsModal({
                       </div>
                       
                       <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        {(['eod', 'dispatch', 'pax'] as const).map((reportType) => {
+                        {(['eod', 'dispatch', 'pax', 'consolidated-pax'] as const).map((reportType) => {
                           const available = availableReports[reportType];
                           return (
                             <div key={reportType} className="flex items-center justify-between">
@@ -284,7 +296,7 @@ export function ShareReportsModal({
                                   htmlFor={reportType} 
                                   className={`font-medium ${!available ? 'opacity-50' : ''}`}
                                 >
-                                  {reportType.toUpperCase()} Report
+                                  {getReportTypeLabel(reportType)}
                                 </Label>
                               </div>
                               <div className="flex items-center gap-2">
