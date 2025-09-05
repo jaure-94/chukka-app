@@ -20,7 +20,7 @@ import { format } from "date-fns";
 interface SharingActivity {
   id: number;
   shipId: string;
-  reportTypes: ('eod' | 'dispatch' | 'pax')[];
+  reportTypes: ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[];
   shareMethod: string;
   recipients?: string[];
   emailStatus?: string;
@@ -40,6 +40,7 @@ export default function SharingPage() {
   const { isCollapsed } = useSidebar();
   const [shareMethod, setShareMethod] = useState<'email' | 'dropbox' | 'both'>('email');
   const [selectedReports, setSelectedReports] = useState<('eod' | 'dispatch' | 'pax')[]>(['eod']);
+  const [selectedConsolidatedReports, setSelectedConsolidatedReports] = useState<('consolidated-pax')[]>([]);
   const [selectedShip, setSelectedShip] = useState<string>('ship-a');
   const [recipients, setRecipients] = useState<string>('');
 
@@ -103,11 +104,26 @@ export default function SharingPage() {
       return;
     }
 
+    // Combine ship-specific and consolidated reports
+    const allSelectedReports = [...selectedReports, ...selectedConsolidatedReports];
+    
+    if (allSelectedReports.length === 0) {
+      toast({
+        title: "No Reports Selected",
+        description: "Please select at least one report to share",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Use appropriate shipId based on report types
+    const shipId = selectedConsolidatedReports.length > 0 ? 'consolidated' : selectedShip;
+
     shareReportsMutation.mutate({
       shareMethod,
-      reportTypes: selectedReports,
+      reportTypes: allSelectedReports,
       recipients: recipientList,
-      shipId: selectedShip,
+      shipId: shipId,
     });
   };
 
@@ -131,6 +147,7 @@ export default function SharingPage() {
       'ship-a': 'Ship A',
       'ship-b': 'Ship B',
       'ship-c': 'Ship C',
+      'consolidated': 'All Ships (Consolidated)',
     };
     return names[shipId as keyof typeof names] || shipId.toUpperCase();
   };
@@ -244,6 +261,32 @@ export default function SharingPage() {
                       </div>
                     </div>
 
+                    {/* Ship-Independent Reports */}
+                    <div className="space-y-2">
+                      <Label>Ship-Independent Reports</Label>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="consolidated-pax"
+                            checked={selectedConsolidatedReports.includes('consolidated-pax')}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedConsolidatedReports(['consolidated-pax']);
+                              } else {
+                                setSelectedConsolidatedReports([]);
+                              }
+                            }}
+                          />
+                          <Label htmlFor="consolidated-pax" className="text-sm font-medium">
+                            Consolidated PAX Report
+                          </Label>
+                        </div>
+                        <p className="text-xs text-gray-500 ml-6">
+                          Unified passenger report combining data from all ships
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Share Method */}
                     <div className="space-y-2">
                       <Label>Share Method</Label>
@@ -279,7 +322,7 @@ export default function SharingPage() {
                     <Button 
                       onClick={handleShare} 
                       className="w-full" 
-                      disabled={shareReportsMutation.isPending || selectedReports.length === 0}
+                      disabled={shareReportsMutation.isPending || (selectedReports.length === 0 && selectedConsolidatedReports.length === 0)}
                     >
                       {shareReportsMutation.isPending ? (
                         <>
@@ -353,7 +396,7 @@ export default function SharingPage() {
                             <div className="flex items-center gap-2">
                               <Badge>{getShipName(activity.shipId)}</Badge>
                               <span className="text-sm text-gray-600">
-                                {activity.reportTypes.map(t => t.toUpperCase()).join(', ')}
+                                {activity.reportTypes.map(t => t === 'consolidated-pax' ? 'Consolidated PAX' : t.toUpperCase()).join(', ')}
                               </span>
                             </div>
                             <p className="text-sm text-gray-500">
