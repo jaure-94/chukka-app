@@ -10,12 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { RecipientInput } from "@/components/sharing/RecipientInput";
 import { useToast } from "@/hooks/use-toast";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Share, Mail, Cloud, History, Settings, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Share, Mail, Cloud, History, Settings, CheckCircle, XCircle, Clock, AlertCircle, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface SharingActivity {
@@ -44,6 +46,8 @@ export default function SharingPage() {
   const [selectedConsolidatedReports, setSelectedConsolidatedReports] = useState<('consolidated-pax')[]>([]);
   const [selectedShip, setSelectedShip] = useState<string>('ship-a');
   const [recipients, setRecipients] = useState<string[]>([]);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [shareResult, setShareResult] = useState<any>(null);
 
   // Fetch sharing history
   const { data: historyData, isLoading: historyLoading } = useQuery({
@@ -69,10 +73,9 @@ export default function SharingPage() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        toast({
-          title: "Reports Shared Successfully",
-          description: data.message,
-        });
+        // Store result for success modal
+        setShareResult(data);
+        setSuccessModalOpen(true);
         queryClient.invalidateQueries({ queryKey: ['/api/sharing/history'] });
       } else {
         toast({
@@ -216,7 +219,18 @@ export default function SharingPage() {
     return names[shipId as keyof typeof names] || shipId.toUpperCase();
   };
 
+  // Success modal close handler
+  const handleSuccessModalClose = () => {
+    setSuccessModalOpen(false);
+    setShareResult(null);
+    // Reset form to initial state
+    setSelectedReports(['eod']);
+    setSelectedConsolidatedReports([]);
+    setRecipients([]);
+  };
+
   return (
+    <>
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
       <SidebarNavigation />
       <MobileNavigation />
@@ -522,5 +536,141 @@ export default function SharingPage() {
         </div>
       </div>
     </div>
+
+    {/* Success Modal */}
+    <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            Reports Shared Successfully!
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Overall Progress */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Sharing Complete
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Reports shared successfully!</span>
+                  <span className="text-green-600 font-medium">100%</span>
+                </div>
+                <Progress value={100} className="h-2 bg-green-100 dark:bg-green-900" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Service Status */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Email Status */}
+            {(shareMethod === 'email' || shareMethod === 'both') && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Mail className="h-4 w-4" />
+                    Email Sharing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Successfully sent</span>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">Sent</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dropbox Status */}
+            {(shareMethod === 'dropbox' || shareMethod === 'both') && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Cloud className="h-4 w-4" />
+                    Dropbox Sharing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Successfully uploaded</span>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">Uploaded</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Report Summary */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                Shared Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {selectedReports.map((reportType) => (
+                  <div key={reportType} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <span className="font-medium">{String(reportType).toUpperCase()} Report</span>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                ))}
+                {selectedConsolidatedReports.map((reportType) => (
+                  <div key={reportType} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900 rounded-lg border border-green-200 dark:border-green-700">
+                    <span className="font-medium">
+                      {reportType === 'consolidated-pax' ? 'Consolidated PAX Report' : String(reportType).toUpperCase()}
+                    </span>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Success Message */}
+          <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800 dark:text-green-300">
+              <div className="space-y-1">
+                <p className="font-medium">All reports shared successfully!</p>
+                <p className="text-sm">
+                  {[...selectedReports, ...selectedConsolidatedReports].length} report{[...selectedReports, ...selectedConsolidatedReports].length > 1 ? 's' : ''} shared via {shareMethod}
+                  {shareResult?.sharingActivityId && ` (Activity ID: #${shareResult.sharingActivityId})`}
+                </p>
+                {recipients.length > 0 && (
+                  <p className="text-sm">
+                    Sent to {recipients.length} recipient{recipients.length > 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={handleSuccessModalClose}>
+              Share More Reports
+            </Button>
+            <Button onClick={handleSuccessModalClose} className="bg-green-600 hover:bg-green-700">
+              Done
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
