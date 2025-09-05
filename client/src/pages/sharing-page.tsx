@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useSidebar } from "@/contexts/sidebar-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Share, Mail, Cloud, History, Settings, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +37,7 @@ interface SharingActivity {
 
 export default function SharingPage() {
   const { toast } = useToast();
+  const { isCollapsed } = useSidebar();
   const [shareMethod, setShareMethod] = useState<'email' | 'dropbox' | 'both'>('email');
   const [selectedReports, setSelectedReports] = useState<('eod' | 'dispatch' | 'pax')[]>(['eod']);
   const [selectedShip, setSelectedShip] = useState<string>('ship-a');
@@ -133,26 +136,30 @@ export default function SharingPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <Share className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
+      <SidebarNavigation />
+      <MobileNavigation />
+      
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto p-6 space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <Share className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Document Sharing
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Share maritime reports via email and cloud storage
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Document Sharing
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Share maritime reports via email and cloud storage
-              </p>
-            </div>
-          </div>
 
-          {/* Service Status */}
-          {serviceStatus && (
+            {/* Service Status */}
+            {serviceStatus && (
             <Alert className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -385,6 +392,7 @@ export default function SharingPage() {
               </Card>
             </TabsContent>
           </Tabs>
+          </div>
         </div>
       </div>
     </div>
