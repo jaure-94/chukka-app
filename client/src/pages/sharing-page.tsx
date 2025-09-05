@@ -62,6 +62,7 @@ export default function SharingPage() {
       reportTypes: string[];
       recipients?: string[];
       shipId: string;
+      availableReports?: any;
     }) => {
       const response = await apiRequest('POST', '/api/sharing/share', data);
       return response.json();
@@ -90,7 +91,7 @@ export default function SharingPage() {
     },
   });
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if ((shareMethod === 'email' || shareMethod === 'both') && recipients.length === 0) {
       toast({
         title: "Recipients Required",
@@ -112,15 +113,82 @@ export default function SharingPage() {
       return;
     }
 
-    // Use appropriate shipId based on report types
-    const shipId = selectedConsolidatedReports.length > 0 ? 'consolidated' : selectedShip;
+    try {
+      // Fetch available reports for the selected ship (same logic as sharing modal)
+      const availableReports: any = {};
+      
+      // Use appropriate shipId based on report types
+      const shipId = selectedConsolidatedReports.length > 0 ? 'consolidated' : selectedShip;
+      
+      // For ship-specific reports, fetch from the selected ship
+      if (selectedReports.length > 0) {
+        const [outputFilesResponse, dispatchVersionsResponse] = await Promise.all([
+          apiRequest('GET', `/api/output-files?ship=${selectedShip}`),
+          apiRequest('GET', `/api/dispatch-versions?ship=${selectedShip}&limit=1`)
+        ]);
 
-    shareReportsMutation.mutate({
-      shareMethod,
-      reportTypes: allSelectedReports,
-      recipients: recipients,
-      shipId: shipId,
-    });
+        const outputFiles = await outputFilesResponse.json();
+        const dispatchVersions = await dispatchVersionsResponse.json();
+
+        // Find most recent EOD file
+        const eodFiles = outputFiles.files?.filter((f: any) => f.name.startsWith('eod_')) || [];
+        if (eodFiles.length > 0) {
+          const latestEod = eodFiles.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          availableReports.eod = {
+            filename: latestEod.name,
+            path: latestEod.path
+          };
+        }
+
+        // Find most recent PAX file
+        const paxFiles = outputFiles.files?.filter((f: any) => f.name.startsWith('pax_')) || [];
+        if (paxFiles.length > 0) {
+          const latestPax = paxFiles.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          availableReports.pax = {
+            filename: latestPax.name,
+            path: latestPax.path
+          };
+        }
+
+        // Get latest dispatch version
+        if (dispatchVersions.versions?.length > 0) {
+          const latestDispatch = dispatchVersions.versions[0];
+          availableReports.dispatch = {
+            filename: latestDispatch.filename,
+            path: latestDispatch.filePath
+          };
+        }
+      }
+
+      // For consolidated PAX, fetch from consolidated reports
+      if (selectedConsolidatedReports.length > 0) {
+        const consolidatedResponse = await apiRequest('GET', '/api/consolidated-pax-reports?limit=1');
+        const consolidatedData = await consolidatedResponse.json();
+        
+        if (consolidatedData.length > 0) {
+          const latestConsolidated = consolidatedData[0];
+          availableReports['consolidated-pax'] = {
+            filename: latestConsolidated.filename,
+            path: latestConsolidated.filePath
+          };
+        }
+      }
+
+      shareReportsMutation.mutate({
+        shareMethod,
+        reportTypes: allSelectedReports,
+        recipients: recipients,
+        shipId: shipId,
+        availableReports: availableReports,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Failed to prepare reports",
+        description: "Could not fetch available reports for sharing",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusIcon = (status?: string) => {
