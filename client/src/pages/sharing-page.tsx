@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { RecipientInput } from "@/components/sharing/RecipientInput";
 import { useToast } from "@/hooks/use-toast";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -42,17 +43,17 @@ export default function SharingPage() {
   const [selectedReports, setSelectedReports] = useState<('eod' | 'dispatch' | 'pax')[]>(['eod']);
   const [selectedConsolidatedReports, setSelectedConsolidatedReports] = useState<('consolidated-pax')[]>([]);
   const [selectedShip, setSelectedShip] = useState<string>('ship-a');
-  const [recipients, setRecipients] = useState<string>('');
+  const [recipients, setRecipients] = useState<string[]>([]);
 
   // Fetch sharing history
   const { data: historyData, isLoading: historyLoading } = useQuery({
     queryKey: ['/api/sharing/history'],
-  });
+  }) as { data: { history: SharingActivity[] }, isLoading: boolean };
 
   // Fetch service status
   const { data: serviceStatus, isLoading: serviceLoading } = useQuery({
     queryKey: ['/api/sharing/test-services'],
-  });
+  }) as { data: { email?: { success: boolean; message: string }; dropbox?: { success: boolean; message: string } }, isLoading: boolean };
 
   // Share reports mutation
   const shareReportsMutation = useMutation({
@@ -90,12 +91,7 @@ export default function SharingPage() {
   });
 
   const handleShare = () => {
-    const recipientList = recipients
-      .split(',')
-      .map(email => email.trim())
-      .filter(email => email.length > 0);
-
-    if ((shareMethod === 'email' || shareMethod === 'both') && recipientList.length === 0) {
+    if ((shareMethod === 'email' || shareMethod === 'both') && recipients.length === 0) {
       toast({
         title: "Recipients Required",
         description: "Please provide email recipients for email sharing",
@@ -122,7 +118,7 @@ export default function SharingPage() {
     shareReportsMutation.mutate({
       shareMethod,
       reportTypes: allSelectedReports,
-      recipients: recipientList,
+      recipients: recipients,
       shipId: shipId,
     });
   };
@@ -306,16 +302,11 @@ export default function SharingPage() {
                     {(shareMethod === 'email' || shareMethod === 'both') && (
                       <div className="space-y-2">
                         <Label htmlFor="recipients">Email Recipients</Label>
-                        <Textarea
-                          id="recipients"
-                          placeholder="Enter email addresses separated by commas"
-                          value={recipients}
-                          onChange={(e) => setRecipients(e.target.value)}
-                          rows={3}
+                        <RecipientInput
+                          recipients={recipients}
+                          onRecipientsChange={setRecipients}
+                          placeholder="Enter email addresses..."
                         />
-                        <p className="text-sm text-gray-500">
-                          Separate multiple email addresses with commas
-                        </p>
                       </div>
                     )}
 
@@ -363,10 +354,10 @@ export default function SharingPage() {
                           {shareMethod === 'both' ? 'Email + Dropbox' : shareMethod.charAt(0).toUpperCase() + shareMethod.slice(1)}
                         </Badge>
                       </div>
-                      {recipients && (
+                      {recipients.length > 0 && (
                         <div>
                           <span className="text-sm text-gray-600 dark:text-gray-300">Recipients:</span>
-                          <p className="text-sm mt-1">{recipients.split(',').length} recipient(s)</p>
+                          <p className="text-sm mt-1">{recipients.length} recipient(s)</p>
                         </div>
                       )}
                     </div>
