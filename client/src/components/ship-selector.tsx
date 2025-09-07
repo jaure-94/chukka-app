@@ -4,17 +4,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Ship } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { SHIP_NAMES, type ShipName } from '@/../../shared/ship-config';
 
 interface ShipSelectorProps {
   showLabel?: boolean;
   className?: string;
+  showShipNameDropdown?: boolean;
 }
 
 export const ShipSelector: React.FC<ShipSelectorProps> = ({ 
   showLabel = true, 
-  className = "" 
+  className = "",
+  showShipNameDropdown = false 
 }) => {
-  const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
+  const { currentShip, setCurrentShip, getShipDisplayName, getSelectedShipName, setSelectedShipName } = useShipContext();
   const [location, setLocation] = useLocation();
 
   const handleShipChange = (value: string) => {
@@ -46,16 +49,39 @@ export const ShipSelector: React.FC<ShipSelectorProps> = ({
               Select Ship
             </label>
           )}
-          <Select value={currentShip || ''} onValueChange={handleShipChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a ship" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ship-a">{getShipDisplayName('ship-a')}</SelectItem>
-              <SelectItem value="ship-b">{getShipDisplayName('ship-b')}</SelectItem>
-              <SelectItem value="ship-c">{getShipDisplayName('ship-c')}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-3">
+            <Select value={currentShip || ''} onValueChange={handleShipChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a ship" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ship-a">{getShipDisplayName('ship-a')}</SelectItem>
+                <SelectItem value="ship-b">{getShipDisplayName('ship-b')}</SelectItem>
+                <SelectItem value="ship-c">{getShipDisplayName('ship-c')}</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {showShipNameDropdown && currentShip && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Ship Name
+                </label>
+                <Select 
+                  value={getSelectedShipName(currentShip)} 
+                  onValueChange={(value: ShipName) => setSelectedShipName(currentShip, value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose ship name" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHIP_NAMES.map((shipName) => (
+                      <SelectItem key={shipName} value={shipName}>{shipName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {currentShip && (
@@ -63,6 +89,11 @@ export const ShipSelector: React.FC<ShipSelectorProps> = ({
           Currently managing: <span className="font-semibold text-blue-600">
             {getShipDisplayName(currentShip)}
           </span>
+          {showShipNameDropdown && (
+            <span className="block text-xs text-gray-500 mt-1">
+              Ship Name: <span className="font-medium text-gray-700">{getSelectedShipName(currentShip)}</span>
+            </span>
+          )}
         </div>
       )}
     </Card>

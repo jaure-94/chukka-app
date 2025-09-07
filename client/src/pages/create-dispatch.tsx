@@ -638,7 +638,7 @@ export default function CreateDispatch() {
         <div className="max-w-7xl mx-auto">
           {/* Ship Selector */}
           <div className="mb-4 sm:mb-6">
-            <ShipSelector />
+            <ShipSelector showShipNameDropdown={true} />
           </div>
 
           <div className="mb-4 sm:mb-6">
