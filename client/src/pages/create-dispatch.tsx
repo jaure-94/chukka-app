@@ -35,7 +35,7 @@ export default function CreateDispatch() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
-  const { currentShip, setCurrentShip, getShipDisplayName } = useShipContext();
+  const { currentShip, setCurrentShip, getShipDisplayName, getSelectedShipName } = useShipContext();
   const hotTableRef = useRef<HotTableClass>(null);
   
   // Extract ship from URL params (/create-dispatch/ship-a)
@@ -157,8 +157,8 @@ export default function CreateDispatch() {
               // B1 should be "CCL" (no dropdown)
               cellValue = 'CCL';
             } else if (r === 1 && c === 1) {
-              // B2 should default to "LIBERTY" (with dropdown)
-              cellValue = cellValue || 'LIBERTY';
+              // B2 should use selected ship name from context
+              cellValue = getSelectedShipName(shipToUse);
             } else if (c === 1) {
               // Convert time values in column B for other rows
               cellValue = convertExcelTimeToReadable(cellValue);
@@ -252,6 +252,7 @@ export default function CreateDispatch() {
       
       // Save the file with formatting preservation (ship-aware)
       formData.append('shipId', shipToUse);
+      formData.append('selectedShipName', getSelectedShipName(shipToUse));
       const response = await fetch('/api/save-dispatch-sheet', {
         method: 'POST',
         body: formData,

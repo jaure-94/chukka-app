@@ -734,8 +734,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Saving edited dispatch sheet: ${req.file.originalname}`);
       
-      // Extract ship ID from request body or default to ship-a  
-      const { shipId = 'ship-a' } = req.body;
+      // Extract ship ID and selected ship name from request body or default to ship-a  
+      const { shipId = 'ship-a', selectedShipName } = req.body;
       
       // Get the active dispatch template for the specific ship
       const dispatchTemplate = await storage.getActiveDispatchTemplate(shipId);
@@ -772,15 +772,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         editedHeaderRow.eachCell((cell, colNumber) => {
           const targetCell = templateHeaderRow.getCell(colNumber);
           
-          // Special attention to header cells B1, B2, B4
-          if ((headerRow === 1 && colNumber === 2) || // B1 - Cruise Line
-              (headerRow === 2 && colNumber === 2) || // B2 - Ship Name  
-              (headerRow === 4 && colNumber === 2)) { // B4 - Date
-            console.log(`→ Updating header cell ${String.fromCharCode(64 + colNumber)}${headerRow} with: "${cell.value}"`);
+          // Special handling for B2 (Ship Name) - use selected ship name instead
+          if (headerRow === 2 && colNumber === 2 && selectedShipName) {
+            console.log(`→ Updating header cell B2 with selected ship name: "${selectedShipName}"`);
+            targetCell.value = selectedShipName;
+          } else {
+            // Special attention to other header cells B1, B4
+            if ((headerRow === 1 && colNumber === 2) || // B1 - Cruise Line
+                (headerRow === 4 && colNumber === 2)) { // B4 - Date
+              console.log(`→ Updating header cell ${String.fromCharCode(64 + colNumber)}${headerRow} with: "${cell.value}"`);
+            }
+            
+            // Copy the value from edited sheet to template
+            targetCell.value = cell.value;
           }
-          
-          // Copy the value from edited sheet to template
-          targetCell.value = cell.value;
         });
       }
       
