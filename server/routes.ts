@@ -1429,7 +1429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add successive PAX entry to existing PAX report (ship-aware)
   app.post("/api/add-successive-pax-entry", async (req, res) => {
     try {
-      const { dispatchFileId, shipId = 'ship-a' } = req.body;
+      const { dispatchFileId, shipId = 'ship-a', selectedShipName } = req.body;
       
       if (!dispatchFileId) {
         return res.status(400).json({ message: "Dispatch file ID is required" });

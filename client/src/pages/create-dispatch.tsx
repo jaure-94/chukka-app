@@ -463,7 +463,8 @@ export default function CreateDispatch() {
 
       const response = await apiRequest("POST", "/api/add-successive-pax-entry", {
         dispatchFileId: savedFileId,
-        shipId: currentShip
+        shipId: currentShip,
+        selectedShipName: getSelectedShipName(currentShip)
       });
 
       return response.json();

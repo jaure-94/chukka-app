@@ -525,16 +525,10 @@ export class ConsolidatedPaxProcessor {
     const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
     const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
     
-    // Format ship name to be user-friendly
-    const shipIdToName = {
-      'ship-a': 'Ship A',
-      'ship-b': 'Ship B', 
-      'ship-c': 'Ship C'
-    };
-    
+    // Use the actual selected ship name from the triggering ship
     let consolidatedShipName = 'Unknown Ship';
-    if (consolidatedData.lastUpdatedByShip && shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName]) {
-      consolidatedShipName = shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName];
+    if (triggeringShipRecord && triggeringShipRecord.shipName) {
+      consolidatedShipName = triggeringShipRecord.shipName;
     }
 
     // Set direct mapping values
