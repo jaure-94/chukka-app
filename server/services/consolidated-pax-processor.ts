@@ -164,14 +164,8 @@ export class ConsolidatedPaxProcessor {
       
       // Convert to cross-ship records
       for (const record of validatedRecords) {
-        // Use friendly ship name for consolidated reports instead of original ship name
-        const shipIdToName = {
-          'ship-a': 'Ship A',
-          'ship-b': 'Ship B', 
-          'ship-c': 'Ship C'
-        };
-        
-        const friendlyShipName = shipIdToName[shipId as keyof typeof shipIdToName] || shipData.shipName;
+        // Use actual selected ship name from dropdown instead of generic names
+        const friendlyShipName = shipData.shipName || 'Unknown Ship';
         
         crossShipRecords.push({
           ...record,
@@ -296,17 +290,10 @@ export class ConsolidatedPaxProcessor {
     const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
     const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
     
-    // Format ship name to be user-friendly (e.g., "Ship A" instead of "SHIP-A" or "Liberty")
-    const shipIdToName = {
-      'ship-a': 'Ship A',
-      'ship-b': 'Ship B', 
-      'ship-c': 'Ship C'
-    };
-    
-    // Use the friendly name based on triggering ship
+    // Use the actual selected ship name from the triggering ship
     let consolidatedShipName = 'Unknown Ship';
-    if (consolidatedData.lastUpdatedByShip && shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName]) {
-      consolidatedShipName = shipIdToName[consolidatedData.lastUpdatedByShip as keyof typeof shipIdToName];
+    if (triggeringShipRecord && triggeringShipRecord.shipName) {
+      consolidatedShipName = triggeringShipRecord.shipName;
     }
 
     console.log(`→ ConsolidatedPaxProcessor: Using ship name "${consolidatedShipName}" from triggering ship ${consolidatedData.lastUpdatedByShip}`);
