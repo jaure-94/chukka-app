@@ -363,13 +363,20 @@ export class PaxProcessor {
   /**
    * Add successive PAX entry to existing PAX report
    */
-  async addSuccessiveEntryToPax(dispatchFilePath: string, existingPaxPath: string, shipId: string = 'ship-a'): Promise<string> {
+  async addSuccessiveEntryToPax(dispatchFilePath: string, existingPaxPath: string, shipId: string = 'ship-a', selectedShipName?: string): Promise<string> {
     console.log(`→ PaxProcessor: Adding successive PAX entry`);
     console.log(`→ PaxProcessor: Dispatch file: ${dispatchFilePath}`);
     console.log(`→ PaxProcessor: Existing PAX: ${existingPaxPath}`);
 
     // Extract data from dispatch sheet
     const dispatchData = await this.extractDispatchData(dispatchFilePath);
+    
+    // Override ship name if provided from dropdown selection
+    if (selectedShipName) {
+      console.log(`→ PaxProcessor: Overriding ship name from "${dispatchData.shipName}" to "${selectedShipName}"`);
+      dispatchData.shipName = selectedShipName;
+    }
+    
     console.log(`→ PaxProcessor: Extracted ${dispatchData.records.length} records from dispatch`);
 
     // Validate and filter records

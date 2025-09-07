@@ -1482,7 +1482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Using dispatch data from:', path.basename(dispatchFilePath));
       
       // Add successive entry to the existing PAX report (ship-aware)
-      const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId);
+      const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId, selectedShipName);
       
       // Auto-generate consolidated PAX report after updating individual ship report
       console.log(`→ Auto-generating consolidated PAX after ${shipId} update`);
@@ -1490,7 +1490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
           consolidatedPaxTemplate,
-          shipId
+          shipId,
+          false,
+          selectedShipName
         );
         
         console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);
