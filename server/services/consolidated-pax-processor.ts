@@ -565,16 +565,11 @@ export class ConsolidatedPaxProcessor {
     let totalPaxOnTour = 0;
 
     // Filter to only include records from the triggering ship (CRITICAL FIX)
-    console.log(`→ ConsolidatedPaxProcessor: BEFORE FILTER - Total records: ${consolidatedData.records.length}, Triggering ship: ${consolidatedData.lastUpdatedByShip}`);
-    console.log(`→ ConsolidatedPaxProcessor: All ship IDs in records:`, consolidatedData.records.map(r => r.shipId));
-    
-    const triggeringShipRecords = consolidatedData.records.filter(record => {
-      const match = record.shipId === consolidatedData.lastUpdatedByShip;
-      console.log(`→ ConsolidatedPaxProcessor: Record shipId=${record.shipId}, triggering=${consolidatedData.lastUpdatedByShip}, match=${match}`);
-      return match;
-    });
+    const triggeringShipRecords = consolidatedData.records.filter(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    );
 
-    console.log(`→ ConsolidatedPaxProcessor: AFTER FILTER - Processing ${triggeringShipRecords.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
+    console.log(`→ ConsolidatedPaxProcessor: Processing ${triggeringShipRecords.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
 
     // Process records from SINGLE SHIP ONLY (no cross-ship aggregation)
     // For single ship, we can have multiple tour types, so we sum within the ship only
