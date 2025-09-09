@@ -550,10 +550,11 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Populate a single row with consolidated PAX data (extracted from populateConsolidatedReport)
+   * Populate a single row with consolidated PAX data (FIXED: No aggregation - direct ship values)
    */
   private async populateConsolidatedRowData(row: ExcelJS.Row, consolidatedData: ConsolidatedPaxData): Promise<void> {
-    // Calculate consolidated totals (same aggregation logic)
+    // FIXED: Use direct single-ship values instead of aggregating
+    // Initialize tour totals to zero (will be populated from single ship's records)
     const tourTotals = {
       catamaran: { sold: 0, allotment: 0 },
       champagne: { sold: 0, allotment: 0 },
@@ -563,22 +564,32 @@ export class ConsolidatedPaxProcessor {
     let totalPaxOnBoard = 0;
     let totalPaxOnTour = 0;
 
+    console.log(`→ ConsolidatedPaxProcessor: Processing ${consolidatedData.records.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
+
+    // Process records from SINGLE SHIP ONLY (no cross-ship aggregation)
+    // For single ship, we can have multiple tour types, so we sum within the ship only
     for (const record of consolidatedData.records) {
-      // Aggregate by tour type
+      console.log(`→ ConsolidatedPaxProcessor: Ship ${record.shipId} record - ${record.tourType}: sold=${record.sold}, allot=${record.allotment}, onBoard=${record.paxOnBoard}, onTour=${record.paxOnTour}`);
+      
+      // Set direct values by tour type for THIS SHIP ONLY
       if (record.tourType === 'catamaran') {
-        tourTotals.catamaran.sold += record.sold;
-        tourTotals.catamaran.allotment += record.allotment;
+        tourTotals.catamaran.sold = record.sold;
+        tourTotals.catamaran.allotment = record.allotment;
       } else if (record.tourType === 'champagne') {
-        tourTotals.champagne.sold += record.sold;
-        tourTotals.champagne.allotment += record.allotment;
+        tourTotals.champagne.sold = record.sold;
+        tourTotals.champagne.allotment = record.allotment;  
       } else if (record.tourType === 'invisible') {
-        tourTotals.invisible.sold += record.sold;
-        tourTotals.invisible.allotment += record.allotment;
+        tourTotals.invisible.sold = record.sold;
+        tourTotals.invisible.allotment = record.allotment;
       }
 
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
+      // For PAX totals within same ship, use the values directly 
+      // (assuming one ship dispatch has total PAX values, not per-tour)
+      totalPaxOnBoard = record.paxOnBoard;
+      totalPaxOnTour = record.paxOnTour;
     }
+
+    console.log(`→ ConsolidatedPaxProcessor: Final ship values - Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}, PAX: ${totalPaxOnBoard}/${totalPaxOnTour}`);
 
     // Get representative data (use triggering ship's data for headers)
     const triggeringShipRecord = consolidatedData.records.find(record => 
