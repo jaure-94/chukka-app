@@ -331,7 +331,6 @@ export default function ConsolidatedPaxReports() {
           preSelectedReports={['consolidated-pax']}
         />
       )}
-        </div>
       </div>
     </div>
   );

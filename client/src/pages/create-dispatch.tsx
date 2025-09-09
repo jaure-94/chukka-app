@@ -460,8 +460,8 @@ export default function CreateDispatch() {
 
       const response = await apiRequest("POST", "/api/add-successive-pax-entry", {
         dispatchFileId: savedFileId,
-        shipId: currentShip,
-        selectedShipName: getSelectedShipName(currentShip)
+        shipId: currentShip!,
+        selectedShipName: getSelectedShipName(currentShip!)
       });
 
       return response.json();
@@ -1064,11 +1064,9 @@ export default function CreateDispatch() {
 
             </div>
           )}
-        </div>
-      </div>
 
-      {/* PAX Success Modal */}
-      <Dialog open={showPaxSuccessModal} onOpenChange={setShowPaxSuccessModal}>
+          {/* PAX Success Modal */}
+          <Dialog open={showPaxSuccessModal} onOpenChange={setShowPaxSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center text-green-600">
@@ -1118,8 +1116,8 @@ export default function CreateDispatch() {
         </DialogContent>
       </Dialog>
 
-      {/* EOD Success Modal */}
-      <Dialog open={showEodSuccessModal} onOpenChange={setShowEodSuccessModal}>
+          {/* EOD Success Modal */}
+          <Dialog open={showEodSuccessModal} onOpenChange={setShowEodSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center text-green-600">

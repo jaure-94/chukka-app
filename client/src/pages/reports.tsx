@@ -850,7 +850,6 @@ export default function Reports() {
         availableReports={getAvailableReports()}
         preSelectedReports={selectedReportsToShare}
       />
-        </div>
       </div>
     </div>
   );
