@@ -564,11 +564,16 @@ export class ConsolidatedPaxProcessor {
     let totalPaxOnBoard = 0;
     let totalPaxOnTour = 0;
 
-    console.log(`→ ConsolidatedPaxProcessor: Processing ${consolidatedData.records.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
+    // Filter to only include records from the triggering ship (CRITICAL FIX)
+    const triggeringShipRecords = consolidatedData.records.filter(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    );
+
+    console.log(`→ ConsolidatedPaxProcessor: Processing ${triggeringShipRecords.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
 
     // Process records from SINGLE SHIP ONLY (no cross-ship aggregation)
     // For single ship, we can have multiple tour types, so we sum within the ship only
-    for (const record of consolidatedData.records) {
+    for (const record of triggeringShipRecords) {
       console.log(`→ ConsolidatedPaxProcessor: Ship ${record.shipId} record - ${record.tourType}: sold=${record.sold}, allot=${record.allotment}, onBoard=${record.paxOnBoard}, onTour=${record.paxOnTour}`);
       
       // Set direct values by tour type for THIS SHIP ONLY
