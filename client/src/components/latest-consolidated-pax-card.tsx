@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, FileText, Calendar, Users, Ship, Globe, Clock, Download } from "lucide-react";
+import { AlertCircle, FileText, Calendar, Users, Ship, Globe, Clock, Download, Share } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from 'date-fns';
+import { ShareReportsModal } from "@/components/sharing/ShareReportsModal";
 
 interface ConsolidatedPaxReport {
   id: number;
@@ -17,6 +19,8 @@ interface ConsolidatedPaxReport {
 }
 
 export function LatestConsolidatedPaxCard() {
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
   // Fetch the latest consolidated PAX report
   const { data: latestReport, isLoading, error } = useQuery<ConsolidatedPaxReport | null>({
     queryKey: ["/api/consolidated-pax-reports/latest"],
@@ -29,8 +33,8 @@ export function LatestConsolidatedPaxCard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const handleViewAllReports = () => {
-    window.location.href = '/consolidated-pax-reports';
+  const handleShare = () => {
+    setShareModalOpen(true);
   };
 
   const handleDownloadLatest = () => {
@@ -75,11 +79,11 @@ export function LatestConsolidatedPaxCard() {
             <span className="text-sm">No consolidated reports available yet</span>
           </div>
           <Button 
-            onClick={handleViewAllReports}
+            onClick={handleShare}
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
-            <FileText className="h-4 w-4 mr-2" />
-            Generate First Report
+            <Share className="h-4 w-4 mr-2" />
+            Share Reports
           </Button>
         </CardContent>
       </Card>
@@ -174,11 +178,11 @@ export function LatestConsolidatedPaxCard() {
           </Button>
           <Button 
             size="sm"
-            onClick={handleViewAllReports}
+            onClick={handleShare}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <FileText className="h-4 w-4 mr-1" />
-            View All
+            <Share className="h-4 w-4 mr-1" />
+            Share
           </Button>
         </div>
 
@@ -187,6 +191,22 @@ export function LatestConsolidatedPaxCard() {
           Generated on {format(new Date(latestReport.createdAt), 'MMM dd, yyyy')} at {format(new Date(latestReport.createdAt), 'HH:mm')}
         </div>
       </CardContent>
+
+      {/* Share Modal */}
+      {latestReport && (
+        <ShareReportsModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          shipId="consolidated"
+          availableReports={{
+            'consolidated-pax': {
+              filename: latestReport.filename,
+              path: latestReport.filePath
+            }
+          }}
+          preSelectedReports={['consolidated-pax']}
+        />
+      )}
     </Card>
   );
 }
