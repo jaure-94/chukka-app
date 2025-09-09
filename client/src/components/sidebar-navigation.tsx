@@ -54,67 +54,19 @@ const navigationItems: NavigationItem[] = [
     icon: LayoutDashboard,
   },
   {
-    name: "Create New Record",
+    name: "Dispatch Records",
+    href: "/create-dispatch",
     icon: Plus,
-    subItems: [
-      {
-        name: "Ship A",
-        href: "/create-dispatch/ship-a",
-        icon: Ship,
-      },
-      {
-        name: "Ship B", 
-        href: "/create-dispatch/ship-b",
-        icon: Ship,
-      },
-      {
-        name: "Ship C",
-        href: "/create-dispatch/ship-c", 
-        icon: Ship,
-      },
-    ],
   },
   {
     name: "Templates",
+    href: "/templates",
     icon: FileText,
-    subItems: [
-      {
-        name: "Ship A",
-        href: "/templates/ship-a",
-        icon: Ship,
-      },
-      {
-        name: "Ship B",
-        href: "/templates/ship-b",
-        icon: Ship,
-      },
-      {
-        name: "Ship C",
-        href: "/templates/ship-c",
-        icon: Ship,
-      },
-    ],
   },
   {
     name: "Reports",
+    href: "/reports",
     icon: BarChart3,
-    subItems: [
-      {
-        name: "Ship A",
-        href: "/reports/ship-a",
-        icon: Ship,
-      },
-      {
-        name: "Ship B",
-        href: "/reports/ship-b", 
-        icon: Ship,
-      },
-      {
-        name: "Ship C",
-        href: "/reports/ship-c",
-        icon: Ship,
-      },
-    ],
   },
   {
     name: "Consolidated PAX Reports",
@@ -153,9 +105,9 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
     if (!user) return navigationItems;
     
     return navigationItems.filter(item => {
-      // General users cannot access "Create New Record", "Users", and "Share Reports" pages
+      // General users cannot access "Dispatch Records", "Users", and "Share Reports" pages
       if (user.role === 'general') {
-        return item.name !== 'Create New Record' && item.name !== 'Users' && item.name !== 'Share Reports';
+        return item.name !== 'Dispatch Records' && item.name !== 'Users' && item.name !== 'Share Reports';
       }
       // Dispatchers cannot access "Users" page
       if (user.role === 'dispatcher') {
