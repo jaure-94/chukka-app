@@ -325,7 +325,7 @@ export class ConsolidatedPaxProcessor {
   /**
    * Main entry point for consolidated PAX generation
    */
-  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system', forceCreateNew: boolean = false): Promise<{ filename: string; data: ConsolidatedPaxData }> {
+  async processConsolidatedPax(templatePath: string, triggeringShipId: string = 'system', forceCreateNew: boolean = false, selectedShipName?: string): Promise<{ filename: string; data: ConsolidatedPaxData }> {
     console.log(`→ ConsolidatedPaxProcessor: Starting consolidated PAX generation (triggered by ${triggeringShipId})`);
 
     try {
@@ -334,6 +334,12 @@ export class ConsolidatedPaxProcessor {
       
       if (Object.keys(allShipData).length === 0) {
         throw new Error('No dispatch data found from any ship');
+      }
+      
+      // Override ship name if provided from dropdown selection
+      if (selectedShipName && allShipData[triggeringShipId]) {
+        console.log(`→ ConsolidatedPaxProcessor: Overriding ship name for ${triggeringShipId} from "${allShipData[triggeringShipId].shipName}" to "${selectedShipName}"`);
+        allShipData[triggeringShipId].shipName = selectedShipName;
       }
 
       // Step 2: Validate and merge data
