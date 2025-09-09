@@ -1474,14 +1474,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add successive entry to the existing PAX report (ship-aware)
       const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId, selectedShipName);
       
-      // Auto-generate consolidated PAX report after updating individual ship report
-      console.log(`→ Auto-generating consolidated PAX after ${shipId} update`);
+      // Update consolidated PAX report with only this ship's data (not all ships)
+      console.log(`→ Updating consolidated PAX with only ${shipId} data`);
       try {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
-        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
           shipId,
-          false,
+          dispatchFilePath,
           selectedShipName
         );
         

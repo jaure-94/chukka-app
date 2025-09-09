@@ -213,6 +213,61 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
+   * Process consolidated PAX for single ship update (successive entries)
+   * This prevents cross-ship aggregation for successive entries
+   */
+  async processConsolidatedPaxForSingleShip(
+    templatePath: string,
+    shipId: string,
+    dispatchFilePath: string,
+    selectedShipName?: string
+  ): Promise<{ filename: string; data: ConsolidatedPaxData }> {
+    console.log(`→ ConsolidatedPaxProcessor: Processing single ship update for ${shipId}`);
+
+    // Extract data for only this ship
+    const shipData = await this.extractDispatchDataForShip(dispatchFilePath, shipId);
+    
+    // Override ship name if provided from dropdown selection
+    if (selectedShipName) {
+      shipData.shipName = selectedShipName;
+    }
+
+    // Create consolidated data with only this ship
+    const consolidatedData: ConsolidatedPaxData = {
+      contributingShips: [shipId],
+      records: [],
+      totalRecordCount: 0,
+      lastUpdatedByShip: shipId
+    };
+
+    // Validate records for this ship only
+    const validatedRecords = this.validateAndMapRecords(shipData.records);
+    
+    // Convert to cross-ship records for this ship only
+    for (const record of validatedRecords) {
+      consolidatedData.records.push({
+        ...record,
+        shipId,
+        shipName: shipData.shipName,
+        date: shipData.date,
+        cruiseLine: shipData.cruiseLine
+      });
+    }
+
+    consolidatedData.totalRecordCount = consolidatedData.records.length;
+    
+    console.log(`→ ConsolidatedPaxProcessor: Single ship data - ${consolidatedData.records.length} records from ${shipId}`);
+
+    // Process consolidated PAX (this will add a new row to existing file)
+    const outputFilename = await this.consolidateOrUpdate(consolidatedData, templatePath);
+    
+    return {
+      filename: outputFilename,
+      data: consolidatedData
+    };
+  }
+
+  /**
    * Generate consolidated PAX report
    */
   async generateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
