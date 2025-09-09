@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ShareReportsModal } from "@/components/sharing/ShareReportsModal";
+import { LatestConsolidatedPaxCard } from "@/components/latest-consolidated-pax-card";
 import { AlertCircle, Download, FileText, Calendar, Users, File, TrendingUp, Share, RefreshCw, Ship, Globe } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -152,6 +153,11 @@ export default function ConsolidatedPaxReports() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
+          {/* Latest Consolidated PAX Report Card */}
+          <div className="mb-8">
+            <LatestConsolidatedPaxCard />
+          </div>
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
