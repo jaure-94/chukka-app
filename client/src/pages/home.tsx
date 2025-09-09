@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { LatestConsolidatedPaxCard } from "@/components/latest-consolidated-pax-card";
 import { Crown, Shield, Clipboard, User, Ship, Database, Lock, FileText, BarChart3, Users, ArrowRight, Upload, Settings, Download } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useAuth } from "@/hooks/use-auth";
@@ -81,6 +82,13 @@ export default function Home() {
         {/* Main Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
           <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12 lg:space-y-16">
+            {/* Latest Consolidated PAX Report Section */}
+            <section className="flex justify-center">
+              <div className="w-full max-w-md">
+                <LatestConsolidatedPaxCard />
+              </div>
+            </section>
+
             {/* Three Ship System Overview */}
             <section className="text-center">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">
