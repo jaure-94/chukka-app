@@ -230,11 +230,22 @@ export default function CreateDispatch() {
     
     setIsLoading(true);
     try {
-      // Debug: Log the data being saved
+      // CHECKPOINT A: Log the critical values being saved
+      console.log('=== CHECKPOINT A: Frontend Data Capture ===');
       console.log('Saving edited data with', editedData.length, 'rows');
-      if (editedData.length > 8) {
-        console.log('Sample data row 8:', editedData[7]); // Row 8 (index 7)
-        console.log('Sample data row 13:', editedData[12]); // Row 13 (index 12)
+      
+      // Log critical columns for tour data rows (starting from row 8)
+      for (let rowIndex = 7; rowIndex < Math.min(editedData.length, 25); rowIndex++) {
+        const row = editedData[rowIndex];
+        if (row && row[0] && typeof row[0] === 'string' && row[0].trim() && row[0].trim() !== 'TOUR') {
+          console.log(`CHECKPOINT A - Row ${rowIndex + 1} (${row[0]}):`, {
+            tourName: row[0],
+            allotment: row[7], // Column H (index 7)
+            sold: row[9], // Column J (index 9) 
+            paxOnBoard: row[16], // Column Q (index 16)
+            paxOnTour: row[17] // Column R (index 17)
+          });
+        }
       }
       
       // Create workbook and worksheet
