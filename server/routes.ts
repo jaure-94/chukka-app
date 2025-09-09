@@ -814,29 +814,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
               const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
               
-              // Special handling for PAX ON TOUR column (Column R = 18) - sync with SOLD values
-              if (colNumber === 18) { // Column R (PAX ON TOUR)
-                if (rowNumber >= 10 && rowNumber <= 50) { // Only for tour data rows
-                  // Get the current SOLD value from column J in the same row
-                  const soldCell = templateWorksheet.getCell(rowNumber, 10); // Column J
-                  const soldValue = soldCell.value || 0;
-                  
-                  // CHECKPOINT B - DATA OVERRIDE ALERT
-                  const originalPaxOnTour = cell.value;
-                  if (originalPaxOnTour !== soldValue) {
-                    console.log(`⚠️  DATA OVERRIDE at R${rowNumber}: User entered "${originalPaxOnTour}" but forcing to "${soldValue}" (SOLD value)`);
-                  }
-                  
-                  // Set PAX ON TOUR to match SOLD value directly
-                  targetCell.value = soldValue;
-                  console.log(`→ Updated PAX ON TOUR at R${rowNumber} to match SOLD value: ${soldValue}`);
-                } else {
-                  // For header/non-data rows, use the original value
-                  targetCell.value = cell.value;
-                }
-              } else {
-                // For all other columns, set the value from edited sheet
-                targetCell.value = cell.value;
+              // FIXED: Preserve user input for PAX ON TOUR column (Column R = 18)
+              // No longer forcing synchronization with SOLD values
+              targetCell.value = cell.value;
+              
+              // Log PAX ON TOUR values for transparency
+              if (colNumber === 18 && rowNumber >= 8 && cell.value) {
+                console.log(`→ Preserved PAX ON TOUR at R${rowNumber}: ${cell.value}`);
               }
               
               // Preserve original template formatting (if template cell has formatting)
