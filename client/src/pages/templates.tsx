@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { ShipSelector } from "@/components/ship-selector";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { FileText, Upload, Calendar, User, Download, Edit, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSidebar } from "@/contexts/sidebar-context";
@@ -89,9 +90,11 @@ function Templates() {
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 overflow-y-auto ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
         isCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
+        <Breadcrumbs />
+        <div className="flex-1 overflow-y-auto">
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">
@@ -375,6 +378,7 @@ function Templates() {
             </CardContent>
           </Card>
         </main>
+        </div>
       </div>
     </div>
   );

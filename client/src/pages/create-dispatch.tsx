@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { ShipSelector } from "@/components/ship-selector";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useShipContext } from "@/contexts/ship-context";
 import { HotTable } from "@handsontable/react";
@@ -629,11 +630,13 @@ export default function CreateDispatch() {
       <MobileNavigation />
       
       <div 
-        className={`flex-1 transition-all duration-300 overflow-y-auto ${
+        className={`flex-1 transition-all duration-300 ${
           isCollapsed ? 'md:ml-16' : 'md:ml-64'
-        } p-3 sm:p-4 md:p-6`}
+        } flex flex-col`}
       >
-        <div className="max-w-7xl mx-auto">
+        <Breadcrumbs />
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+          <div className="max-w-7xl mx-auto">
           {/* Ship Selector */}
           <div className="mb-4 sm:mb-6">
             <ShipSelector showShipNameDropdown={true} />
@@ -1153,6 +1156,9 @@ export default function CreateDispatch() {
           </div>
         </DialogContent>
       </Dialog>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

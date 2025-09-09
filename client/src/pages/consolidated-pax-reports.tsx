@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ShareReportsModal } from "@/components/sharing/ShareReportsModal";
 import { AlertCircle, Download, FileText, Calendar, Users, File, TrendingUp, Share, RefreshCw, Ship, Globe } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -110,6 +111,8 @@ export default function ConsolidatedPaxReports() {
       <MobileNavigation />
       
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <Breadcrumbs />
+        <div className="flex-1 overflow-y-auto">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -328,6 +331,8 @@ export default function ConsolidatedPaxReports() {
           preSelectedReports={['consolidated-pax']}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

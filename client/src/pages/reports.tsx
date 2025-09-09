@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { ShipSelector } from "@/components/ship-selector";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ShareReportsModal } from "@/components/sharing/ShareReportsModal";
 import { BarChart3, Download, FileText, Calendar, Users, File, TrendingUp, X, AlertTriangle, Share } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -279,9 +280,11 @@ export default function Reports() {
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 overflow-y-auto ${
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${
         isCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
+        <Breadcrumbs />
+        <div className="flex-1 overflow-y-auto">
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-4 sm:px-6 lg:px-8">
@@ -847,6 +850,8 @@ export default function Reports() {
         availableReports={getAvailableReports()}
         preSelectedReports={selectedReportsToShare}
       />
+        </div>
+      </div>
     </div>
   );
 }
