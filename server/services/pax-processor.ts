@@ -148,7 +148,8 @@ export class PaxProcessor {
             paxOnTour
           });
 
-          console.log(`→ PaxProcessor: Found tour "${tourName}" - Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
+          // CHECKPOINT C: Individual ship data extraction
+          console.log(`CHECKPOINT C - PaxProcessor extracted "${tourName}": Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
         }
       }
     }
