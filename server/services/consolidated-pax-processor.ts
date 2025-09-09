@@ -578,6 +578,11 @@ export class ConsolidatedPaxProcessor {
           ...record,
           tourType
         });
+        // CHECKPOINT E: Validation success tracking
+        console.log(`CHECKPOINT E - ConsolidatedPax: ✓ Validated tour "${record.tourName}" as ${tourType}`);
+      } else {
+        // CHECKPOINT E: Validation failure tracking 
+        console.log(`CHECKPOINT E - ConsolidatedPax: ✗ Invalid tour name "${record.tourName}" - DROPPING RECORD`);
       }
     }
 
