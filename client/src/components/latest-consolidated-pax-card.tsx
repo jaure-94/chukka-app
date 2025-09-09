@@ -35,7 +35,8 @@ export function LatestConsolidatedPaxCard() {
 
   const handleDownloadLatest = () => {
     if (latestReport) {
-      window.open(`/api/consolidated-pax-reports/${latestReport.id}/download`, '_blank');
+      const downloadUrl = `/api/consolidated-pax/download/${encodeURIComponent(latestReport.filename)}`;
+      window.open(downloadUrl, '_blank');
     }
   };
 
