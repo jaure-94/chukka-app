@@ -134,7 +134,8 @@ export class ConsolidatedPaxProcessor {
             paxOnTour
           });
 
-          console.log(`→ ConsolidatedPaxProcessor: ${shipId} - Found tour "${tourName}"`);
+          // CHECKPOINT D: Consolidated processor data extraction
+          console.log(`CHECKPOINT D - ConsolidatedPaxProcessor ${shipId} extracted "${tourName}": Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
         }
       }
     }
