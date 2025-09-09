@@ -269,13 +269,21 @@ export class ConsolidatedPaxProcessor {
     let totalPaxOnBoard = 0;
     let totalPaxOnTour = 0;
 
+    // CHECKPOINT F: Track aggregation math
+    console.log('=== CHECKPOINT F: Cross-Ship Aggregation ===');
+    console.log(`Starting aggregation with ${consolidatedData.records.length} records from ${consolidatedData.contributingShips.length} ships`);
+    
     // Aggregate from all ships
     for (const record of consolidatedData.records) {
+      console.log(`CHECKPOINT F - Adding ${record.shipName} ${record.tourType}: +${record.sold} sold, +${record.allotment} allot, +${record.paxOnBoard} onBoard, +${record.paxOnTour} onTour`);
+      
       tourTotals[record.tourType].sold += record.sold;
       tourTotals[record.tourType].allotment += record.allotment;
       totalPaxOnBoard += record.paxOnBoard;
       totalPaxOnTour += record.paxOnTour;
     }
+    
+    console.log('CHECKPOINT F - Final aggregated totals:', { tourTotals, totalPaxOnBoard, totalPaxOnTour });
 
     // Get representative data (use triggering ship's data for headers)
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - lastUpdatedByShip: ${consolidatedData.lastUpdatedByShip}`);
