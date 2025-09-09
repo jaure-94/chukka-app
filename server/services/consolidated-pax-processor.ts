@@ -134,8 +134,7 @@ export class ConsolidatedPaxProcessor {
             paxOnTour
           });
 
-          // CHECKPOINT D: Consolidated processor data extraction
-          console.log(`CHECKPOINT D - ConsolidatedPaxProcessor ${shipId} extracted "${tourName}": Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
+          console.log(`→ ConsolidatedPaxProcessor: ${shipId} - Found tour "${tourName}" - Allotment: ${allotment}, Sold: ${sold}, OnBoard: ${paxOnBoard}, OnTour: ${paxOnTour}`);
         }
       }
     }
@@ -269,21 +268,15 @@ export class ConsolidatedPaxProcessor {
     let totalPaxOnBoard = 0;
     let totalPaxOnTour = 0;
 
-    // CHECKPOINT F: Track aggregation math
-    console.log('=== CHECKPOINT F: Cross-Ship Aggregation ===');
-    console.log(`Starting aggregation with ${consolidatedData.records.length} records from ${consolidatedData.contributingShips.length} ships`);
+    console.log(`→ ConsolidatedPaxProcessor: Aggregating ${consolidatedData.records.length} records from ${consolidatedData.contributingShips.length} ships`);
     
     // Aggregate from all ships
     for (const record of consolidatedData.records) {
-      console.log(`CHECKPOINT F - Adding ${record.shipName} ${record.tourType}: +${record.sold} sold, +${record.allotment} allot, +${record.paxOnBoard} onBoard, +${record.paxOnTour} onTour`);
-      
       tourTotals[record.tourType].sold += record.sold;
       tourTotals[record.tourType].allotment += record.allotment;
       totalPaxOnBoard += record.paxOnBoard;
       totalPaxOnTour += record.paxOnTour;
     }
-    
-    console.log('CHECKPOINT F - Final aggregated totals:', { tourTotals, totalPaxOnBoard, totalPaxOnTour });
 
     // Get representative data (use triggering ship's data for headers)
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - lastUpdatedByShip: ${consolidatedData.lastUpdatedByShip}`);
@@ -586,11 +579,9 @@ export class ConsolidatedPaxProcessor {
           ...record,
           tourType
         });
-        // CHECKPOINT E: Validation success tracking
-        console.log(`CHECKPOINT E - ConsolidatedPax: ✓ Validated tour "${record.tourName}" as ${tourType}`);
+        console.log(`→ ConsolidatedPaxProcessor: ✓ Validated tour "${record.tourName}" as ${tourType}`);
       } else {
-        // CHECKPOINT E: Validation failure tracking 
-        console.log(`CHECKPOINT E - ConsolidatedPax: ✗ Invalid tour name "${record.tourName}" - DROPPING RECORD`);
+        console.log(`→ ConsolidatedPaxProcessor: ✗ Invalid tour name "${record.tourName}" - skipping record`);
       }
     }
 
