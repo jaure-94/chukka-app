@@ -583,10 +583,11 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // For PAX totals within same ship, use the values directly 
-      // (assuming one ship dispatch has total PAX values, not per-tour)
-      totalPaxOnBoard = record.paxOnBoard;
-      totalPaxOnTour = record.paxOnTour;
+      // For PAX totals within same ship, accumulate across all tours
+      totalPaxOnBoard += record.paxOnBoard;
+      totalPaxOnTour += record.paxOnTour;
+      
+      console.log(`→ ConsolidatedPaxProcessor: Running totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
     }
 
     console.log(`→ ConsolidatedPaxProcessor: Final ship values - Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}, PAX: ${totalPaxOnBoard}/${totalPaxOnTour}`);
