@@ -762,7 +762,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Unable to read worksheet data" });
       }
 
+      // CHECKPOINT B: Log the data received from frontend
+      console.log('=== CHECKPOINT B: Backend Data Reception ===');
       console.log("Preserving formatting from template and copying edited data");
+      
+      // Log critical data being processed from the edited worksheet
+      for (let rowNum = 8; rowNum <= Math.min(25, editedWorksheet.rowCount); rowNum++) {
+        const row = editedWorksheet.getRow(rowNum);
+        const tourName = row.getCell(1).value;
+        if (tourName && typeof tourName === 'string' && tourName.trim() && tourName.trim() !== 'TOUR') {
+          console.log(`CHECKPOINT B - Row ${rowNum} (${tourName}):`, {
+            tourName: tourName,
+            allotment: row.getCell(8).value, // Column H
+            sold: row.getCell(10).value, // Column J
+            paxOnBoard: row.getCell(17).value, // Column Q  
+            paxOnTour: row.getCell(18).value // Column R
+          });
+        }
+      }
       
       // First, copy header data from rows 1-7 (including B1, B2, B4)
       for (let headerRow = 1; headerRow <= 7; headerRow++) {
@@ -803,6 +820,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Get the current SOLD value from column J in the same row
                   const soldCell = templateWorksheet.getCell(rowNumber, 10); // Column J
                   const soldValue = soldCell.value || 0;
+                  
+                  // CHECKPOINT B - DATA OVERRIDE ALERT
+                  const originalPaxOnTour = cell.value;
+                  if (originalPaxOnTour !== soldValue) {
+                    console.log(`⚠️  DATA OVERRIDE at R${rowNumber}: User entered "${originalPaxOnTour}" but forcing to "${soldValue}" (SOLD value)`);
+                  }
                   
                   // Set PAX ON TOUR to match SOLD value directly
                   targetCell.value = soldValue;
