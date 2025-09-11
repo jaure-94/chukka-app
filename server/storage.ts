@@ -33,7 +33,7 @@ import {
   type InsertExtractedDispatchData,
   type InsertConsolidatedPaxReport
 } from "@shared/schema";
-import { db } from "./db";
+import { db, withRetry } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -88,11 +88,13 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async createUploadedFile(file: InsertUploadedFile): Promise<UploadedFile> {
-    const [created] = await db
-      .insert(uploadedFiles)
-      .values(file)
-      .returning();
-    return created;
+    return withRetry(async () => {
+      const [created] = await db
+        .insert(uploadedFiles)
+        .values(file)
+        .returning();
+      return created;
+    });
   }
 
   async getUploadedFile(id: number): Promise<UploadedFile | undefined> {
@@ -119,19 +121,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProcessingJob(job: InsertProcessingJob): Promise<ProcessingJob> {
-    const [created] = await db
-      .insert(processingJobs)
-      .values(job)
-      .returning();
-    return created;
+    return withRetry(async () => {
+      const [created] = await db
+        .insert(processingJobs)
+        .values(job)
+        .returning();
+      return created;
+    });
   }
 
   async getProcessingJob(id: number): Promise<ProcessingJob | undefined> {
-    const [job] = await db
-      .select()
-      .from(processingJobs)
-      .where(eq(processingJobs.id, id));
-    return job || undefined;
+    return withRetry(async () => {
+      const [job] = await db
+        .select()
+        .from(processingJobs)
+        .where(eq(processingJobs.id, id));
+      return job || undefined;
+    });
   }
 
   async updateProcessingJob(id: number, updates: Partial<ProcessingJob>): Promise<ProcessingJob> {

@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
-import { jwtConfig } from "./config.js";
+import { jwtConfig, type UserRole } from "./config.js";
 import type { User } from "@shared/schema";
 
 export interface JwtPayload {
   userId: number;
   username: string;
-  role: string;
+  role: UserRole;
   iat?: number;
   exp?: number;
   iss?: string;
@@ -19,7 +19,7 @@ export function generateToken(user: User): string {
   const payload: JwtPayload = {
     userId: user.id,
     username: user.username,
-    role: user.role,
+    role: user.role as UserRole,
   };
 
   // JWT generation working correctly
@@ -38,7 +38,7 @@ export function generateRefreshToken(user: User): string {
   const payload: JwtPayload = {
     userId: user.id,
     username: user.username,
-    role: user.role,
+    role: user.role as UserRole,
   };
 
   return jwt.sign(payload, jwtConfig.secret, {
