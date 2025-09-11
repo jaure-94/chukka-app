@@ -352,10 +352,8 @@ export default function CreateDispatch() {
       return response.json();
     },
     onSuccess: (result) => {
-      toast({
-        title: "Success! 🎉",
-        description: `Successive dispatch entry added! New EOD file: ${result.eodFile}`,
-      });
+      setEodFileName(result.eodFile);
+      setShowEodSuccessModal(true);
       
       // Invalidate all related caches for current ship
       queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", currentShip] });
@@ -365,11 +363,6 @@ export default function CreateDispatch() {
       // Also refresh consolidated PAX reports since successive dispatch triggers consolidated PAX
       queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
-      
-      // Redirect to Reports page after a short delay
-      setTimeout(() => {
-        setLocation("/reports");
-      }, 2000);
     },
     onError: (error) => {
       toast({
@@ -1120,21 +1113,21 @@ export default function CreateDispatch() {
         </DialogContent>
       </Dialog>
 
-          {/* EOD Success Modal */}
-          <Dialog open={showEodSuccessModal} onOpenChange={setShowEodSuccessModal}>
+      {/* EOD Success Modal */}
+      <Dialog open={showEodSuccessModal} onOpenChange={setShowEodSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center text-green-600">
+            <DialogTitle className="flex items-center text-purple-600">
               <CheckCircle className="w-6 h-6 mr-2" />
-              EOD Report Generated!
+              EOD Report Updated!
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-gray-600 mb-4">
-              Your EOD report has been successfully generated and is ready for download.
+              Your EOD report has been successfully updated with the new dispatch entry.
             </p>
             <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <p className="text-sm font-medium text-gray-700">Generated File:</p>
+              <p className="text-sm font-medium text-gray-700">Updated File:</p>
               <p className="text-sm text-gray-600">{eodFileName}</p>
             </div>
             <div className="flex space-x-3">
@@ -1143,7 +1136,7 @@ export default function CreateDispatch() {
                   setShowEodSuccessModal(false);
                   setLocation("/reports");
                 }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
               >
                 View Reports
               </Button>
