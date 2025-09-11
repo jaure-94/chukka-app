@@ -1361,10 +1361,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const templateProcessor = new TemplateProcessor();
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         
-        const consolidatedResult = await consolidatedProcessor.processConsolidatedPax(
+        const consolidatedResult = await consolidatedProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
-          shipId, // Triggering ship
-          true // Force create new file for "generate new PAX report" button
+          shipId,
+          dispatchFilePath
         );
         
         console.log(`→ Consolidated PAX generated after new PAX: ${consolidatedResult.filename}`);
