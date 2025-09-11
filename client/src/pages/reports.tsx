@@ -134,6 +134,10 @@ export default function Reports() {
         
         // Refresh output files to show the new PAX report for current ship
         queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
+        
+        // Also refresh consolidated PAX reports since PAX generation triggers consolidated PAX
+        queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
       } else {
         throw new Error(result.message || 'Failed to generate PAX report');
       }
