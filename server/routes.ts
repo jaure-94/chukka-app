@@ -1543,6 +1543,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get latest consolidated PAX report  
+  app.get("/api/consolidated-pax-reports/latest", async (req, res) => {
+    try {
+      const reports = await storage.getRecentConsolidatedPaxReports(1);
+      if (reports.length === 0) {
+        return res.json(null);
+      }
+      res.json(reports[0]);
+    } catch (error) {
+      console.error("Latest consolidated PAX report fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch latest consolidated PAX report" });
+    }
+  });
+
   // Get specific consolidated PAX report
   app.get("/api/consolidated-pax-reports/:id", async (req, res) => {
     try {
