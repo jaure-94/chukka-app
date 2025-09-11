@@ -258,8 +258,8 @@ export class ConsolidatedPaxProcessor {
     
     console.log(`→ ConsolidatedPaxProcessor: Single ship data - ${consolidatedData.records.length} records from ${shipId}`);
 
-    // Process consolidated PAX (this will add a new row to existing file)
-    const outputFilename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath);
+    // Process consolidated PAX (create new file for individual ship data)
+    const outputFilename = await this.generateConsolidatedPax(consolidatedData, templatePath);
     
     return {
       filename: outputFilename,

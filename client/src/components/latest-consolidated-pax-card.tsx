@@ -24,12 +24,6 @@ export function LatestConsolidatedPaxCard() {
   // Fetch the latest consolidated PAX report
   const { data: latestReport, isLoading, error } = useQuery<ConsolidatedPaxReport | null>({
     queryKey: ["/api/consolidated-pax-reports/latest"],
-    queryFn: async () => {
-      const response = await fetch("/api/consolidated-pax-reports");
-      if (!response.ok) throw new Error('Failed to fetch reports');
-      const reports: ConsolidatedPaxReport[] = await response.json();
-      return reports.length > 0 ? reports[0] : null; // First one is latest due to sorting
-    },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
