@@ -62,7 +62,8 @@ export default function CreateDispatch() {
   const [showPaxSuccessModal, setShowPaxSuccessModal] = useState(false);
   const [paxFileName, setPaxFileName] = useState<string>('');
   const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
-  const [eodFileName, setEodFileName] = useState<string>('');
+  const [eodFileName, setEodFileName] = useState<string>(''); 
+  const [showUpdateEodModal, setShowUpdateEodModal] = useState(false);
 
   // Fetch dispatch template for current ship
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -758,18 +759,7 @@ export default function CreateDispatch() {
                           <span className="sm:hidden">{updateEODMutation.isPending ? 'Generating...' : 'Generate New EOD'}</span>
                         </Button>
                         <Button 
-                          onClick={() => {
-                            // Find the latest EOD file and add this entry to it
-                            if (outputFiles?.length > 0) {
-                              const latestEodFile = outputFiles
-                                .filter((file: any) => file.filename.startsWith('eod_'))
-                                .sort((a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())[0];
-                              
-                              if (latestEodFile && !latestEodFile.filename.includes(savedFileId)) {
-                                successiveDispatchMutation.mutate(latestEodFile.filename);
-                              }
-                            }
-                          }}
+                          onClick={() => setShowUpdateEodModal(true)}
                           disabled={successiveDispatchMutation.isPending || !outputFiles?.some((file: any) => 
                             file.filename.startsWith('eod_') && !file.filename.includes(savedFileId)
                           )}
@@ -1153,6 +1143,53 @@ export default function CreateDispatch() {
                 className="flex-1"
               >
                 Continue Here
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+          {/* Update EOD Modal */}
+          <Dialog open={showUpdateEodModal} onOpenChange={setShowUpdateEodModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-blue-600">
+              <Plus className="w-6 h-6 mr-2" />
+              Update Existing EOD Report
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">
+              This will add your current dispatch data to the latest EOD report.
+            </p>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={() => {
+                  setShowUpdateEodModal(false);
+                  // Find the latest EOD file and add this entry to it
+                  if (outputFiles?.length > 0) {
+                    const latestEodFile = outputFiles
+                      .filter((file: any) => file.filename.startsWith('eod_'))
+                      .sort((a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime())[0];
+                    
+                    if (latestEodFile && !latestEodFile.filename.includes(savedFileId)) {
+                      successiveDispatchMutation.mutate(latestEodFile.filename);
+                    }
+                  }
+                }}
+                disabled={successiveDispatchMutation.isPending || !outputFiles?.some((file: any) => 
+                  file.filename.startsWith('eod_') && !file.filename.includes(savedFileId)
+                )}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {successiveDispatchMutation.isPending ? 'Updating...' : 'Update Report'}
+              </Button>
+              <Button 
+                onClick={() => setShowUpdateEodModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
               </Button>
             </div>
           </div>
