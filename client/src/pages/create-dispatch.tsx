@@ -362,6 +362,10 @@ export default function CreateDispatch() {
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", currentShip] });
       queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
       
+      // Also refresh consolidated PAX reports since successive dispatch triggers consolidated PAX
+      queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
+      
       // Redirect to Reports page after a short delay
       setTimeout(() => {
         setLocation("/reports");
