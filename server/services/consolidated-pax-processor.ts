@@ -259,7 +259,7 @@ export class ConsolidatedPaxProcessor {
     console.log(`→ ConsolidatedPaxProcessor: Single ship data - ${consolidatedData.records.length} records from ${shipId}`);
 
     // Process consolidated PAX (create new file for individual ship data)
-    const outputFilename = await this.generateConsolidatedPax(consolidatedData, templatePath);
+    const outputFilename = await this.generateSingleShipPax(consolidatedData, templatePath);
     
     return {
       filename: outputFilename,
@@ -268,7 +268,7 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Generate consolidated PAX report
+   * Generate consolidated PAX report (multi-ship aggregation)
    */
   async generateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
     console.log(`→ ConsolidatedPaxProcessor: Generating consolidated PAX report from ${consolidatedData.contributingShips.length} ships`);
@@ -304,6 +304,46 @@ export class ConsolidatedPaxProcessor {
     await workbook.xlsx.writeFile(outputPath);
 
     console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX report saved to ${outputPath}`);
+    return outputFilename;
+  }
+
+  /**
+   * Generate single ship PAX report (individual values, no aggregation)
+   */
+  async generateSingleShipPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
+    console.log(`→ ConsolidatedPaxProcessor: Generating single ship PAX report from ${consolidatedData.contributingShips[0]}`);
+    
+    // Load PAX template
+    const workbook = new ExcelJS.Workbook();
+    
+    // Check if template file exists
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`PAX template not found at: ${templatePath}`);
+    }
+    
+    await workbook.xlsx.readFile(templatePath);
+    const worksheet = workbook.getWorksheet(1);
+
+    if (!worksheet) {
+      throw new Error('Single ship PAX template worksheet not found');
+    }
+
+    // Generate single ship report data (no aggregation)
+    await this.populateSingleShipReport(worksheet, consolidatedData);
+
+    // Save to consolidated directory
+    const outputFilename = `consolidated_pax_${Date.now()}.xlsx`;
+    const consolidatedDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
+    const outputPath = path.join(consolidatedDir, outputFilename);
+    
+    // Ensure consolidated directory exists
+    if (!fs.existsSync(consolidatedDir)) {
+      fs.mkdirSync(consolidatedDir, { recursive: true });
+    }
+    
+    await workbook.xlsx.writeFile(outputPath);
+
+    console.log(`→ ConsolidatedPaxProcessor: Single ship PAX report saved to ${outputPath}`);
     return outputFilename;
   }
 
@@ -377,6 +417,77 @@ export class ConsolidatedPaxProcessor {
 
     console.log(`→ ConsolidatedPaxProcessor: Consolidated totals - Catamaran: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champagne: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Invisible: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}`);
     console.log(`→ ConsolidatedPaxProcessor: Overall totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
+  }
+
+  /**
+   * Populate single ship report with individual values (no aggregation)
+   */
+  private async populateSingleShipReport(worksheet: ExcelJS.Worksheet, consolidatedData: ConsolidatedPaxData): Promise<void> {
+    console.log(`→ ConsolidatedPaxProcessor: Populating single ship report with ${consolidatedData.records.length} individual records`);
+
+    // Use individual values from single ship (no aggregation)
+    const tourTotals = {
+      catamaran: { sold: 0, allotment: 0 },
+      champagne: { sold: 0, allotment: 0 },
+      invisible: { sold: 0, allotment: 0 }
+    };
+
+    let totalPaxOnBoard = 0;
+    let totalPaxOnTour = 0;
+
+    console.log(`→ ConsolidatedPaxProcessor: Using individual values from single ship (no aggregation)`);
+    
+    // Use individual values from each tour type (no += aggregation)
+    for (const record of consolidatedData.records) {
+      console.log(`→ ConsolidatedPaxProcessor: Processing ${record.tourType} - sold: ${record.sold}, allot: ${record.allotment}, onBoard: ${record.paxOnBoard}, onTour: ${record.paxOnTour}`);
+      
+      // Set direct values for each tour type (no aggregation)
+      if (record.tourType === 'catamaran') {
+        tourTotals.catamaran.sold = record.sold;
+        tourTotals.catamaran.allotment = record.allotment;
+      } else if (record.tourType === 'champagne') {
+        tourTotals.champagne.sold = record.sold;
+        tourTotals.champagne.allotment = record.allotment;
+      } else if (record.tourType === 'invisible') {
+        tourTotals.invisible.sold = record.sold;
+        tourTotals.invisible.allotment = record.allotment;
+      }
+
+      // For PAX totals, accumulate within same ship (this is correct)
+      totalPaxOnBoard += record.paxOnBoard;
+      totalPaxOnTour += record.paxOnTour;
+    }
+
+    // Get ship data from the single ship
+    const shipRecord = consolidatedData.records[0];
+    const shipDate = shipRecord?.date || new Date().toLocaleDateString('en-GB');
+    const shipCruiseLine = shipRecord?.cruiseLine || 'Unknown Cruise Line';
+    const shipName = shipRecord?.shipName || 'Unknown Ship';
+
+    console.log(`→ ConsolidatedPaxProcessor: Using single ship data - Date: ${shipDate}, Cruise: ${shipCruiseLine}, Ship: ${shipName}`);
+
+    // Use template row 4 for delimiter replacement
+    const templateRow = 4;
+
+    // Replace delimiters with single ship data
+    this.replaceDelimiter(worksheet, templateRow, 1, '{{date}}', shipDate);
+    this.replaceDelimiter(worksheet, templateRow, 2, '{{cruise_line}}', shipCruiseLine);
+    this.replaceDelimiter(worksheet, templateRow, 3, '{{ship_name}}', shipName);
+
+    // Tour-specific individual data (no aggregation)
+    this.replaceDelimiter(worksheet, templateRow, 4, '{{cat_sold}}', tourTotals.catamaran.sold);
+    this.replaceDelimiter(worksheet, templateRow, 5, '{{cat_allot}}', tourTotals.catamaran.allotment);
+    this.replaceDelimiter(worksheet, templateRow, 6, '{{champ_sold}}', tourTotals.champagne.sold);
+    this.replaceDelimiter(worksheet, templateRow, 7, '{{champ_allot}}', tourTotals.champagne.allotment);
+    this.replaceDelimiter(worksheet, templateRow, 8, '{{inv_sold}}', tourTotals.invisible.sold);
+    this.replaceDelimiter(worksheet, templateRow, 9, '{{inv_allot}}', tourTotals.invisible.allotment);
+
+    // Analysis data (columns BT=72, BU=73)
+    this.replaceDelimiter(worksheet, templateRow, 72, '{{pax_on_board}}', totalPaxOnBoard);
+    this.replaceDelimiter(worksheet, templateRow, 73, '{{pax_on_tour}}', totalPaxOnTour);
+
+    console.log(`→ ConsolidatedPaxProcessor: Individual ship values - Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}`);
+    console.log(`→ ConsolidatedPaxProcessor: Ship totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
   }
 
   /**
