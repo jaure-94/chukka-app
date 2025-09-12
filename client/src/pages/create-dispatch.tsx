@@ -61,6 +61,8 @@ export default function CreateDispatch() {
   const [currentScrollColumn, setCurrentScrollColumn] = useState(0);
   const [showPaxSuccessModal, setShowPaxSuccessModal] = useState(false);
   const [paxFileName, setPaxFileName] = useState<string>('');
+  const [showUpdatePaxSuccessModal, setShowUpdatePaxSuccessModal] = useState(false);
+  const [updatePaxFileName, setUpdatePaxFileName] = useState<string>('');
   const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
   const [eodFileName, setEodFileName] = useState<string>('');
 
@@ -464,8 +466,8 @@ export default function CreateDispatch() {
       return response.json();
     },
     onSuccess: (result) => {
-      setPaxFileName(result.paxFile);
-      setShowPaxSuccessModal(true);
+      setUpdatePaxFileName(result.paxFile);
+      setShowUpdatePaxSuccessModal(true);
       
       // Refresh output files to show the updated PAX report for current ship
       queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
@@ -826,7 +828,7 @@ export default function CreateDispatch() {
                     <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3">
                       <Button 
                         onClick={handleUpdatePax}
-                        disabled={updatePaxMutation.isPending || updateExistingPaxMutation.isPending}
+                        disabled={updatePaxMutation.isPending}
                         className="w-full bg-orange-600 hover:bg-orange-700 font-medium text-sm py-3"
                         size="default"
                       >
@@ -836,7 +838,7 @@ export default function CreateDispatch() {
                       </Button>
                       <Button 
                         onClick={handleUpdateExistingPax}
-                        disabled={updateExistingPaxMutation.isPending || updatePaxMutation.isPending}
+                        disabled={updateExistingPaxMutation.isPending}
                         variant="outline"
                         className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 font-medium text-sm py-3"
                         size="default"
@@ -1103,6 +1105,57 @@ export default function CreateDispatch() {
               </div>
               <Button 
                 onClick={() => setShowPaxSuccessModal(false)}
+                variant="outline"
+                className="w-full"
+              >
+                Continue Here
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+          {/* Update PAX Success Modal */}
+          <Dialog open={showUpdatePaxSuccessModal} onOpenChange={setShowUpdatePaxSuccessModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-green-600">
+              <CheckCircle className="w-6 h-6 mr-2" />
+              PAX Report Updated!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">
+              Your existing PAX report has been successfully updated with new data.
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="text-sm font-medium text-gray-700">Updated File:</p>
+              <p className="text-sm text-gray-600">{updatePaxFileName}</p>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={() => {
+                    setShowUpdatePaxSuccessModal(false);
+                    setLocation("/consolidated-pax-reports");
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  View Consolidated PAX
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowUpdatePaxSuccessModal(false);
+                    setLocation("/reports");
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  View Reports
+                </Button>
+              </div>
+              <Button 
+                onClick={() => setShowUpdatePaxSuccessModal(false)}
                 variant="outline"
                 className="w-full"
               >
