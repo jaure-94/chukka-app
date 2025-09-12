@@ -1140,10 +1140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log(`→ Triggering consolidated PAX generation after EOD completion for ${shipId}`);
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
-        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
-          shipId, // Triggered by EOD processing from specific ship
-          true // Force create new consolidated PAX report (don't update existing)
+          shipId,
+          dispatchFilePath // Use current ship's dispatch file for individual data
         );
         
         console.log(`→ Consolidated PAX generated after EOD: ${consolidatedResult.filename}`);

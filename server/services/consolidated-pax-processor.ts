@@ -222,9 +222,9 @@ export class ConsolidatedPaxProcessor {
     dispatchFilePath: string,
     selectedShipName?: string
   ): Promise<{ filename: string; data: ConsolidatedPaxData }> {
-    console.log(`→ ConsolidatedPaxProcessor: Processing single ship update for ${shipId}`);
+    console.log(`→ ConsolidatedPaxProcessor: Processing INDIVIDUAL ship PAX for ${shipId} ONLY (no cross-ship aggregation)`);
 
-    // Extract data for only this ship
+    // Extract data ONLY from the current ship's dispatch file
     const shipData = await this.extractDispatchDataForShip(dispatchFilePath, shipId);
     
     // Override ship name if provided from dropdown selection
@@ -232,7 +232,9 @@ export class ConsolidatedPaxProcessor {
       shipData.shipName = selectedShipName;
     }
 
-    // Create consolidated data with only this ship
+    console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship data - Ship: ${shipData.shipName}, Date: ${shipData.date}, Records: ${shipData.records.length}`);
+
+    // Create consolidated data with ONLY this ship's current data (no other ships)
     const consolidatedData: ConsolidatedPaxData = {
       contributingShips: [shipId],
       records: [],
@@ -240,11 +242,15 @@ export class ConsolidatedPaxProcessor {
       lastUpdatedByShip: shipId
     };
 
-    // Validate records for this ship only
+    // Validate records for ONLY this ship's current dispatch
     const validatedRecords = this.validateAndMapRecords(shipData.records);
     
-    // Convert to cross-ship records for this ship only
+    console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship validated ${validatedRecords.length} records from ${shipId} dispatch`);
+    
+    // Convert to cross-ship records for ONLY this ship (no aggregation across ships)
     for (const record of validatedRecords) {
+      console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL record - ${record.tourName}: sold=${record.sold}, allot=${record.allotment}, onBoard=${record.paxOnBoard}, onTour=${record.paxOnTour}`);
+      
       consolidatedData.records.push({
         ...record,
         shipId,
@@ -256,9 +262,9 @@ export class ConsolidatedPaxProcessor {
 
     consolidatedData.totalRecordCount = consolidatedData.records.length;
     
-    console.log(`→ ConsolidatedPaxProcessor: Single ship data - ${consolidatedData.records.length} records from ${shipId}`);
+    console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship data final - ${consolidatedData.records.length} records from ${shipId} ONLY (no cross-ship aggregation)`);
 
-    // Process consolidated PAX (create new file for individual ship data)
+    // Process INDIVIDUAL ship PAX (create new file with individual ship values only)
     const outputFilename = await this.generateSingleShipPax(consolidatedData, templatePath);
     
     return {
