@@ -563,10 +563,11 @@ export class ConsolidatedPaxProcessor {
         }
         
         // Check if file is too small (likely contains wrong template data)
-        // Proper consolidated PAX files should be 200KB+, dispatch templates are ~10KB
-        if (fileStats.size < 50000) {
-          console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is too small (${fileStats.size} bytes), likely contains wrong template data. Creating new file.`);
-          // Skip incorrectly templated file and create a new one
+        // Consolidated PAX files are typically 10-30KB, dispatch templates are ~10KB
+        // Only reject files smaller than 5KB as they're likely corrupted
+        if (fileStats.size < 5000) {
+          console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is too small (${fileStats.size} bytes), likely corrupted. Creating new file.`);
+          // Skip corrupted file and create a new one
           return await this.generateSingleShipPax(consolidatedData, templatePath);
         }
         
