@@ -559,7 +559,7 @@ export class ConsolidatedPaxProcessor {
         if (fileStats.size === 0) {
           console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is empty (0 bytes), skipping and creating new file`);
           // Skip empty/corrupted file and create a new one
-          return await this.generateConsolidatedPax(consolidatedData, templatePath);
+          return await this.generateSingleShipPax(consolidatedData, templatePath);
         }
         
         // Check if file is too small (likely contains wrong template data)
@@ -567,7 +567,7 @@ export class ConsolidatedPaxProcessor {
         if (fileStats.size < 50000) {
           console.log(`→ ConsolidatedPaxProcessor: Latest file ${latestFile} is too small (${fileStats.size} bytes), likely contains wrong template data. Creating new file.`);
           // Skip incorrectly templated file and create a new one
-          return await this.generateConsolidatedPax(consolidatedData, templatePath);
+          return await this.generateSingleShipPax(consolidatedData, templatePath);
         }
         
         console.log(`→ ConsolidatedPaxProcessor: Updating existing consolidated PAX: ${latestFile} (${fileStats.size} bytes)`);
@@ -580,7 +580,7 @@ export class ConsolidatedPaxProcessor {
 
     // No existing file found, create new one
     console.log(`→ ConsolidatedPaxProcessor: No existing consolidated PAX found, creating new one`);
-    return await this.generateConsolidatedPax(consolidatedData, templatePath);
+    return await this.generateSingleShipPax(consolidatedData, templatePath);
   }
 
   /**
