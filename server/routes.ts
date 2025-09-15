@@ -1641,6 +1641,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // View consolidated PAX report (for in-browser viewing)
+  app.get("/api/consolidated-pax/view/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
+      const filePath = path.join(consolidatedOutputDir, filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Consolidated PAX file not found" });
+      }
+
+      console.log(`→ Viewing consolidated PAX file: ${filename}`);
+      
+      // Set headers for viewing (no attachment disposition)
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Consolidated PAX view error:", error);
+      res.status(500).json({ message: "Failed to view consolidated PAX file" });
+    }
+  });
+
   app.get("/api/download-report/:reportId/:type", async (req, res) => {
     try {
       const { reportId, type } = req.params;
