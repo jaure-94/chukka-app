@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 
     console.error('Server error:', err);
     res.status(status).json({ message });
-    
+
     // Don't throw the error to prevent app crash
     // Just log it and continue
   });

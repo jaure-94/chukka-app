@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Logout failed');
       }
-      return res;
+      return;
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);

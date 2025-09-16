@@ -50,7 +50,7 @@ export function ShareHistory({ shipId, limit = 20 }: ShareHistoryProps) {
     queryKey: ['/api/sharing/history', { shipId, limit }],
   });
 
-  const activities: SharingActivity[] = data?.history || [];
+  const activities: SharingActivity[] = data || [];
 
   const getStatusIcon = (status?: string) => {
     switch (status) {

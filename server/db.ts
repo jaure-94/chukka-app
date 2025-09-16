@@ -2,18 +2,19 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { config } from "./config";
 
 neonConfig.webSocketConstructor = ws;
 
-if (!process.env.DATABASE_URL) {
+if (!config.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
 // Create pool with better error handling and retry configuration
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+export const pool = new Pool({
+  connectionString: config.DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -42,13 +43,13 @@ export async function withRetry<T>(
   delay: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       // Check if it's a connection error that we should retry
       if (
         error instanceof Error &&
@@ -58,19 +59,19 @@ export async function withRetry<T>(
          error.message.includes('Connection terminated'))
       ) {
         console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}):`, error.message);
-        
+
         if (attempt < maxRetries) {
           // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, delay * attempt));
           continue;
         }
       }
-      
+
       // If it's not a connection error or we've exhausted retries, throw immediately
       throw error;
     }
   }
-  
+
   throw lastError!;
 }
 

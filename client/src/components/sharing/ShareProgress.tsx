@@ -25,7 +25,7 @@ interface ShareProgressProps {
   emailStatus: 'pending' | 'sent' | 'failed';
   dropboxStatus: 'pending' | 'uploaded' | 'failed';
   shareMethod: 'email' | 'dropbox' | 'both';
-  selectedReports: ('eod' | 'dispatch' | 'pax')[];
+  selectedReports: ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[];
   sharingActivityId?: number | null;
 }
 

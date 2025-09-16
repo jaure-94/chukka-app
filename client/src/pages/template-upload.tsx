@@ -1,15 +1,39 @@
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
-import { Crown, Shield, Clipboard, User, Ship, Database, Lock, FileText, BarChart3, Users, ArrowRight } from "lucide-react";
+import { Upload, FileSpreadsheet, Settings, Download, CheckCircle, X } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { ShipSelector } from "@/components/ship-selector";
+import { SingleFileUpload } from "@/components/single-file-upload";
+import { DataPreview } from "@/components/data-preview";
+import { useShip } from "@/hooks/use-ship";
 
-export default function Home() {
+interface UploadResponse {
+  file: {
+    filename: string;
+    originalName: string;
+  };
+  preview: {
+    sheets: any[];
+  };
+}
+
+export default function TemplateUpload() {
   const { isCollapsed } = useSidebar();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { currentShip, getShipDisplayName } = useShip();
+
+  const [dispatchUpload, setDispatchUpload] = useState<UploadResponse | null>(null);
+  const [eodUpload, setEodUpload] = useState<UploadResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
 
   // Auto-hide success notification after 3 seconds
   useEffect(() => {
@@ -39,9 +63,9 @@ export default function Home() {
 
   const handleSubmitTemplates = async () => {
     if (!dispatchUpload || !eodUpload) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Convert uploaded files to template records using the file information
       const dispatchTemplateData = {
@@ -92,7 +116,7 @@ export default function Home() {
         title: "Templates Uploaded Successfully",
         description: "Both dispatch and EOD templates have been stored and are now available across the system.",
       });
-      
+
       // Delay navigation to allow user to see the success notification
       setTimeout(() => {
         setLocation('/create-dispatch');
@@ -189,24 +213,24 @@ export default function Home() {
                 )}
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Upload both your dispatch file and EOD template below. These templates will be stored securely 
+                Upload both your dispatch file and EOD template below. These templates will be stored securely
                 and will automatically populate with data from dispatch records you create.
               </p>
             </div>
 
             {/* Document Upload Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              <SingleFileUpload 
+              <SingleFileUpload
                 title="Upload Dispatch Excel File"
                 fileType="dispatch"
-                onFileUploaded={handleFileUploaded} 
-                onReset={() => handleFileReset('dispatch')} 
+                onFileUploaded={handleFileUploaded}
+                onReset={() => handleFileReset('dispatch')}
               />
-              <SingleFileUpload 
+              <SingleFileUpload
                 title="Upload EOD Report Excel Template File"
                 fileType="eod"
-                onFileUploaded={handleFileUploaded} 
-                onReset={() => handleFileReset('eod')} 
+                onFileUploaded={handleFileUploaded}
+                onReset={() => handleFileReset('eod')}
               />
             </div>
 
@@ -232,7 +256,7 @@ export default function Home() {
                 <p className="text-gray-600 mb-6">
                   Both files have been uploaded successfully. Submit to store your templates and proceed to dispatch creation.
                 </p>
-                <Button 
+                <Button
                   onClick={handleSubmitTemplates}
                   disabled={isSubmitting}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-medium disabled:bg-gray-400"
@@ -270,14 +294,14 @@ export default function Home() {
                       <span className="font-medium text-gray-700">Dispatch File</span>
                     </div>
                     <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                      dispatchUpload 
-                        ? 'bg-green-100 text-green-800' 
+                      dispatchUpload
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-600'
                     }`}>
                       {dispatchUpload ? 'Uploaded' : 'Pending'}
                     </span>
                   </div>
-              
+
               <div className="flex items-center justify-between p-4 rounded-lg border-2 border-dashed border-gray-200">
                 <div className="flex items-center">
                   <div className={`w-4 h-4 rounded-full mr-3 ${
@@ -286,15 +310,15 @@ export default function Home() {
                   <span className="font-medium text-gray-700">EOD Template</span>
                 </div>
                 <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                  eodUpload 
-                    ? 'bg-green-100 text-green-800' 
+                  eodUpload
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-600'
                 }`}>
                   {eodUpload ? 'Uploaded' : 'Pending'}
                 </span>
               </div>
             </div>
-            
+
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
                 Please upload both files to proceed. Once uploaded, your templates will be stored and ready for dynamic dispatch record creation.
@@ -305,8 +329,8 @@ export default function Home() {
 
         {/* Success Notification */}
         <div className={`fixed top-4 right-4 z-50 transform transition-all duration-500 ease-out ${
-          showSuccessNotification 
-            ? 'translate-x-0 opacity-100 scale-100' 
+          showSuccessNotification
+            ? 'translate-x-0 opacity-100 scale-100'
             : 'translate-x-full opacity-0 scale-95'
         }`}>
           {showSuccessNotification && (
