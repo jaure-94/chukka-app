@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/contexts/sidebar-context";
 import { ShipProvider } from "@/contexts/ship-context";
 import { AuthProvider } from "@/hooks/use-auth";
+import { DispatchSessionProvider } from "@/contexts/dispatch-session-context";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { RoleProtectedRoute } from "@/lib/role-protected-route";
 import Home from "@/pages/home";
@@ -47,6 +48,13 @@ function Router() {
             </ProtectedRoute>
           </Route>
           <Route path="/create-dispatch/:ship">
+            <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['superuser', 'admin', 'dispatcher']}>
+                <CreateDispatch />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          </Route>
+          <Route path="/create-dispatch/:ship/:sessionId">
             <ProtectedRoute>
               <RoleProtectedRoute allowedRoles={['superuser', 'admin', 'dispatcher']}>
                 <CreateDispatch />
@@ -171,10 +179,12 @@ function App() {
       <AuthProvider>
         <ShipProvider>
           <SidebarProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
+            <DispatchSessionProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </DispatchSessionProvider>
           </SidebarProvider>
         </ShipProvider>
       </AuthProvider>

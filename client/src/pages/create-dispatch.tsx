@@ -13,6 +13,7 @@ import { ShipSelector } from "@/components/ship-selector";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useShipContext } from "@/contexts/ship-context";
+import { useDispatchSession } from "@/contexts/dispatch-session-context";
 import { HotTable } from "@handsontable/react";
 import type { HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
@@ -37,10 +38,12 @@ export default function CreateDispatch() {
   const queryClient = useQueryClient();
   const { isCollapsed } = useSidebar();
   const { currentShip, setCurrentShip, getShipDisplayName, getSelectedShipName } = useShipContext();
+  const { currentSession, createSession, updateSession, getActiveSession, hasActiveSession } = useDispatchSession();
   const hotTableRef = useRef<HotTableClass>(null);
   
-  // Extract ship from URL params (/create-dispatch/ship-a)
+  // Extract ship and session from URL params (/create-dispatch/ship-a/session-id)
   const shipFromUrl = params.ship as string;
+  const sessionFromUrl = params.sessionId as string;
   const shipToUse = (shipFromUrl || currentShip || 'ship-a') as 'ship-a' | 'ship-b' | 'ship-c';
   
   // Update ship context when URL changes
@@ -65,6 +68,33 @@ export default function CreateDispatch() {
   const [updatePaxFileName, setUpdatePaxFileName] = useState<string>('');
   const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
   const [eodFileName, setEodFileName] = useState<string>('');
+  const [sessionInitialized, setSessionInitialized] = useState(false);
+
+  useEffect(() => {
+    const initializeSession = async () => {
+      if (!shipToUse || sessionInitialized) return;
+
+      try {
+        if (sessionFromUrl) {
+          if (!currentSession || currentSession.id !== sessionFromUrl) {
+            console.log('Session from URL not matching current session');
+          }
+        } else {
+          const activeSession = await getActiveSession(shipToUse);
+          if (activeSession) {
+            setLocation(`/create-dispatch/${shipToUse}/${activeSession.id}`);
+            return;
+          }
+        }
+        setSessionInitialized(true);
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        setSessionInitialized(true);
+      }
+    };
+
+    initializeSession();
+  }, [shipToUse, sessionFromUrl, currentSession, getActiveSession, setLocation, sessionInitialized]);
 
   // Fetch dispatch template for current ship
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -269,6 +299,30 @@ export default function CreateDispatch() {
       setHasUnsavedChanges(false);
       setSavedFileId(result.file.id);
       
+      // Update session with saved dispatch version
+      if (currentSession) {
+        try {
+          await updateSession(currentSession.id, {
+            dispatchVersionId: result.file.id,
+            spreadsheetSnapshot: editedData,
+            status: 'active'
+          });
+        } catch (error) {
+          console.error('Failed to update session:', error);
+        }
+      } else if (sessionInitialized) {
+        // Create new session if none exists
+        try {
+          const newSession = await createSession(shipToUse, {
+            dispatchVersionId: result.file.id,
+            spreadsheetSnapshot: editedData,
+          });
+          setLocation(`/create-dispatch/${shipToUse}/${newSession.id}`);
+        } catch (error) {
+          console.error('Failed to create session:', error);
+        }
+      }
+      
       // Close the editing view and show Update EOD button
       setIsEditing(false);
       setShowUpdateEOD(true);
@@ -315,9 +369,20 @@ export default function CreateDispatch() {
 
       return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       setEodFileName(result.eodFile);
       setShowEodSuccessModal(true);
+      
+      // Update session with EOD filename
+      if (currentSession) {
+        try {
+          await updateSession(currentSession.id, {
+            eodFilename: result.eodFile,
+          });
+        } catch (error) {
+          console.error('Failed to update session with EOD filename:', error);
+        }
+      }
       
       // Invalidate all related caches for current ship
       queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", currentShip] });
@@ -424,9 +489,20 @@ export default function CreateDispatch() {
 
       return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       setPaxFileName(result.paxFile);
       setShowPaxSuccessModal(true);
+      
+      // Update session with PAX filename
+      if (currentSession) {
+        try {
+          await updateSession(currentSession.id, {
+            paxFilename: result.paxFile,
+          });
+        } catch (error) {
+          console.error('Failed to update session with PAX filename:', error);
+        }
+      }
       
       // Refresh output files to show the new PAX report for current ship
       queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
@@ -640,6 +716,23 @@ export default function CreateDispatch() {
           <div className="mb-4 sm:mb-6">
             <ShipSelector showShipNameDropdown={true} />
           </div>
+
+          {/* Session Status Indicator */}
+          {currentSession && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-800">
+                    Active Session: {currentSession.id.slice(0, 8)}...
+                  </span>
+                </div>
+                <span className="text-xs text-green-600">
+                  Last activity: {new Date(currentSession.lastActivity).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
