@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import authRoutes from "./auth/routes";
 import userRoutes from "./auth/userRoutes";
+import dispatchSessionRoutes from "./routes/dispatch-sessions";
 import { authenticateToken } from "./auth/middleware";
 import { 
   requireAuth, 
@@ -88,6 +89,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // User management routes  
   app.use("/api/users", userRoutes);
+
+  // Dispatch session management routes
+  app.use("/api/dispatch-sessions", dispatchSessionRoutes);
 
   // Initialize default superuser if none exists
   const userService = await import("./services/userService");

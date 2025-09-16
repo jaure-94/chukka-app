@@ -147,6 +147,20 @@ export const consolidatedPaxReports = pgTable("consolidated_pax_reports", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const dispatchSessions = pgTable("dispatch_sessions", {
+  id: text("id").primaryKey(), // UUID for session identifier
+  shipId: text("ship_id").notNull(), // ship-a, ship-b, ship-c
+  userId: integer("user_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("active"), // active, paused, completed
+  dispatchVersionId: integer("dispatch_version_id").references(() => dispatchVersions.id),
+  spreadsheetSnapshot: json("spreadsheet_snapshot"), // JSON of current grid state
+  eodFilename: text("eod_filename"), // generated EOD report filename
+  paxFilename: text("pax_filename"), // generated PAX report filename
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // User authentication and authorization tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -220,6 +234,12 @@ export const insertConsolidatedPaxReportSchema = createInsertSchema(consolidated
   updatedAt: true,
 });
 
+export const insertDispatchSessionSchema = createInsertSchema(dispatchSessions).omit({
+  createdAt: true,
+  updatedAt: true,
+  lastActivity: true,
+});
+
 // Sharing Activities Table for Phase 1 Implementation
 export const sharingActivities = pgTable("sharing_activities", {
   id: serial("id").primaryKey(),
@@ -260,6 +280,17 @@ export const shareTemplates = pgTable("share_templates", {
 });
 
 // Relations for sharing tables
+export const dispatchSessionsRelations = relations(dispatchSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [dispatchSessions.userId],
+    references: [users.id],
+  }),
+  dispatchVersion: one(dispatchVersions, {
+    fields: [dispatchSessions.dispatchVersionId],
+    references: [dispatchVersions.id],
+  }),
+}));
+
 export const sharingActivitiesRelations = relations(sharingActivities, ({ one }) => ({
   user: one(users, {
     fields: [sharingActivities.userId],
@@ -322,6 +353,7 @@ export type InsertGeneratedReport = z.infer<typeof insertGeneratedReportSchema>;
 export type InsertDispatchVersion = z.infer<typeof insertDispatchVersionSchema>;
 export type InsertExtractedDispatchData = z.infer<typeof insertExtractedDispatchDataSchema>;
 export type InsertConsolidatedPaxReport = z.infer<typeof insertConsolidatedPaxReportSchema>;
+export type InsertDispatchSession = z.infer<typeof insertDispatchSessionSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
@@ -342,6 +374,7 @@ export type GeneratedReport = typeof generatedReports.$inferSelect;
 export type DispatchVersion = typeof dispatchVersions.$inferSelect;
 export type ExtractedDispatchData = typeof extractedDispatchData.$inferSelect;
 export type ConsolidatedPaxReport = typeof consolidatedPaxReports.$inferSelect;
+export type DispatchSession = typeof dispatchSessions.$inferSelect;
 export type User = typeof users.$inferSelect;
 
 // Role and Permission types

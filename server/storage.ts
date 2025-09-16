@@ -10,6 +10,7 @@ import {
   dispatchVersions,
   extractedDispatchData,
   consolidatedPaxReports,
+  dispatchSessions,
   type UploadedFile, 
   type ExcelData,
   type ProcessingJob,
@@ -21,6 +22,7 @@ import {
   type DispatchVersion,
   type ExtractedDispatchData,
   type ConsolidatedPaxReport,
+  type DispatchSession,
   type InsertUploadedFile, 
   type InsertExcelData,
   type InsertProcessingJob,
@@ -31,7 +33,8 @@ import {
   type InsertGeneratedReport,
   type InsertDispatchVersion,
   type InsertExtractedDispatchData,
-  type InsertConsolidatedPaxReport
+  type InsertConsolidatedPaxReport,
+  type InsertDispatchSession
 } from "@shared/schema";
 import { db, withRetry } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -84,6 +87,14 @@ export interface IStorage {
   getRecentConsolidatedPaxReports(limit?: number): Promise<ConsolidatedPaxReport[]>;
   getConsolidatedPaxReport(id: number): Promise<ConsolidatedPaxReport | undefined>;
   getConsolidatedPaxReportByFilename(filename: string): Promise<ConsolidatedPaxReport | undefined>;
+
+  // Dispatch session operations
+  createDispatchSession(session: InsertDispatchSession): Promise<DispatchSession>;
+  getDispatchSession(id: string): Promise<DispatchSession | undefined>;
+  updateDispatchSession(id: string, updates: Partial<DispatchSession>): Promise<DispatchSession>;
+  getActiveDispatchSession(userId: number, shipId: string): Promise<DispatchSession | undefined>;
+  getUserDispatchSessions(userId: number, limit?: number): Promise<DispatchSession[]>;
+  closeDispatchSession(id: string): Promise<DispatchSession>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -387,6 +398,66 @@ export class DatabaseStorage implements IStorage {
       .from(consolidatedPaxReports)
       .where(eq(consolidatedPaxReports.filename, filename));
     return report || undefined;
+  }
+
+  // Dispatch session operations
+  async createDispatchSession(session: InsertDispatchSession): Promise<DispatchSession> {
+    return withRetry(async () => {
+      const [created] = await db
+        .insert(dispatchSessions)
+        .values(session)
+        .returning();
+      return created;
+    });
+  }
+
+  async getDispatchSession(id: string): Promise<DispatchSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(dispatchSessions)
+      .where(eq(dispatchSessions.id, id));
+    return session || undefined;
+  }
+
+  async updateDispatchSession(id: string, updates: Partial<DispatchSession>): Promise<DispatchSession> {
+    const [updated] = await db
+      .update(dispatchSessions)
+      .set({ ...updates, updatedAt: new Date(), lastActivity: new Date() })
+      .where(eq(dispatchSessions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getActiveDispatchSession(userId: number, shipId: string): Promise<DispatchSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(dispatchSessions)
+      .where(and(
+        eq(dispatchSessions.userId, userId),
+        eq(dispatchSessions.shipId, shipId),
+        eq(dispatchSessions.status, 'active')
+      ))
+      .orderBy(desc(dispatchSessions.lastActivity))
+      .limit(1);
+    return session || undefined;
+  }
+
+  async getUserDispatchSessions(userId: number, limit: number = 10): Promise<DispatchSession[]> {
+    return await db
+      .select()
+      .from(dispatchSessions)
+      .where(eq(dispatchSessions.userId, userId))
+      .orderBy(desc(dispatchSessions.lastActivity))
+      .limit(limit);
+  }
+
+  async closeDispatchSession(id: string): Promise<DispatchSession> {
+    const [updated] = await db
+      .update(dispatchSessions)
+      .set({ status: 'completed', updatedAt: new Date() })
+      .where(eq(dispatchSessions.id, id))
+      .returning();
+    return updated;
   }
 }
 
