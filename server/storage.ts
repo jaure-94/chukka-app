@@ -369,9 +369,13 @@ export class DatabaseStorage implements IStorage {
 
   // Consolidated PAX report operations
   async createConsolidatedPaxReport(report: InsertConsolidatedPaxReport): Promise<ConsolidatedPaxReport> {
+    const reportData = {
+      ...report,
+      contributingShips: Array.isArray(report.contributingShips) ? [...report.contributingShips] : []
+    };
     const [newReport] = await db
       .insert(consolidatedPaxReports)
-      .values(report)
+      .values([reportData as any])
       .returning();
     return newReport;
   }

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
+
+// UI
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight, Users, CheckCircle, Edit, Save, X, AlertTriangle } from "lucide-react";
@@ -8,12 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+
+// Components
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { ShipSelector } from "@/components/ship-selector";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+
+// State / Contexts
 import { useSidebar } from "@/contexts/sidebar-context";
 import { useShipContext } from "@/contexts/ship-context";
 import { useDispatchSession } from "@/contexts/dispatch-session-context";
+
+// Third-party libraries
 import { HotTable } from "@handsontable/react";
 import type { HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
@@ -69,6 +77,8 @@ export default function CreateDispatch() {
   const [showEodSuccessModal, setShowEodSuccessModal] = useState(false);
   const [eodFileName, setEodFileName] = useState<string>('');
   const [sessionInitialized, setSessionInitialized] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Map<string, string>>(new Map());
+  const [showValidationErrorModal, setShowValidationErrorModal] = useState(false);
 
   useEffect(() => {
     const initializeSession = async () => {
@@ -185,15 +195,9 @@ export default function CreateDispatch() {
           for (let c = 0; c < actualColumnCount; c++) {
             let cellValue = row[c] !== undefined ? row[c] : '';
             
-            // Set correct values for B1 and B2 cells
-            if (r === 0 && c === 1) {
-              // B1 should be "CCL" (no dropdown)
-              cellValue = 'CCL';
-            } else if (r === 1 && c === 1) {
-              // B2 should use selected ship name from context
-              cellValue = getSelectedShipName(shipToUse);
-            } else if (c === 1) {
-              // Convert time values in column B for other rows
+            // NEW TEMPLATE STRUCTURE: Load values directly from template WITHOUT override
+            // Only convert time values in column B for data rows (row 10+), not header rows
+            if (c === 1 && r >= 10) {
               cellValue = convertExcelTimeToReadable(cellValue);
             }
             
@@ -258,7 +262,96 @@ export default function CreateDispatch() {
     }
   };
 
+  // Validation functions with specific error messages
+  const numericValidator = (value: any, callback: (valid: boolean) => void) => {
+    const isEmpty = value === null || value === undefined || value === '';
+    if (isEmpty) {
+      callback(true);
+      return;
+    }
+    const isValid = !isNaN(Number(value)) && value.toString().trim() !== '';
+    callback(isValid);
+  };
+
+  const textOnlyValidator = (value: any, callback: (valid: boolean) => void) => {
+    const isEmpty = value === null || value === undefined || value === '';
+    if (isEmpty) {
+      callback(true);
+      return;
+    }
+    const isValid = typeof value === 'string' && !/\d/.test(value);
+    callback(isValid);
+  };
+
+  const dateTimeValidator = (value: any, callback: (valid: boolean) => void) => {
+    const isEmpty = value === null || value === undefined || value === '';
+    if (isEmpty) {
+      callback(true);
+      return;
+    }
+    const datePattern = /^(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}:\d{2}\s*(AM|PM|am|pm)?)$/;
+    const isValid = datePattern.test(String(value).trim());
+    callback(isValid);
+  };
+
+  const strictTourNameValidator = (allowedName: string) => {
+    return (value: any, callback: (valid: boolean) => void) => {
+      const isEmpty = value === null || value === undefined || value === '';
+      if (isEmpty) {
+        callback(true);
+        return;
+      }
+      const isValid = value === allowedName;
+      callback(isValid);
+    };
+  };
+
+  // Get error message for cell type
+  const getErrorMessageForCell = (row: number, col: number): string => {
+    // Numeric cells
+    const numericCells = [
+      {r: 10, c: 7}, {r: 12, c: 7}, {r: 14, c: 7},
+      {r: 10, c: 9}, {r: 12, c: 9}, {r: 14, c: 9},
+      {r: 10, c: 10}, {r: 12, c: 10}, {r: 14, c: 10},
+      {r: 10, c: 11}, {r: 12, c: 11}, {r: 14, c: 11},
+      {r: 10, c: 12}, {r: 12, c: 12}, {r: 14, c: 12},
+      {r: 10, c: 16}, {r: 12, c: 16}, {r: 14, c: 16},
+      {r: 10, c: 17}, {r: 12, c: 17}, {r: 14, c: 17}
+    ];
+    if (numericCells.some(cell => cell.r === row && cell.c === col)) {
+      return 'Invalid input: numbers only';
+    }
+    
+    // Text-only cells
+    if ((row === 10 || row === 12 || row === 14) && col === 13) {
+      return 'Invalid input: text only (no numbers)';
+    }
+    
+    // Date/Time cells
+    if ((row === 4 && col === 1) || ((row === 10 || row === 12 || row === 14) && col === 1)) {
+      return 'Invalid format: use DD/MM/YYYY or HH:MM AM/PM';
+    }
+    
+    // Strict tour name cells
+    if (row === 10 && col === 0) {
+      return 'Must be: "Catamaran Sail & Snorkel"';
+    }
+    if (row === 12 && col === 0) {
+      return 'Must be: "Champagne Adults Only"';
+    }
+    if (row === 14 && col === 0) {
+      return 'Must be: "Invisible Boat Family"';
+    }
+    
+    return 'Invalid value';
+  };
+
   const handleSave = async () => {
+    // Check for validation errors before saving
+    if (validationErrors.size > 0) {
+      setShowValidationErrorModal(true);
+      return;
+    }
     if (!editedData.length) return;
     
     setIsLoading(true);
@@ -353,6 +446,7 @@ export default function CreateDispatch() {
     setIsEditing(false);
     setEditedData([]);
     setHasUnsavedChanges(false);
+    setValidationErrors(new Map());
   };
 
   // Update EOD Report mutation
@@ -980,6 +1074,23 @@ export default function CreateDispatch() {
                       </div>
                     </div>
                     
+                    {/* Validation Error Counter */}
+                    {validationErrors.size > 0 && (
+                      <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-red-800">
+                              {validationErrors.size} validation error{validationErrors.size !== 1 ? 's' : ''} found
+                            </p>
+                            <p className="text-xs text-red-600 mt-0.5">
+                              Hover over cells with red borders to see specific error messages
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="border rounded-lg overflow-auto w-full max-w-full">
                       <div className="min-w-full">
                         <HotTable
@@ -1036,14 +1147,23 @@ export default function CreateDispatch() {
                               classNames.push('ship-info-cell');
                             }
                             
-                            // No dropdown for B1 (row 0, col 1) - just text "CCL"
+                            // NEW TEMPLATE STRUCTURE (Bahamas/Dominican Republic)
+                            
+                            // B1 (row 0, col 1): Country - dropdown
                             if (row === 0 && col === 1) {
-                              // B1 should just contain "CCL" with no dropdown
-                              cellProperties.readOnly = false; // Allow editing but no dropdown
+                              cellProperties.type = 'dropdown';
+                              cellProperties.source = ['Bahamas', 'Dominican Republic', 'Jamaica', 'Mexico', 'Cayman Islands'];
+                              cellProperties.strict = false;
+                              cellProperties.allowInvalid = true;
                             }
                             
-                            // Add dropdown for Ship Name cell (B2 = row 1, col 1)
+                            // B2 (row 1, col 1): Cruise Line - plain text
                             if (row === 1 && col === 1) {
+                              cellProperties.readOnly = false; // Allow editing
+                            }
+                            
+                            // B3 (row 2, col 1): Ship Name - dropdown (MOVED FROM B2)
+                            if (row === 2 && col === 1) {
                               cellProperties.type = 'dropdown';
                               cellProperties.source = [
                                 'LIBERTY', 'VISTA', 'FREEDOM', 'CONQUEST', 'GLORY', 'ELATION', 'PRIDE', 
@@ -1055,8 +1175,96 @@ export default function CreateDispatch() {
                               cellProperties.allowInvalid = true; // Allow typing custom values
                             }
                             
+                            // E3 (row 2, col 4): Port - dropdown
+                            if (row === 2 && col === 4) {
+                              cellProperties.type = 'dropdown';
+                              cellProperties.source = ['Taino Bay', 'Amber Cove'];
+                              cellProperties.strict = true;
+                              cellProperties.allowInvalid = false;
+                            }
+                            
+                            // VALIDATION RULES
+                            // Numeric cells: H11, H13, H15, J11, J13, J15, K11, K13, K15, L11, L13, L15, M11, M13, M15, Q11, Q13, Q15, R11, R13, R15
+                            const numericCells = [
+                              {r: 10, c: 7}, {r: 12, c: 7}, {r: 14, c: 7},  // H11, H13, H15
+                              {r: 10, c: 9}, {r: 12, c: 9}, {r: 14, c: 9},  // J11, J13, J15
+                              {r: 10, c: 10}, {r: 12, c: 10}, {r: 14, c: 10}, // K11, K13, K15
+                              {r: 10, c: 11}, {r: 12, c: 11}, {r: 14, c: 11}, // L11, L13, L15
+                              {r: 10, c: 12}, {r: 12, c: 12}, {r: 14, c: 12}, // M11, M13, M15
+                              {r: 10, c: 16}, {r: 12, c: 16}, {r: 14, c: 16}, // Q11, Q13, Q15
+                              {r: 10, c: 17}, {r: 12, c: 17}, {r: 14, c: 17}  // R11, R13, R15
+                            ];
+                            
+                            if (numericCells.some(cell => cell.r === row && cell.c === col)) {
+                              cellProperties.validator = numericValidator;
+                              cellProperties.allowInvalid = true;
+                            }
+                            
+                            // Text-only cells: N11, N13, N15
+                            if ((row === 10 || row === 12 || row === 14) && col === 13) {
+                              cellProperties.validator = textOnlyValidator;
+                              cellProperties.allowInvalid = true;
+                            }
+                            
+                            // Date/Time cells: B5, B11, B13, B15
+                            if ((row === 4 && col === 1) || ((row === 10 || row === 12 || row === 14) && col === 1)) {
+                              cellProperties.validator = dateTimeValidator;
+                              cellProperties.allowInvalid = true;
+                            }
+                            
+                            // Strict tour name cells
+                            if (row === 10 && col === 0) { // A11
+                              cellProperties.validator = strictTourNameValidator('Catamaran Sail & Snorkel');
+                              cellProperties.allowInvalid = true;
+                            }
+                            if (row === 12 && col === 0) { // A13
+                              cellProperties.validator = strictTourNameValidator('Champagne Adults Only');
+                              cellProperties.allowInvalid = true;
+                            }
+                            if (row === 14 && col === 0) { // A15
+                              cellProperties.validator = strictTourNameValidator('Invisible Boat Family');
+                              cellProperties.allowInvalid = true;
+                            }
+                            
                             cellProperties.className = classNames.join(' ');
                             return cellProperties;
+                          }}
+                          afterValidate={(isValid, value, row, prop) => {
+                            const col = typeof prop === 'number' ? prop : 0;
+                            const cellKey = `${row},${col}`;
+                            const hotInstance = hotTableRef.current?.hotInstance;
+                            
+                            if (hotInstance) {
+                              const td = hotInstance.getCell(row, col);
+                              if (td) {
+                                if (!isValid) {
+                                  const errorMessage = getErrorMessageForCell(row, col);
+                                  td.classList.add('htInvalid');
+                                  td.setAttribute('data-validation-type', 'error');
+                                  td.setAttribute('title', errorMessage);
+                                  const newErrors = new Map(validationErrors);
+                                  newErrors.set(cellKey, errorMessage);
+                                  setValidationErrors(newErrors);
+                                } else {
+                                  td.classList.remove('htInvalid');
+                                  td.removeAttribute('data-validation-type');
+                                  td.removeAttribute('title');
+                                  const newErrors = new Map(validationErrors);
+                                  newErrors.delete(cellKey);
+                                  setValidationErrors(newErrors);
+                                }
+                              }
+                            }
+                            return isValid;
+                          }}
+                          afterRenderer={(TD, row, col, prop, value, cellProperties) => {
+                            const cellKey = `${row},${col}`;
+                            if (validationErrors.has(cellKey)) {
+                              const errorMessage = validationErrors.get(cellKey) || 'Invalid value';
+                              TD.classList.add('htInvalid');
+                              TD.setAttribute('data-validation-type', 'error');
+                              TD.setAttribute('title', errorMessage);
+                            }
                           }}
                         />
                       </div>
@@ -1297,6 +1505,107 @@ export default function CreateDispatch() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Validation Error Modal */}
+      <Dialog open={showValidationErrorModal} onOpenChange={setShowValidationErrorModal}>
+        <DialogContent className="max-w-md z-[9999]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-red-600">
+              <AlertTriangle className="w-6 h-6 mr-2" />
+              Validation Errors
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">
+              Please fix the following validation errors before saving:
+            </p>
+            <div className="bg-red-50 rounded-lg p-3 mb-4 max-h-60 overflow-y-auto">
+              <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+                {Array.from(validationErrors.entries()).map(([cellKey, error]) => (
+                  <li key={cellKey}>Cell {cellKey}: {error}</li>
+                ))}
+              </ul>
+            </div>
+            <Button 
+              onClick={() => setShowValidationErrorModal(false)}
+              className="w-full"
+            >
+              Fix Errors
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <style>{`
+        /* Validation styling - Excel-themed with thin red border */
+        .htInvalid {
+          border: 1px solid #dc2626 !important;
+          background-color: transparent !important;
+          background: transparent !important;
+          background-image: none !important;
+          position: relative;
+        }
+        
+        /* Override Handsontable's default invalid cell background */
+        td.htInvalid {
+          background-color: transparent !important;
+          background: transparent !important;
+          background-image: none !important;
+        }
+        
+        /* More specific override for area cells */
+        .handsontable td.htInvalid,
+        .handsontable tbody td.htInvalid {
+          background-color: transparent !important;
+          background: transparent !important;
+          background-image: none !important;
+        }
+        
+        .htInvalid::after {
+          content: "✕";
+          position: absolute;
+          top: 2px;
+          right: 4px;
+          color: #dc2626;
+          font-size: 10px;
+          font-weight: bold;
+          pointer-events: none;
+        }
+        
+        /* Ensure hover shows pointer cursor for cells with validation errors */
+        .htInvalid:hover {
+          cursor: help;
+          background-color: transparent !important;
+          background: transparent !important;
+          background-image: none !important;
+        }
+        
+        /* Override on focus/active states */
+        .htInvalid.area,
+        .htInvalid:focus,
+        .htInvalid.current {
+          background-color: transparent !important;
+          background: transparent !important;
+          background-image: none !important;
+        }
+        
+        /* Z-index fixes for validation modal */
+        .ht_clone_top,
+        .ht_clone_left,
+        .ht_clone_bottom,
+        .ht_clone_top_left_corner,
+        .ht_clone_bottom_left_corner {
+          z-index: 100 !important;
+        }
+        
+        [data-radix-dialog-overlay] {
+          z-index: 9998 !important;
+        }
+        
+        [data-radix-dialog-content] {
+          z-index: 9999 !important;
+        }
+      `}</style>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import path from "path";
 import type { ExcelData } from "@shared/schema";
+import { storage } from "../storage";
 
 export class TemplateProcessor {
   private templatesDir = path.join(process.cwd(), "server", "templates");

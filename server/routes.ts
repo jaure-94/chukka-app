@@ -768,22 +768,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Preserving formatting from template and copying edited data");
       
-      // First, copy header data from rows 1-7 (including B1, B2, B4)
-      for (let headerRow = 1; headerRow <= 7; headerRow++) {
+      // First, copy header data from rows 1-8 (NEW TEMPLATE: B1=Country, B2=Cruise, B3=Ship, B5=Date)
+      for (let headerRow = 1; headerRow <= 8; headerRow++) {
         const editedHeaderRow = editedWorksheet.getRow(headerRow);
         const templateHeaderRow = templateWorksheet.getRow(headerRow);
         
         editedHeaderRow.eachCell((cell, colNumber) => {
           const targetCell = templateHeaderRow.getCell(colNumber);
           
-          // Special handling for B2 (Ship Name) - use selected ship name instead
-          if (headerRow === 2 && colNumber === 2 && selectedShipName) {
-            console.log(`→ Updating header cell B2 with selected ship name: "${selectedShipName}"`);
+          // NEW TEMPLATE STRUCTURE:
+          // B1 = Country, B2 = Cruise Line, B3 = Ship Name, E3 = Port, B4 = Tour Operator, B5 = Date
+          
+          // Special handling for B3 (Ship Name) - use selected ship name if provided
+          if (headerRow === 3 && colNumber === 2 && selectedShipName) {
+            console.log(`→ Updating header cell B3 with selected ship name: "${selectedShipName}"`);
             targetCell.value = selectedShipName;
           } else {
-            // Special attention to other header cells B1, B4
-            if ((headerRow === 1 && colNumber === 2) || // B1 - Cruise Line
-                (headerRow === 4 && colNumber === 2)) { // B4 - Date
+            // Log important header cells for debugging
+            if ((headerRow === 1 && colNumber === 2) || // B1 - Country
+                (headerRow === 2 && colNumber === 2) || // B2 - Cruise Line
+                (headerRow === 3 && colNumber === 2) || // B3 - Ship Name
+                (headerRow === 5 && colNumber === 2)) { // B5 - Date
               console.log(`→ Updating header cell ${String.fromCharCode(64 + colNumber)}${headerRow} with: "${cell.value}"`);
             }
             
@@ -795,10 +800,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Then copy all data from edited sheet while preserving template formatting
       editedWorksheet.eachRow((row, rowNumber) => {
-        if (rowNumber >= 8) { // Data rows start from row 8 (where tour data begins)
+        if (rowNumber >= 9) { // Data rows start from row 9 (NEW TEMPLATE: row 9 is headers, row 10+ is data)
           row.eachCell((cell, colNumber) => {
             if (colNumber <= 18) { // Process columns A-R (1-18) to include PAX columns
-              const templateCell = templateWorksheet.getCell(9, colNumber); // Use row 9 as formatting template
+              const templateCell = templateWorksheet.getCell(10, colNumber); // Use row 10 as formatting template (NEW TEMPLATE: first data row)
               const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
               
               // FIXED: Preserve user input for PAX ON TOUR column (Column R = 18)
@@ -1480,13 +1485,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId, selectedShipName);
       
       // Auto-generate consolidated PAX report after updating individual ship report
-      console.log(`→ Auto-generating consolidated PAX after ${shipId} update`);
+      console.log(`→ Auto-generating consolidated PAX after ${shipId} update (SINGLE SHIP ONLY)`);
       try {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
-        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPax(
+        const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
           shipId,
-          false // DON'T force create new - UPDATE existing consolidated PAX file
+          dispatchFilePath,
+          selectedShipName
         );
         
         console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);

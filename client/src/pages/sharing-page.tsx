@@ -447,7 +447,7 @@ export default function SharingPage() {
                             <div className="flex flex-wrap gap-1 mt-1">
                               {selectedConsolidatedReports.map(type => (
                                 <Badge key={type} variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  {type === 'consolidated-pax' ? 'Consolidated PAX' : type.toUpperCase()}
+                                  {type === 'consolidated-pax' ? 'Consolidated PAX' : String(type).toUpperCase()}
                                 </Badge>
                               ))}
                             </div>

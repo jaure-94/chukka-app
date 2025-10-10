@@ -30,7 +30,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     const validatedData = createSessionSchema.parse(req.body);
     
-    const existingSession = await storage.getActiveDispatchSession(user.id, validatedData.shipId);
+    const existingSession = await storage.getActiveDispatchSession(user.userId, validatedData.shipId);
     if (existingSession) {
       return res.status(409).json({ 
         message: "Active session already exists for this ship",
@@ -40,7 +40,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     const sessionData = insertDispatchSessionSchema.parse({
       id: randomUUID(),
-      userId: user.id,
+      userId: user.userId,
       shipId: validatedData.shipId,
       status: 'active',
       dispatchVersionId: validatedData.dispatchVersionId,
@@ -70,7 +70,7 @@ router.get("/:sessionId", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    if (session.userId !== user.id) {
+    if (session.userId !== user.userId) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -96,7 +96,7 @@ router.patch("/:sessionId", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
     
-    if (existingSession.userId !== user.id) {
+    if (existingSession.userId !== user.userId) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -122,7 +122,7 @@ router.get("/active/:shipId", authenticateToken, async (req, res) => {
       return res.status(400).json({ message: "Invalid ship ID" });
     }
 
-    const session = await storage.getActiveDispatchSession(user.id, shipId);
+    const session = await storage.getActiveDispatchSession(user.userId, shipId);
     
     res.json({ session: session || null });
   } catch (error) {
@@ -139,7 +139,7 @@ router.get("/", authenticateToken, async (req, res) => {
     }
 
     const limit = parseInt(req.query.limit as string) || 10;
-    const sessions = await storage.getUserDispatchSessions(user.id, limit);
+    const sessions = await storage.getUserDispatchSessions(user.userId, limit);
     
     res.json({ sessions });
   } catch (error) {
@@ -162,7 +162,7 @@ router.post("/:sessionId/close", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
     
-    if (existingSession.userId !== user.id) {
+    if (existingSession.userId !== user.userId) {
       return res.status(403).json({ message: "Access denied" });
     }
 

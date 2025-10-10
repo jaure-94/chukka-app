@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 
 // Load environment variables first
-dotenv.config();
+dotenv.config({ path: '.env.local' });
 
 export const config = {
   DATABASE_URL: process.env.DATABASE_URL,

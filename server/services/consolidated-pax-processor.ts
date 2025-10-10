@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { nanoid } from 'nanoid';
 import { PaxProcessor, type PaxReportData, type ValidatedPaxRecord } from './pax-processor';
+import { paxTabRouter } from './pax-tab-router';
 
 export interface ConsolidatedPaxData {
   contributingShips: string[];
@@ -16,6 +17,8 @@ export interface CrossShipPaxRecord extends ValidatedPaxRecord {
   shipName: string;
   date: string;
   cruiseLine: string;
+  country: string;
+  port: string;
 }
 
 export class ConsolidatedPaxProcessor {
@@ -100,12 +103,14 @@ export class ConsolidatedPaxProcessor {
       throw new Error(`Dispatch worksheet not found in ${filePath}`);
     }
 
-    // Extract header data
-    const date = this.getCellValue(worksheet, 'B4') || '';
-    const cruiseLine = this.getCellValue(worksheet, 'B1') || '';
-    const shipName = this.getCellValue(worksheet, 'B2') || shipId.toUpperCase();
+    // Extract header data (NEW TEMPLATE STRUCTURE)
+    const country = this.getCellValue(worksheet, 'B1') || '';      // B1: Country
+    const cruiseLine = this.getCellValue(worksheet, 'B2') || '';   // B2: Cruise Line
+    const shipName = this.getCellValue(worksheet, 'B3') || shipId.toUpperCase(); // B3: Ship Name
+    const port = this.getCellValue(worksheet, 'E3') || '';         // E3: Port
+    const date = this.getCellValue(worksheet, 'B5') || '';         // B5: Date
 
-    console.log(`→ ConsolidatedPaxProcessor: ${shipId} header - Date: ${date}, Cruise: ${cruiseLine}, Ship: ${shipName}`);
+    console.log(`→ ConsolidatedPaxProcessor: ${shipId} header - Country: ${country}, Cruise: ${cruiseLine}, Ship: ${shipName}, Port: ${port}, Date: ${date}`);
 
     // Extract tour records
     const records: any[] = [];
@@ -143,6 +148,8 @@ export class ConsolidatedPaxProcessor {
       date,
       cruiseLine,
       shipName,
+      country,
+      port,
       records
     };
   }
@@ -256,7 +263,9 @@ export class ConsolidatedPaxProcessor {
         shipId,
         shipName: shipData.shipName,
         date: shipData.date,
-        cruiseLine: shipData.cruiseLine
+        cruiseLine: shipData.cruiseLine,
+        country: shipData.country,      // NEW
+        port: shipData.port             // NEW
       });
     }
 
@@ -264,8 +273,8 @@ export class ConsolidatedPaxProcessor {
     
     console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship data final - ${consolidatedData.records.length} records from ${shipId} ONLY (no cross-ship aggregation)`);
 
-    // Process INDIVIDUAL ship PAX (create new file with individual ship values only)
-    const outputFilename = await this.generateSingleShipPax(consolidatedData, templatePath);
+    // Process INDIVIDUAL ship PAX - UPDATE EXISTING or CREATE NEW (with multi-tab support)
+    const outputFilename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath, false);
     
     return {
       filename: outputFilename,
@@ -314,10 +323,10 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Generate single ship PAX report (individual values, no aggregation)
+   * Generate single ship PAX report (individual values, no aggregation with MULTI-TAB SUPPORT)
    */
   async generateSingleShipPax(consolidatedData: ConsolidatedPaxData, templatePath: string): Promise<string> {
-    console.log(`→ ConsolidatedPaxProcessor: Generating single ship PAX report from ${consolidatedData.contributingShips[0]}`);
+    console.log(`→ ConsolidatedPaxProcessor: Generating single ship PAX report from ${consolidatedData.contributingShips[0]} (MULTI-TAB)`);
     
     // Load PAX template
     const workbook = new ExcelJS.Workbook();
@@ -328,14 +337,42 @@ export class ConsolidatedPaxProcessor {
     }
     
     await workbook.xlsx.readFile(templatePath);
-    const worksheet = workbook.getWorksheet(1);
-
-    if (!worksheet) {
-      throw new Error('Single ship PAX template worksheet not found');
+    
+    // Validate PAX template has all required tabs
+    const validation = paxTabRouter.validatePaxTemplate(workbook);
+    if (!validation.isValid) {
+      console.warn(`→ ConsolidatedPaxProcessor: PAX template missing ${validation.missingTabs.length} tabs: ${validation.missingTabs.join(', ')}`);
     }
-
-    // Generate single ship report data (no aggregation)
-    await this.populateSingleShipReport(worksheet, consolidatedData);
+    
+    // Group records by target tab based on date
+    const recordsByTab = this.groupRecordsByTab(consolidatedData.records);
+    
+    console.log(`→ ConsolidatedPaxProcessor: Single ship records distributed across ${Object.keys(recordsByTab).length} tab(s)`);
+    
+    // Process each tab separately with its records
+    for (const [tabName, tabRecords] of Object.entries(recordsByTab)) {
+      console.log(`→ ConsolidatedPaxProcessor: Processing tab "${tabName}" with ${tabRecords.length} record(s)`);
+      
+      const worksheet = workbook.getWorksheet(tabName);
+      
+      if (!worksheet) {
+        console.error(`→ ConsolidatedPaxProcessor: Tab "${tabName}" not found in workbook, skipping ${tabRecords.length} records`);
+        continue;
+      }
+      
+      // Create tab-specific data for single ship
+      const tabConsolidatedData: ConsolidatedPaxData = {
+        contributingShips: consolidatedData.contributingShips,
+        records: tabRecords,
+        totalRecordCount: tabRecords.length,
+        lastUpdatedByShip: consolidatedData.lastUpdatedByShip
+      };
+      
+      // Generate single ship report data for this tab (no aggregation, SAME DELIMITER LOGIC)
+      await this.populateSingleShipReport(worksheet, tabConsolidatedData);
+      
+      console.log(`→ ConsolidatedPaxProcessor: ✓ Tab "${tabName}" populated successfully (single ship)`);
+    }
 
     // Save to consolidated directory
     const outputFilename = `consolidated_pax_${Date.now()}.xlsx`;
@@ -591,30 +628,110 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Update existing consolidated PAX file
+   * Group records by target tab based on date
    */
-  private async updateExistingConsolidatedPax(existingFilePath: string, consolidatedData: ConsolidatedPaxData): Promise<void> {
-    console.log(`→ ConsolidatedPaxProcessor: Loading existing consolidated PAX for update`);
+  private groupRecordsByTab(records: CrossShipPaxRecord[]): { [tabName: string]: CrossShipPaxRecord[] } {
+    console.log('→ ConsolidatedPaxProcessor: ═══════════════════════════════════════');
+    console.log('→ ConsolidatedPaxProcessor: GROUPING RECORDS BY TAB (MULTI-TAB LOGIC)');
+    console.log(`→ ConsolidatedPaxProcessor: Total records to group: ${records.length}`);
+    console.log('→ ConsolidatedPaxProcessor: ═══════════════════════════════════════');
+    
+    const recordsByTab: { [tabName: string]: CrossShipPaxRecord[] } = {};
+    
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      
+      console.log(`→ ConsolidatedPaxProcessor: [Record ${i+1}/${records.length}]`);
+      console.log(`  Ship: ${record.shipId}`);
+      console.log(`  Tour: ${record.tourName}`);
+      console.log(`  Date field value: "${record.date}"`);
+      
+      // Get the tab name from the date (doesn't need workbook)
+      const { tabName, parsedDate } = paxTabRouter.getTabNameFromDate(record.date);
+      
+      console.log(`  → ✓ Parsed date successfully: ${parsedDate ? parsedDate.toLocaleDateString('en-US') : 'N/A'}`);
+      console.log(`  → ✓ Routed to tab: "${tabName}"`);
+      
+      if (!recordsByTab[tabName]) {
+        recordsByTab[tabName] = [];
+      }
+      recordsByTab[tabName].push(record);
+    }
+    
+    console.log('→ ConsolidatedPaxProcessor: ═══ GROUPING SUMMARY ═══');
+    for (const [tabName, tabRecords] of Object.entries(recordsByTab)) {
+      const ships = [...new Set(tabRecords.map(r => r.shipId))].join(', ');
+      console.log(`→ ConsolidatedPaxProcessor: Tab "${tabName}" has ${tabRecords.length} record(s) from ships: ${ships}`);
+    }
+    console.log('→ ConsolidatedPaxProcessor: ═══════════════════════════════════════');
+    
+    return recordsByTab;
+  }
 
-    // Load existing consolidated PAX file
+  /**
+   * Update existing consolidated PAX file with new records (MULTI-TAB SUPPORT)
+   */
+  private async updateExistingConsolidatedPax(
+    existingFilePath: string,
+    consolidatedData: ConsolidatedPaxData
+  ): Promise<void> {
+    console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);
+    console.log(`→ ConsolidatedPaxProcessor: UPDATING EXISTING CONSOLIDATED PAX FILE`);
+    console.log(`→ ConsolidatedPaxProcessor: File: ${path.basename(existingFilePath)}`);
+    console.log(`→ ConsolidatedPaxProcessor: Ship: ${consolidatedData.lastUpdatedByShip}`);
+    console.log(`→ ConsolidatedPaxProcessor: Records: ${consolidatedData.records.length}`);
+    console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);
+    
+    // Load existing PAX file
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(existingFilePath);
-    const worksheet = workbook.getWorksheet(1);
-
-    if (!worksheet) {
-      throw new Error('Existing consolidated PAX worksheet not found');
+    
+    // Validate template has all required tabs
+    const validation = paxTabRouter.validatePaxTemplate(workbook);
+    if (!validation.isValid) {
+      console.warn(`→ ConsolidatedPaxProcessor: PAX template missing ${validation.missingTabs.length} tabs: ${validation.missingTabs.join(', ')}`);
     }
-
-    // Find the next available row after existing data (same logic as individual PAX)
-    const nextRow = this.findNextAvailableRow(worksheet);
-    console.log(`→ ConsolidatedPaxProcessor: Adding new consolidated record at row ${nextRow}`);
-
-    // Add new consolidated record to existing file (instead of overwriting)
-    await this.addConsolidatedRecordToExistingFile(worksheet, consolidatedData, nextRow);
-
-    // Save back to the same file (overwrite)
+    
+    // Group records by tab
+    const recordsByTab = this.groupRecordsByTab(consolidatedData.records);
+    
+    console.log(`→ ConsolidatedPaxProcessor: Updating ${Object.keys(recordsByTab).length} tab(s) in EXISTING file (not creating new)`);
+    
+    // Process each tab that has new records
+    for (const [tabName, tabRecords] of Object.entries(recordsByTab)) {
+      console.log(`→ ConsolidatedPaxProcessor: Updating tab "${tabName}" with ${tabRecords.length} new record(s)`);
+      
+      const worksheet = workbook.getWorksheet(tabName);
+      
+      if (!worksheet) {
+        console.error(`→ ConsolidatedPaxProcessor: Tab "${tabName}" not found in workbook, skipping ${tabRecords.length} records`);
+        continue;
+      }
+      
+      // Find the next available row in this tab
+      const nextRow = this.findNextAvailableRow(worksheet);
+      console.log(`→ ConsolidatedPaxProcessor: Tab "${tabName}" - next available row: ${nextRow}`);
+      
+      // Create tab-specific data
+      const tabConsolidatedData: ConsolidatedPaxData = {
+        contributingShips: consolidatedData.contributingShips,
+        records: tabRecords,
+        totalRecordCount: tabRecords.length,
+        lastUpdatedByShip: consolidatedData.lastUpdatedByShip
+      };
+      
+      // Add the consolidated record for this tab
+      await this.addConsolidatedRecordToExistingFile(worksheet, tabConsolidatedData, nextRow);
+      
+      console.log(`→ ConsolidatedPaxProcessor: ✓ Tab "${tabName}" updated successfully at row ${nextRow}`);
+    }
+    
+    // Save the updated workbook back to the same file (OVERWRITE existing)
+    console.log(`→ ConsolidatedPaxProcessor: Saving changes to EXISTING file: ${path.basename(existingFilePath)}`);
     await workbook.xlsx.writeFile(existingFilePath);
-    console.log(`→ ConsolidatedPaxProcessor: Updated existing consolidated PAX file`);
+    
+    console.log('→ ConsolidatedPaxProcessor: ✓ Successfully updated existing consolidated PAX file with multi-tab support');
+    console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);
   }
 
   /**

@@ -1,4 +1,5 @@
 import XlsxPopulate from "xlsx-populate";
+import * as XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
 import type { ParsedExcelData } from "./excel-parser";

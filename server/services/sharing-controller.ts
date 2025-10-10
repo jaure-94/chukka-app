@@ -44,9 +44,9 @@ export class SharingController {
     const sharingActivity: InsertSharingActivity = {
       userId: params.userId,
       shipId: params.shipId,
-      reportTypes: params.reportTypes as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[],
+      reportTypes: Array.isArray(params.reportTypes) ? [...params.reportTypes] as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[] : [],
       shareMethod: params.shareMethod,
-      recipients: params.recipients || [],
+      recipients: Array.isArray(params.recipients) ? [...params.recipients] : [],
       dropboxLinks: [],
       emailStatus: params.shareMethod === 'dropbox' ? undefined : 'pending',
       dropboxStatus: params.shareMethod === 'email' ? undefined : 'pending',
@@ -57,7 +57,7 @@ export class SharingController {
       },
     };
 
-    const [activity] = await db.insert(sharingActivities).values([sharingActivity]).returning();
+    const [activity] = await db.insert(sharingActivities).values(sharingActivity as any).returning();
     console.log(`Created sharing activity ${activity.id} for user ${params.userId}`);
 
     let emailResult: any = null;
@@ -253,9 +253,10 @@ export class SharingController {
   async createShareTemplate(template: InsertShareTemplate): Promise<ShareTemplate> {
     const templateData = {
       ...template,
-      reportTypes: template.reportTypes as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[]
+      reportTypes: Array.isArray(template.reportTypes) ? [...template.reportTypes] as ('eod' | 'dispatch' | 'pax' | 'consolidated-pax')[] : [],
+      recipients: Array.isArray(template.recipients) ? [...template.recipients] : []
     };
-    const [newTemplate] = await db.insert(shareTemplates).values([templateData]).returning();
+    const [newTemplate] = await db.insert(shareTemplates).values(templateData as any).returning();
     return newTemplate;
   }
 

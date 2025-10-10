@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users, type User, type InsertUser } from "@shared/schema";
+import { type UserRole } from "../auth/config";
 import bcrypt from "bcryptjs";
 
 export interface UserServiceResult<T = any> {
@@ -176,9 +177,75 @@ export class UserService {
   }
 
   /**
+   * Generate JWT token for user
+   */
+  public async generateTokenForUser(user: User): Promise<string> {
+    const jwt = await import("jsonwebtoken");
+    const { jwtConfig } = await import("../auth/config");
+    
+    const payload = {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    };
+    
+    return jwt.default.sign(payload, jwtConfig.secret, {
+      expiresIn: jwtConfig.expiresIn,
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
+    } as any);
+  }
+
+  /**
+   * Change user password
+   */
+  public async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<UserServiceResult> {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) {
+        return {
+          success: false,
+          message: "User not found",
+        };
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isCurrentPasswordValid) {
+        return {
+          success: false,
+          message: "Current password is incorrect",
+        };
+      }
+
+      // Hash new password
+      const hashedNewPassword = await this.hashPassword(newPassword);
+
+      // Update password
+      await db.update(users)
+        .set({ 
+          passwordHash: hashedNewPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+
+      return {
+        success: true,
+        message: "Password changed successfully",
+      };
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return {
+        success: false,
+        message: "Failed to change password",
+      };
+    }
+  }
+
+  /**
    * Update user information
    */
-  public async updateUser(id: number, updateData: Partial<User>): Promise<UserServiceResult<User>> {
+  public async updateUser(id: number, updateData: Partial<InsertUser>): Promise<UserServiceResult<User>> {
     try {
       // Check if user exists
       const existingUser = await this.getUserById(id);

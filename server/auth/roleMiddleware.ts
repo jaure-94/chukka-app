@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { USER_ROLES, ROLE_PERMISSIONS, PERMISSIONS } from "./config";
-import type { UserRole } from "@shared/schema";
+import { USER_ROLES, ROLE_PERMISSIONS, PERMISSIONS, type UserRole } from "./config";
 import type { Permission } from "./config";
 
 export interface AuthenticatedRequest extends Request {
@@ -100,20 +99,20 @@ export function requirePermissions(...requiredPermissions: Permission[]) {
 export const requireAdmin = requireRole(USER_ROLES.SUPERUSER, USER_ROLES.ADMIN);
 
 /**
- * Middleware for manager-level routes
- * Allows superuser, admin, and manager roles
+ * Middleware for dispatcher-level routes
+ * Allows superuser, admin, and dispatcher roles
  */
-export const requireManager = requireRole(USER_ROLES.SUPERUSER, USER_ROLES.ADMIN, USER_ROLES.MANAGER);
+export const requireDispatcher = requireRole(USER_ROLES.SUPERUSER, USER_ROLES.ADMIN, USER_ROLES.DISPATCHER);
 
 /**
- * Middleware for supervisor-level routes
- * Allows superuser, admin, manager, and supervisor roles
+ * Middleware for general-level routes
+ * Allows all roles
  */
-export const requireSupervisor = requireRole(
+export const requireGeneral = requireRole(
   USER_ROLES.SUPERUSER, 
   USER_ROLES.ADMIN, 
-  USER_ROLES.MANAGER, 
-  USER_ROLES.SUPERVISOR
+  USER_ROLES.DISPATCHER, 
+  USER_ROLES.GENERAL
 );
 
 /**

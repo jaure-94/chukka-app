@@ -18,6 +18,7 @@ import {
   RefreshCw,
   ExternalLink
 } from "lucide-react";
+import type { SharingActivity as SharingActivityType } from "@shared/schema";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ export function ShareHistory({ shipId, limit = 20 }: ShareHistoryProps) {
     queryKey: ['/api/sharing/history', { shipId, limit }],
   });
 
-  const activities: SharingActivity[] = data || [];
+  const activities: SharingActivityType[] = Array.isArray(data) ? data : [];
 
   const getStatusIcon = (status?: string) => {
     switch (status) {
@@ -193,7 +194,7 @@ export function ShareHistory({ shipId, limit = 20 }: ShareHistoryProps) {
                           {activity.completedAt && (
                             <>
                               <span>•</span>
-                              <span>{formatDuration(activity.createdAt, activity.completedAt)}</span>
+                              <span>{formatDuration(activity.createdAt.toString(), activity.completedAt?.toString())}</span>
                             </>
                           )}
                         </div>
@@ -223,14 +224,14 @@ export function ShareHistory({ shipId, limit = 20 }: ShareHistoryProps) {
                           <div className="flex items-center gap-2">
                             <Mail className="h-3 w-3 text-gray-400" />
                             <span className="text-xs">Email</span>
-                            {getStatusIcon(activity.emailStatus)}
+                            {getStatusIcon(activity.emailStatus || undefined)}
                           </div>
                         )}
                         {activity.shareMethod.includes('dropbox') && (
                           <div className="flex items-center gap-2">
                             <Cloud className="h-3 w-3 text-gray-400" />
                             <span className="text-xs">Dropbox</span>
-                            {getStatusIcon(activity.dropboxStatus)}
+                            {getStatusIcon(activity.dropboxStatus || undefined)}
                           </div>
                         )}
                       </div>

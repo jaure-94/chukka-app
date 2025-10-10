@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/userService";
 import { insertUserSchema, updateUserSchema } from "@shared/schema";
-import type { UserRole } from "@shared/schema";
+import { type UserRole } from "./config";
 import { ZodError } from "zod";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: number;
     username: string;
-    role: string;
+    role: UserRole;
   };
 }
 
@@ -50,6 +50,14 @@ export class UserController {
       if (isUpdate) {
         return updateUserSchema.parse(data);
       } else {
+        // For creation, ensure password is provided
+        if (!data.password) {
+          throw new ZodError([{
+            code: 'custom',
+            message: 'Password is required for user creation',
+            path: ['password']
+          }]);
+        }
         return insertUserSchema.parse(data);
       }
     } catch (error) {
@@ -181,7 +189,7 @@ export class UserController {
       }
 
       // Create user
-      const result = await this.userService.createUser(validatedData);
+      const result = await this.userService.createUser(validatedData as any);
       
       if (!result.success) {
         return this.sendErrorResponse(res, 400, "User creation failed", result.message);
@@ -238,8 +246,14 @@ export class UserController {
 
       // Remove sensitive fields that shouldn't be updated via this endpoint
       const { password, passwordHash, ...updateData } = validatedData as any;
+      
+      // Ensure we have valid data to update
+      if (Object.keys(updateData).length === 0) {
+        return this.sendErrorResponse(res, 400, "No valid fields to update", 
+          "Please provide at least one field to update");
+      }
 
-      const result = await this.userService.updateUser(userId, updateData);
+      const result = await this.userService.updateUser(userId, updateData as any);
       
       if (!result.success) {
         return this.sendErrorResponse(res, 400, "User update failed", result.message);

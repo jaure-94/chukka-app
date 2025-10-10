@@ -378,7 +378,7 @@ export type DispatchSession = typeof dispatchSessions.$inferSelect;
 export type User = typeof users.$inferSelect;
 
 // Role and Permission types
-export type UserRole = "superuser" | "admin" | "manager" | "supervisor" | "user";
+export type UserRole = "superuser" | "admin" | "dispatcher" | "general";
 export type Permission = "create_users" | "edit_users" | "delete_users" | "view_all_users" | 
   "view_dispatch_reports" | "edit_dispatch_reports" | "generate_dispatch_reports" |
   "view_eod_reports" | "edit_eod_reports" | "generate_eod_reports" |
