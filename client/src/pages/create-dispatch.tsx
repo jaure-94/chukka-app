@@ -1574,7 +1574,6 @@ export default function CreateDispatch() {
         
         /* Ensure hover shows pointer cursor for cells with validation errors */
         .htInvalid:hover {
-          cursor: help;
           background-color: transparent !important;
           background: transparent !important;
           background-image: none !important;

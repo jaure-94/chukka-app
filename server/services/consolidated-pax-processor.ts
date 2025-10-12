@@ -220,16 +220,18 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Process consolidated PAX for single ship update (successive entries)
+   * Process consolidated PAX for single ship update (successive entries or new report)
    * This prevents cross-ship aggregation for successive entries
    */
   async processConsolidatedPaxForSingleShip(
     templatePath: string,
     shipId: string,
     dispatchFilePath: string,
-    selectedShipName?: string
+    selectedShipName?: string,
+    forceCreateNew: boolean = false
   ): Promise<{ filename: string; data: ConsolidatedPaxData }> {
     console.log(`→ ConsolidatedPaxProcessor: Processing INDIVIDUAL ship PAX for ${shipId} ONLY (no cross-ship aggregation)`);
+    console.log(`→ ConsolidatedPaxProcessor: forceCreateNew = ${forceCreateNew} ${forceCreateNew ? '(CREATING NEW FILE)' : '(UPDATING EXISTING FILE)'}`);
 
     // Extract data ONLY from the current ship's dispatch file
     const shipData = await this.extractDispatchDataForShip(dispatchFilePath, shipId);
@@ -274,7 +276,8 @@ export class ConsolidatedPaxProcessor {
     console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship data final - ${consolidatedData.records.length} records from ${shipId} ONLY (no cross-ship aggregation)`);
 
     // Process INDIVIDUAL ship PAX - UPDATE EXISTING or CREATE NEW (with multi-tab support)
-    const outputFilename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath, false);
+    // IMPORTANT: Pass forceCreateNew parameter through to control behavior
+    const outputFilename = await this.updateOrCreateConsolidatedPax(consolidatedData, templatePath, forceCreateNew);
     
     return {
       filename: outputFilename,
@@ -408,12 +411,21 @@ export class ConsolidatedPaxProcessor {
 
     console.log(`→ ConsolidatedPaxProcessor: Aggregating ${consolidatedData.records.length} records from ${consolidatedData.contributingShips.length} ships`);
     
+    // Track which ships we've counted for PAX totals (to avoid counting same ship multiple times)
+    const countedShips = new Set<string>();
+    
     // Aggregate from all ships
     for (const record of consolidatedData.records) {
       tourTotals[record.tourType].sold += record.sold;
       tourTotals[record.tourType].allotment += record.allotment;
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
+      
+      // FIXED: Only count each ship's paxOnBoard/paxOnTour ONCE (not per tour)
+      // Since all tour records from same ship have same paxOnBoard/paxOnTour values
+      if (!countedShips.has(record.shipId)) {
+        totalPaxOnBoard += record.paxOnBoard;
+        totalPaxOnTour += record.paxOnTour;
+        countedShips.add(record.shipId);
+      }
     }
 
     // Get representative data (use triggering ship's data for headers)
@@ -496,9 +508,12 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // For PAX totals, accumulate within same ship (this is correct)
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
+      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
+      // Take from first record only, don't accumulate
+      if (totalPaxOnBoard === 0) {
+        totalPaxOnBoard = record.paxOnBoard;
+        totalPaxOnTour = record.paxOnTour;
+      }
     }
 
     // Get ship data from the single ship
@@ -574,6 +589,12 @@ export class ConsolidatedPaxProcessor {
    */
   private async updateOrCreateConsolidatedPax(consolidatedData: ConsolidatedPaxData, templatePath: string, forceCreateNew: boolean = false): Promise<string> {
     const consolidatedOutputDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
+    
+    console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);
+    console.log(`→ ConsolidatedPaxProcessor: UPDATE OR CREATE CONSOLIDATED PAX`);
+    console.log(`→ ConsolidatedPaxProcessor: forceCreateNew parameter = ${forceCreateNew}`);
+    console.log(`→ ConsolidatedPaxProcessor: ${forceCreateNew ? '🆕 WILL CREATE NEW FILE' : '♻️  WILL UPDATE EXISTING FILE (if found)'}`);
+    console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);
     
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Checking for existing consolidated PAX in: ${consolidatedOutputDir}`);
     console.log(`→ ConsolidatedPaxProcessor: DEBUG - Directory exists: ${fs.existsSync(consolidatedOutputDir)}`);
@@ -755,7 +776,7 @@ export class ConsolidatedPaxProcessor {
   }
 
   /**
-   * Add new consolidated record to existing file (same pattern as individual PAX)
+   * Add new consolidated record to existing file (with delimiter detection and replacement)
    */
   private async addConsolidatedRecordToExistingFile(
     worksheet: ExcelJS.Worksheet,
@@ -764,24 +785,128 @@ export class ConsolidatedPaxProcessor {
   ): Promise<void> {
     console.log(`→ ConsolidatedPaxProcessor: Adding consolidated record to row ${targetRow}`);
 
-    // Copy the template row (row 4) formatting to preserve styling
-    const templateRow = worksheet.getRow(4);
-    const newRow = worksheet.getRow(targetRow);
+    // Check if row 4 has delimiters (first record for this tab)
+    const hasDelimiters = this.checkIfRowHasDelimiters(worksheet, 4);
 
-    // Copy template row formatting to new row
-    templateRow.eachCell((cell, colNumber) => {
-      const newCell = newRow.getCell(colNumber);
+    // Calculate the data we'll need
+    const rowData = this.calculateConsolidatedRowData(consolidatedData);
+
+    if (hasDelimiters) {
+      // This is the FIRST record for this tab - replace delimiters in row 4
+      console.log(`→ ConsolidatedPaxProcessor: First record detected for this tab - replacing delimiters in row 4`);
       
-      // Copy formatting
-      newCell.font = cell.font;
-      newCell.alignment = cell.alignment;
-      newCell.border = cell.border;
-      newCell.fill = cell.fill;
-      newCell.numFmt = cell.numFmt;
-    });
+      this.replaceRowDelimiters(worksheet, 4, rowData);
+      
+      console.log(`→ ConsolidatedPaxProcessor: ✓ Row 4 delimiters replaced with first record data`);
+    } else {
+      // Row 4 already has data - add a new row
+      console.log(`→ ConsolidatedPaxProcessor: Row 4 already populated - adding new row at ${targetRow}`);
+      
+      // Copy the template row (row 4) formatting to preserve styling
+      const templateRow = worksheet.getRow(4);
+      const newRow = worksheet.getRow(targetRow);
 
-    // Populate the new row with consolidated data (same logic as populateConsolidatedReport)
-    await this.populateConsolidatedRowData(newRow, consolidatedData);
+      // Copy template row formatting to new row
+      templateRow.eachCell((cell, colNumber) => {
+        const newCell = newRow.getCell(colNumber);
+        
+        // Copy formatting
+        newCell.font = cell.font;
+        newCell.alignment = cell.alignment;
+        newCell.border = cell.border;
+        newCell.fill = cell.fill;
+        newCell.numFmt = cell.numFmt;
+      });
+
+      // Populate the new row with consolidated data (same logic as populateConsolidatedReport)
+      await this.populateConsolidatedRowData(newRow, consolidatedData);
+    }
+  }
+
+  /**
+   * Calculate consolidated row data from ConsolidatedPaxData (reusable extraction logic)
+   */
+  private calculateConsolidatedRowData(consolidatedData: ConsolidatedPaxData): {
+    date: string;
+    cruiseLine: string;
+    shipName: string;
+    catSold: number;
+    catAllot: number;
+    champSold: number;
+    champAllot: number;
+    invSold: number;
+    invAllot: number;
+    paxOnBoard: number;
+    paxOnTour: number;
+  } {
+    // Initialize tour totals to zero (will be populated from single ship's records)
+    const tourTotals = {
+      catamaran: { sold: 0, allotment: 0 },
+      champagne: { sold: 0, allotment: 0 },
+      invisible: { sold: 0, allotment: 0 }
+    };
+
+    let totalPaxOnBoard = 0;
+    let totalPaxOnTour = 0;
+
+    // Filter to only include records from the triggering ship
+    const triggeringShipRecords = consolidatedData.records.filter(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    );
+
+    console.log(`→ ConsolidatedPaxProcessor: Calculating data from ${triggeringShipRecords.length} records from ship ${consolidatedData.lastUpdatedByShip}`);
+
+    // Process records from SINGLE SHIP ONLY
+    for (const record of triggeringShipRecords) {
+      // Set direct values by tour type for THIS SHIP ONLY
+      if (record.tourType === 'catamaran') {
+        tourTotals.catamaran.sold = record.sold;
+        tourTotals.catamaran.allotment = record.allotment;
+      } else if (record.tourType === 'champagne') {
+        tourTotals.champagne.sold = record.sold;
+        tourTotals.champagne.allotment = record.allotment;  
+      } else if (record.tourType === 'invisible') {
+        tourTotals.invisible.sold = record.sold;
+        tourTotals.invisible.allotment = record.allotment;
+      }
+
+      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
+      // Take from first record only, don't accumulate
+      if (totalPaxOnBoard === 0) {
+        totalPaxOnBoard = record.paxOnBoard;
+        totalPaxOnTour = record.paxOnTour;
+      }
+    }
+
+    // Get representative data (use triggering ship's data for headers)
+    const triggeringShipRecord = consolidatedData.records.find(record => 
+      record.shipId === consolidatedData.lastUpdatedByShip
+    ) || consolidatedData.records[0];
+    
+    const consolidatedDate = triggeringShipRecord?.date || new Date().toLocaleDateString('en-GB');
+    const consolidatedCruiseLine = triggeringShipRecord?.cruiseLine || 'Multi-Ship Operation';
+    
+    // Use the actual selected ship name from the triggering ship
+    let consolidatedShipName = 'Unknown Ship';
+    if (triggeringShipRecord && triggeringShipRecord.shipName) {
+      consolidatedShipName = triggeringShipRecord.shipName;
+    }
+
+    console.log(`→ ConsolidatedPaxProcessor: Calculated data - Ship: ${consolidatedShipName}, Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}, PAX: ${totalPaxOnBoard}/${totalPaxOnTour}`);
+
+    return {
+      date: consolidatedDate,
+      cruiseLine: consolidatedCruiseLine,
+      shipName: consolidatedShipName,
+      catSold: tourTotals.catamaran.sold,
+      catAllot: tourTotals.catamaran.allotment,
+      champSold: tourTotals.champagne.sold,
+      champAllot: tourTotals.champagne.allotment,
+      invSold: tourTotals.invisible.sold,
+      invAllot: tourTotals.invisible.allotment,
+      paxOnBoard: totalPaxOnBoard,
+      paxOnTour: totalPaxOnTour
+    };
   }
 
   /**
@@ -823,11 +948,13 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // For PAX totals within same ship, accumulate across all tours
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
-      
-      console.log(`→ ConsolidatedPaxProcessor: Running totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
+      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
+      // Take from first record only, don't accumulate
+      if (totalPaxOnBoard === 0) {
+        totalPaxOnBoard = record.paxOnBoard;
+        totalPaxOnTour = record.paxOnTour;
+        console.log(`→ ConsolidatedPaxProcessor: Using ship-level PAX totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
+      }
     }
 
     console.log(`→ ConsolidatedPaxProcessor: Final ship values - Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}, PAX: ${totalPaxOnBoard}/${totalPaxOnTour}`);
@@ -966,5 +1093,67 @@ export class ConsolidatedPaxProcessor {
     }
     
     return 0;
+  }
+
+  /**
+   * Check if a row contains delimiters (indicates it's a template row that needs replacement)
+   */
+  private checkIfRowHasDelimiters(worksheet: ExcelJS.Worksheet, row: number): boolean {
+    const dateCell = worksheet.getCell(row, 1); // Column A - date
+    const cruiseLineCell = worksheet.getCell(row, 2); // Column B - cruise_line
+    const shipNameCell = worksheet.getCell(row, 3); // Column C - ship_name
+    
+    // Check if any of the key cells contain delimiters
+    const hasDateDelimiter = dateCell.value && String(dateCell.value).includes('{{date}}');
+    const hasCruiseLineDelimiter = cruiseLineCell.value && String(cruiseLineCell.value).includes('{{cruise_line}}');
+    const hasShipNameDelimiter = shipNameCell.value && String(shipNameCell.value).includes('{{ship_name}}');
+    
+    const hasDelimiters = hasDateDelimiter || hasCruiseLineDelimiter || hasShipNameDelimiter;
+    
+    if (hasDelimiters) {
+      console.log(`→ ConsolidatedPaxProcessor: Row ${row} contains delimiters (template row detected)`);
+    } else {
+      console.log(`→ ConsolidatedPaxProcessor: Row ${row} does not contain delimiters (already populated)`);
+    }
+    
+    return hasDelimiters;
+  }
+
+  /**
+   * Replace all delimiters in a specific row with actual data (reusable component)
+   */
+  private replaceRowDelimiters(
+    worksheet: ExcelJS.Worksheet, 
+    row: number, 
+    data: {
+      date: string;
+      cruiseLine: string;
+      shipName: string;
+      catSold: number;
+      catAllot: number;
+      champSold: number;
+      champAllot: number;
+      invSold: number;
+      invAllot: number;
+      paxOnBoard: number;
+      paxOnTour: number;
+    }
+  ): void {
+    console.log(`→ ConsolidatedPaxProcessor: Replacing delimiters in row ${row} with actual data`);
+    
+    // Replace all 11 delimiters
+    this.replaceDelimiter(worksheet, row, 1, '{{date}}', data.date);
+    this.replaceDelimiter(worksheet, row, 2, '{{cruise_line}}', data.cruiseLine);
+    this.replaceDelimiter(worksheet, row, 3, '{{ship_name}}', data.shipName);
+    this.replaceDelimiter(worksheet, row, 4, '{{cat_sold}}', data.catSold);
+    this.replaceDelimiter(worksheet, row, 5, '{{cat_allot}}', data.catAllot);
+    this.replaceDelimiter(worksheet, row, 6, '{{champ_sold}}', data.champSold);
+    this.replaceDelimiter(worksheet, row, 7, '{{champ_allot}}', data.champAllot);
+    this.replaceDelimiter(worksheet, row, 8, '{{inv_sold}}', data.invSold);
+    this.replaceDelimiter(worksheet, row, 9, '{{inv_allot}}', data.invAllot);
+    this.replaceDelimiter(worksheet, row, 72, '{{pax_on_board}}', data.paxOnBoard);
+    this.replaceDelimiter(worksheet, row, 73, '{{pax_on_tour}}', data.paxOnTour);
+    
+    console.log(`→ ConsolidatedPaxProcessor: ✓ Delimiters replaced - Date: ${data.date}, Ship: ${data.shipName}, Cat: ${data.catSold}/${data.catAllot}, Champ: ${data.champSold}/${data.champAllot}, Inv: ${data.invSold}/${data.invAllot}, PAX: ${data.paxOnBoard}/${data.paxOnTour}`);
   }
 }

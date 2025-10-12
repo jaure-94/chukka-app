@@ -1370,10 +1370,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const templateProcessor = new TemplateProcessor();
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
         
+        // IMPORTANT: Pass forceCreateNew=true for "Generate New PAX Report" button
         const consolidatedResult = await consolidatedProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
           shipId,
-          dispatchFilePath
+          dispatchFilePath,
+          undefined, // selectedShipName - not needed for new generation
+          true // forceCreateNew = true (CREATE NEW FILE)
         );
         
         console.log(`→ Consolidated PAX generated after new PAX: ${consolidatedResult.filename}`);
@@ -1488,11 +1491,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`→ Auto-generating consolidated PAX after ${shipId} update (SINGLE SHIP ONLY)`);
       try {
         const consolidatedPaxTemplate = await templateProcessor.getConsolidatedPaxTemplatePath();
+        // IMPORTANT: Pass forceCreateNew=false for "Add Successive PAX Entry" button
         const consolidatedResult = await consolidatedPaxProcessor.processConsolidatedPaxForSingleShip(
           consolidatedPaxTemplate,
           shipId,
           dispatchFilePath,
-          selectedShipName
+          selectedShipName,
+          false // forceCreateNew = false (UPDATE EXISTING FILE)
         );
         
         console.log(`→ Consolidated PAX auto-generated: ${consolidatedResult.filename}`);

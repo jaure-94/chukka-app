@@ -137,23 +137,35 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       isCollapsed ? "w-16" : "w-64",
       className
     )}>
-      {/* Header with Toggle */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        {!isCollapsed && (
-          <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleCollapsed}
-          className="p-2 hover:bg-gray-100"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
+      {/* Header with Country Card and Toggle */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          {!isCollapsed ? (
+            <div className="flex-1 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="text-3xl">🇧🇸</div>
+                <div>
+                  <div className="text-sm font-semibold text-cyan-900">Bahamas</div>
+                  <div className="text-xs text-cyan-600">Caribbean Operations</div>
+                </div>
+              </div>
+            </div>
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <div className="text-2xl">🇧🇸</div>
           )}
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapsed}
+            className={cn("p-2 hover:bg-gray-100", !isCollapsed && "ml-2")}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Navigation Items */}
@@ -389,19 +401,29 @@ export function MobileNavigation() {
             }} 
           />
           <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  console.log('Mobile X button clicked, closing navigation');
-                  setIsOpen(false);
-                }}
-                className="p-2 text-gray-900 hover:text-gray-700 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200 shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">🇧🇸</div>
+                    <div>
+                      <div className="text-sm font-semibold text-cyan-900">Bahamas</div>
+                      <div className="text-xs text-cyan-600">Caribbean Ops</div>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('Mobile X button clicked, closing navigation');
+                    setIsOpen(false);
+                  }}
+                  className="p-2 ml-2 text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
             
             <nav className="px-2 py-4 space-y-1">
