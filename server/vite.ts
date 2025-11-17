@@ -74,18 +74,39 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  // On Vercel, static files are served from dist/public (configured in vercel.json)
+  // For serverless functions, we need to find the correct path
+  // Try multiple possible locations
+  const possiblePaths = [
+    path.resolve(process.cwd(), "dist", "public"), // Vercel build output
+    path.resolve(__dirname, "..", "..", "dist", "public"), // From compiled server location
+    path.resolve(__dirname, "public"), // Legacy location
+  ];
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+  let distPath: string | null = null;
+  for (const possiblePath of possiblePaths) {
+    if (fs.existsSync(possiblePath)) {
+      distPath = possiblePath;
+      break;
+    }
+  }
+
+  if (!distPath) {
+    // On Vercel, static files are handled by the platform, so we can skip this
+    // Only log a warning instead of throwing an error
+    console.warn("Static files directory not found. On Vercel, static files are served automatically.");
+    return;
   }
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
+  // fall through to index.html if the file doesn't exist (for SPA routing)
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    const indexPath = path.resolve(distPath!, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ message: "Not found" });
+    }
   });
 }
