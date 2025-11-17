@@ -37,7 +37,7 @@ import {
   insertEodTemplateSchema,
   insertPaxTemplateSchema,
   insertDispatchRecordSchema
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 const upload = multer({ 
   storage: multer.diskStorage({

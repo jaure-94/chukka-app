@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
-import { users, type User, type InsertUser } from "@shared/schema";
+import { users, type User, type InsertUser } from "../../shared/schema.js";
 import { type UserRole } from "../auth/config.js";
 import bcrypt from "bcryptjs";
 

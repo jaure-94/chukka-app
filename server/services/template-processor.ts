@@ -1,7 +1,7 @@
 import Handlebars from "handlebars";
 import fs from "fs";
 import path from "path";
-import type { ExcelData } from "@shared/schema";
+import type { ExcelData } from "../../shared/schema.js";
 import { storage } from "../storage.js";
 
 export class TemplateProcessor {

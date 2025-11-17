@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { storage } from "../storage.js";
 import { authenticateToken } from "../auth/middleware.js";
-import { insertDispatchSessionSchema } from "@shared/schema";
+import { insertDispatchSessionSchema } from "../../shared/schema.js";
 import { randomUUID } from "crypto";
 
 const router = Router();

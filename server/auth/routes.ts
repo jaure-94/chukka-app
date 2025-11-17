@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticateToken, validateRequest, rateLimit } from "./middleware.js";
 import { cookieConfig } from "./config.js";
 import { UserService } from "../services/userService.js";
-import { loginSchema } from "@shared/schema";
+import { loginSchema } from "../../shared/schema.js";
 
 const router = Router();
 const userService = new UserService();

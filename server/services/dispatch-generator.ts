@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
-import type { DispatchRecord } from "@shared/schema";
+import type { DispatchRecord } from "../../shared/schema.js";
 
 export class DispatchGenerator {
   private outputDir = path.join(process.cwd(), "output");

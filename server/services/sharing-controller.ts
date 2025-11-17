@@ -7,7 +7,7 @@ import {
   type InsertShareTemplate, 
   type SharingActivity, 
   type ShareTemplate 
-} from "@shared/schema";
+} from "../../shared/schema.js";
 import { EmailService } from "./email-service.js";
 import { DropboxService } from "./dropbox-service.js";
 import fs from "fs";

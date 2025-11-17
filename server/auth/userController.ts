@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/userService.js";
-import { insertUserSchema, updateUserSchema } from "@shared/schema";
+import { insertUserSchema, updateUserSchema } from "../../shared/schema.js";
 import { type UserRole } from "./config.js";
 import { ZodError } from "zod";
 
