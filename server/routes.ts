@@ -798,22 +798,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Then copy all data from edited sheet while preserving template formatting
+      // CRITICAL: Break shared formula structure in column R (rows 11-15) BEFORE copying values
+      // R11 is the master, R12-R15 are clones. We must break this structure first.
+      // Set ALL cells in the range to null to break any shared formula structure
+      for (let row = 11; row <= 15; row++) {
+        const targetCell = templateWorksheet.getCell(row, 18); // Column R
+        // Set to null to break shared formula structure - this will be overwritten with user values below
+        targetCell.value = null;
+      }
+      
+      // Now copy all data from edited sheet while preserving template formatting
       editedWorksheet.eachRow((row, rowNumber) => {
         if (rowNumber >= 9) { // Data rows start from row 9 (NEW TEMPLATE: row 9 is headers, row 10+ is data)
           row.eachCell((cell, colNumber) => {
-            if (colNumber <= 18) { // Process columns A-R (1-18) to include PAX columns
+            if (colNumber <= 18) { // Process columns A-R (including Q and R so manual totals are preserved)
               const templateCell = templateWorksheet.getCell(10, colNumber); // Use row 10 as formatting template (NEW TEMPLATE: first data row)
               const targetCell = templateWorksheet.getCell(rowNumber, colNumber);
               
-              // FIXED: Preserve user input for PAX ON TOUR column (Column R = 18)
-              // No longer forcing synchronization with SOLD values
-              targetCell.value = cell.value;
-              
-              // Log PAX ON TOUR values for transparency
-              if (colNumber === 18 && rowNumber >= 8 && cell.value) {
-                console.log(`→ Preserved PAX ON TOUR at R${rowNumber}: ${cell.value}`);
+              // Extract the actual value from the cell (handles formula objects by getting result)
+              // This ensures we set plain values, not formula objects
+              let valueToSet = cell.value;
+              if (valueToSet && typeof valueToSet === 'object') {
+                // If it's a formula object, extract the result (calculated value)
+                if ('result' in valueToSet) {
+                  valueToSet = valueToSet.result;
+                } else if ('formula' in valueToSet) {
+                  // If it has a formula but no result, use null
+                  valueToSet = null;
+                }
               }
+              
+              // Set the value - since we already broke shared formulas above, this is safe
+              targetCell.value = valueToSet;
               
               // Preserve original template formatting (if template cell has formatting)
               if (templateCell.font) targetCell.font = { ...templateCell.font };
@@ -875,7 +891,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error("Save dispatch sheet error:", error);
-      res.status(500).json({ message: "Failed to save dispatch sheet with formatting" });
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: "Failed to save dispatch sheet with formatting",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

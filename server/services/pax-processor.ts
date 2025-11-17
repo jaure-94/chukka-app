@@ -10,6 +10,8 @@ export interface PaxReportData {
   country: string;
   port: string;
   records: PaxRecord[];
+  totalPaxOnBoard?: number;
+  totalPaxOnTour?: number;
 }
 
 export interface PaxRecord {
@@ -114,7 +116,30 @@ export class PaxProcessor {
     // Extract tour records from dispatch sheet
     const records: PaxRecord[] = [];
     
-    // Scan for tour data starting from row 8 (data starts here)
+    // CRITICAL: Sum ONLY the three tour rows (11, 13, 15) for totals
+    // Q11 + Q13 + Q15 = total pax on board
+    // R11 + R13 + R15 = total pax on tour
+    const tourRows = [11, 13, 15];
+    let columnPaxOnBoardTotal = 0;
+    let columnPaxOnTourTotal = 0;
+    
+    // First, calculate totals from the three specific tour rows
+    for (const row of tourRows) {
+      const paxOnBoardCell = worksheet.getCell(row, 17); // Column Q
+      const paxOnTourCell = worksheet.getCell(row, 18); // Column R
+      
+      const rowPaxOnBoard = this.extractNumericValue(paxOnBoardCell.value);
+      const rowPaxOnTour = this.extractNumericValue(paxOnTourCell.value);
+      
+      columnPaxOnBoardTotal += rowPaxOnBoard;
+      columnPaxOnTourTotal += rowPaxOnTour;
+      
+      console.log(`→ PaxProcessor: Row ${row} - Q${row}=${rowPaxOnBoard}, R${row}=${rowPaxOnTour}`);
+    }
+    
+    console.log(`→ PaxProcessor: Column totals - Q11+Q13+Q15=${columnPaxOnBoardTotal}, R11+R13+R15=${columnPaxOnTourTotal}`);
+    
+    // Scan for tour data starting from row 8 (data starts here) to extract individual tour records
     for (let row = 8; row <= 200; row++) {
       const tourNameCell = worksheet.getCell(row, 1); // Column A
       const allotmentCell = worksheet.getCell(row, 8); // Column H
@@ -167,7 +192,9 @@ export class PaxProcessor {
       shipName,
       country,
       port,
-      records
+      records,
+      totalPaxOnBoard: columnPaxOnBoardTotal,
+      totalPaxOnTour: columnPaxOnTourTotal
     };
   }
 
@@ -219,8 +246,10 @@ export class PaxProcessor {
       invisible: { sold: 0, allotment: 0 }
     };
 
-    let totalPaxOnBoard = 0;
-    let totalPaxOnTour = 0;
+    let totalPaxOnBoard = dispatchData.totalPaxOnBoard ?? 0;
+    let totalPaxOnTour = dispatchData.totalPaxOnTour ?? 0;
+    let computedPaxOnBoard = 0;
+    let computedPaxOnTour = 0;
 
     // Process each validated record
     for (const record of validatedRecords) {
@@ -229,8 +258,16 @@ export class PaxProcessor {
       tourTotals[record.tourType].allotment += record.allotment;
       
       // Add to overall totals
-      totalPaxOnBoard += record.paxOnBoard;
-      totalPaxOnTour += record.paxOnTour;
+      computedPaxOnBoard += record.paxOnBoard;
+      computedPaxOnTour += record.paxOnTour;
+    }
+
+    if ((!totalPaxOnBoard || totalPaxOnBoard === 0) && computedPaxOnBoard > 0) {
+      totalPaxOnBoard = computedPaxOnBoard;
+    }
+
+    if ((!totalPaxOnTour || totalPaxOnTour === 0) && computedPaxOnTour > 0) {
+      totalPaxOnTour = computedPaxOnTour;
     }
 
     // Work directly with the template row (row 4) where delimiters exist
@@ -279,15 +316,56 @@ export class PaxProcessor {
   }
 
   /**
-   * Replace delimiter in specific cell
+   * Replace delimiter in specific cell, with fallback scanning if column shifted
    */
-  private replaceDelimiter(worksheet: ExcelJS.Worksheet, row: number, col: number, delimiter: string, value: string | number): void {
-    const cell = worksheet.getCell(row, col);
-    
-    if (cell.value && String(cell.value).includes(delimiter)) {
-      cell.value = value;
-      console.log(`→ PaxProcessor: Replaced ${delimiter} at ${cell.address} = ${value}`);
+  private replaceDelimiter(
+    worksheet: ExcelJS.Worksheet,
+    row: number,
+    col: number,
+    delimiter: string,
+    value: string | number
+  ): void {
+    const rowRef = worksheet.getRow(row);
+    const primaryCell = rowRef.getCell(col);
+
+    if (this.cellContainsDelimiter(primaryCell, delimiter)) {
+      primaryCell.value = value;
+      console.log(`→ PaxProcessor: Replaced ${delimiter} at ${primaryCell.address} = ${value}`);
+      return;
     }
+
+    let fallbackCell: ExcelJS.Cell | undefined;
+
+    rowRef.eachCell({ includeEmpty: false }, (cell) => {
+      if (!fallbackCell && this.cellContainsDelimiter(cell, delimiter)) {
+        fallbackCell = cell;
+      }
+    });
+
+    if (!fallbackCell) {
+      for (let rowIndex = 1; rowIndex <= worksheet.rowCount && !fallbackCell; rowIndex++) {
+        const worksheetRow = worksheet.getRow(rowIndex);
+        worksheetRow.eachCell({ includeEmpty: false }, (cell) => {
+          if (!fallbackCell && this.cellContainsDelimiter(cell, delimiter)) {
+            fallbackCell = cell;
+          }
+        });
+      }
+    }
+
+    if (fallbackCell) {
+      fallbackCell.value = value;
+      console.log(`→ PaxProcessor: Replaced ${delimiter} at ${fallbackCell.address} (fallback) = ${value}`);
+    } else {
+      primaryCell.value = value;
+      console.warn(`→ PaxProcessor: Delimiter ${delimiter} not found; overwrote ${primaryCell.address} directly with ${value}`);
+    }
+  }
+
+  private cellContainsDelimiter(cell: ExcelJS.Cell | undefined, delimiter: string): boolean {
+    if (!cell) return false;
+    const text = cell.text;
+    return typeof text === 'string' && text.includes(delimiter);
   }
 
   /**
@@ -486,8 +564,14 @@ export class PaxProcessor {
     row.getCell(3).value = dispatchData.shipName; // C: ship_name
 
     // Calculate totals for this set of records
-    const totalPaxOnBoard = validatedRecords.reduce((sum, record) => sum + record.paxOnBoard, 0);
-    const totalPaxOnTour = validatedRecords.reduce((sum, record) => sum + record.paxOnTour, 0);
+    const fallbackPaxOnBoard = validatedRecords.reduce((sum, record) => sum + record.paxOnBoard, 0);
+    const fallbackPaxOnTour = validatedRecords.reduce((sum, record) => sum + record.paxOnTour, 0);
+    const totalPaxOnBoard = (dispatchData.totalPaxOnBoard && dispatchData.totalPaxOnBoard > 0)
+      ? dispatchData.totalPaxOnBoard
+      : fallbackPaxOnBoard;
+    const totalPaxOnTour = (dispatchData.totalPaxOnTour && dispatchData.totalPaxOnTour > 0)
+      ? dispatchData.totalPaxOnTour
+      : fallbackPaxOnTour;
 
     // Set conditional column mappings based on tour types
     validatedRecords.forEach(record => {

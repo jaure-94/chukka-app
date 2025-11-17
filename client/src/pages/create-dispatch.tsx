@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 
 // UI
@@ -79,6 +79,95 @@ export default function CreateDispatch() {
   const [sessionInitialized, setSessionInitialized] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Map<string, string>>(new Map());
   const [showValidationErrorModal, setShowValidationErrorModal] = useState(false);
+  const lostPaxMergeConfig = useMemo(() => ([
+    { row: 8, col: 19, rowspan: 1, colspan: 2 }
+  ]), []);
+
+  const convertExcelTimeToReadable = (value: any) => {
+    if (typeof value === 'number' && value > 0 && value < 1) {
+      const totalMinutes = Math.round(value * 24 * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      const displayMinutes = minutes.toString().padStart(2, '0');
+      
+      return `${displayHours}:${displayMinutes} ${period}`;
+    }
+    return value;
+  };
+
+  const enforceLostPaxHeading = (rows: SpreadsheetData): void => {
+    if (!rows[8]) {
+      rows[8] = [];
+    }
+    const headingValue = rows[8][19];
+    if (typeof headingValue !== 'string' || headingValue.trim().length === 0) {
+      rows[8][19] = 'Lost Pax';
+    } else if (headingValue.toLowerCase() !== 'lost pax') {
+      rows[8][19] = 'Lost Pax';
+    }
+    rows[8][20] = '';
+  };
+
+  const ensureLostPaxHeading = (rows: SpreadsheetData): SpreadsheetData => {
+    const clonedRows = rows.map((row) => (Array.isArray(row) ? [...row] : []));
+    enforceLostPaxHeading(clonedRows);
+    return clonedRows;
+  };
+
+  const normalizeWorksheetData = (worksheet: XLSX.WorkSheet) => {
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    const actualColumnCount = range.e.c + 1;
+    const actualRowCount = range.e.r + 1;
+
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+      header: 1, 
+      range: worksheet['!ref'],
+      defval: '',
+      blankrows: true
+    });
+
+    const allRows = jsonData as SpreadsheetData;
+    const extraRows = 10;
+    const totalRowsWithExtra = actualRowCount + extraRows;
+    const completeRows: SpreadsheetData = [];
+
+    for (let r = 0; r < totalRowsWithExtra; r++) {
+      const row = allRows[r] || [];
+      const completeRow: (string | number)[] = [];
+      
+      for (let c = 0; c < actualColumnCount; c++) {
+        let cellValue = row[c] !== undefined ? row[c] : '';
+
+        if (c === 1 && r >= 10) {
+          cellValue = convertExcelTimeToReadable(cellValue);
+        }
+
+        completeRow[c] = cellValue;
+      }
+
+      completeRows.push(completeRow);
+    }
+
+    const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
+      if (i < 26) {
+        return String.fromCharCode(65 + i);
+      } else {
+        const firstLetter = String.fromCharCode(65 + Math.floor(i / 26) - 1);
+        const secondLetter = String.fromCharCode(65 + (i % 26));
+        return firstLetter + secondLetter;
+      }
+    });
+
+    enforceLostPaxHeading(completeRows);
+
+    return {
+      rows: completeRows,
+      headers: genericHeaders
+    };
+  };
 
   useEffect(() => {
     const initializeSession = async () => {
@@ -152,78 +241,14 @@ export default function CreateDispatch() {
       const workbook = XLSX.read(binaryString, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      
-      // Get the complete data range
-      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-      const actualColumnCount = range.e.c + 1;
-      const actualRowCount = range.e.r + 1;
-      
-      // Convert to JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-        header: 1, 
-        range: worksheet['!ref'],
-        defval: '',
-        blankrows: true
-      });
-      
-      // Helper function to convert Excel time decimal to readable format
-      const convertExcelTimeToReadable = (value: any) => {
-        if (typeof value === 'number' && value > 0 && value < 1) {
-          const totalMinutes = Math.round(value * 24 * 60);
-          const hours = Math.floor(totalMinutes / 60);
-          const minutes = totalMinutes % 60;
-          
-          const period = hours >= 12 ? 'PM' : 'AM';
-          const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-          const displayMinutes = minutes.toString().padStart(2, '0');
-          
-          return `${displayHours}:${displayMinutes} ${period}`;
-        }
-        return value;
-      };
 
-      if (jsonData.length > 0) {
-        const allRows = jsonData as SpreadsheetData;
-        const extraRows = 10;
-        const totalRowsWithExtra = actualRowCount + extraRows;
-        const completeRows: SpreadsheetData = [];
-        
-        for (let r = 0; r < totalRowsWithExtra; r++) {
-          const row = allRows[r] || [];
-          const completeRow: (string | number)[] = [];
-          
-          for (let c = 0; c < actualColumnCount; c++) {
-            let cellValue = row[c] !== undefined ? row[c] : '';
-            
-            // NEW TEMPLATE STRUCTURE: Load values directly from template WITHOUT override
-            // Only convert time values in column B for data rows (row 10+), not header rows
-            if (c === 1 && r >= 10) {
-              cellValue = convertExcelTimeToReadable(cellValue);
-            }
-            
-            completeRow[c] = cellValue;
-          }
-          
-          completeRows.push(completeRow);
-        }
-        
-        // Generate headers
-        const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
-          if (i < 26) {
-            return String.fromCharCode(65 + i);
-          } else {
-            const firstLetter = String.fromCharCode(65 + Math.floor(i / 26) - 1);
-            const secondLetter = String.fromCharCode(65 + (i % 26));
-            return firstLetter + secondLetter;
-          }
-        });
-        
-        setFile({
-          name: dispatchTemplate.originalFilename,
-          data: completeRows,
-          headers: genericHeaders
-        });
-      }
+      const { rows, headers } = normalizeWorksheetData(worksheet);
+
+      setFile({
+        name: dispatchTemplate.originalFilename,
+        data: rows,
+        headers
+      });
     } catch (error) {
       console.error('Error loading dispatch template:', error);
       toast({
@@ -251,7 +276,9 @@ export default function CreateDispatch() {
       return;
     }
     
-    setEditedData([...file.data]);
+    const dataWithHeading = ensureLostPaxHeading(file.data);
+    setFile((prev) => (prev ? { ...prev, data: dataWithHeading } : prev));
+    setEditedData(dataWithHeading);
     setIsEditing(true);
     setHasUnsavedChanges(false);
   };
@@ -294,6 +321,21 @@ export default function CreateDispatch() {
     callback(isValid);
   };
 
+  // Strict validator for B5: expects format like "22-oct-2025" (2-digit day, 3-letter month, 4-digit year, case-insensitive month)
+  const b5DateValidator = (value: any, callback: (valid: boolean) => void) => {
+    const isEmpty = value === null || value === undefined || value === '';
+    if (isEmpty) {
+      callback(true);
+      return;
+    }
+    const str = String(value).trim();
+    const monthRe = /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i;
+    // Format: dd-mmm-yyyy (exactly 2 digits for day, 3-letter month, 4 digits for year)
+    const pattern = /^\d{2}-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{4}$/i;
+    const isValid = pattern.test(str) && monthRe.test(str.split('-')[1] || '');
+    callback(isValid);
+  };
+
   const strictTourNameValidator = (allowedName: string) => {
     return (value: any, callback: (valid: boolean) => void) => {
       const isEmpty = value === null || value === undefined || value === '';
@@ -327,8 +369,13 @@ export default function CreateDispatch() {
       return 'Invalid input: text only (no numbers)';
     }
     
-    // Date/Time cells
-    if ((row === 4 && col === 1) || ((row === 10 || row === 12 || row === 14) && col === 1)) {
+    // B5 date cell - strict format required
+    if (row === 4 && col === 1) {
+      return 'Invalid format: use dd-mmm-yyyy (e.g., 22-oct-2025). Month can be upper or lower case.';
+    }
+    
+    // Date/Time cells for B11, B13, B15
+    if ((row === 10 || row === 12 || row === 14) && col === 1) {
       return 'Invalid format: use DD/MM/YYYY or HH:MM AM/PM';
     }
     
@@ -346,13 +393,75 @@ export default function CreateDispatch() {
     return 'Invalid value';
   };
 
+  // Validate all cells before saving, especially B5
+  const validateAllCells = async (): Promise<boolean> => {
+    // Start with existing errors to preserve validation state for other cells
+    const newErrors = new Map(validationErrors);
+    const hotInstance = hotTableRef.current?.hotInstance;
+    
+    // Validate B5 (row 4, col 1) - Date cell
+    if (editedData.length > 4 && editedData[4]) {
+      const b5Value = editedData[4][1];
+      const b5Row = 4;
+      const b5Col = 1;
+      const cellKey = `${b5Row},${b5Col}`;
+      
+      // Use Promise to handle async validator
+      const b5IsValid = await new Promise<boolean>((resolve) => {
+        b5DateValidator(b5Value, (isValid) => {
+          resolve(isValid);
+        });
+      });
+      
+      if (!b5IsValid) {
+        const errorMessage = getErrorMessageForCell(b5Row, b5Col);
+        newErrors.set(cellKey, errorMessage);
+        
+        // Update UI to show error
+        if (hotInstance) {
+          const td = hotInstance.getCell(b5Row, b5Col);
+          if (td) {
+            td.classList.add('htInvalid');
+            td.setAttribute('data-validation-type', 'error');
+            td.setAttribute('title', errorMessage);
+          }
+        }
+      } else {
+        // Clear error if valid
+        newErrors.delete(cellKey);
+        if (hotInstance) {
+          const td = hotInstance.getCell(b5Row, b5Col);
+          if (td) {
+            td.classList.remove('htInvalid');
+            td.removeAttribute('data-validation-type');
+            td.removeAttribute('title');
+          }
+        }
+      }
+    }
+    
+    // Update validation errors state
+    setValidationErrors(newErrors);
+    
+    // Re-render to show validation errors
+    if (hotInstance) {
+      hotInstance.render();
+    }
+    
+    return newErrors.size === 0;
+  };
+
   const handleSave = async () => {
+    if (!editedData.length) return;
+    
+    // Validate all cells before saving
+    const isValid = await validateAllCells();
+    
     // Check for validation errors before saving
-    if (validationErrors.size > 0) {
+    if (!isValid) {
       setShowValidationErrorModal(true);
       return;
     }
-    if (!editedData.length) return;
     
     setIsLoading(true);
     try {
@@ -740,34 +849,15 @@ export default function CreateDispatch() {
       const arrayBuffer = await response.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
-      const worksheetData: SpreadsheetData = [];
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z100');
-      
-      for (let row = range.s.r; row <= Math.min(range.e.r, 99); row++) {
-        const rowData: any[] = [];
-        for (let col = range.s.c; col <= Math.min(range.e.c, 25); col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-          const cell = worksheet[cellAddress];
-          let cellValue = cell ? cell.v : '';
-          
-          if (cell && cell.t === 'n' && cellValue > 0 && cellValue < 1) {
-            const hours = Math.floor(cellValue * 24);
-            const minutes = Math.floor((cellValue * 24 - hours) * 60);
-            cellValue = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-          }
-          
-          rowData[col] = cellValue;
-        }
-        worksheetData[row] = rowData;
-      }
+      const { rows, headers } = normalizeWorksheetData(worksheet);
       
       setFile({
         name: version.originalFilename,
-        data: worksheetData,
-        headers: []
+        data: rows,
+        headers
       });
-      setEditedData(worksheetData);
+      setEditedData(rows);
       setIsEditing(true);
       setShowUpdateEOD(false);
       
@@ -1114,7 +1204,7 @@ export default function CreateDispatch() {
                           autoColumnSize={false}
                           preventOverflow="horizontal"
                           fillHandle={true}
-                          mergeCells={false}
+                          mergeCells={lostPaxMergeConfig}
                           outsideClickDeselects={false}
                           allowEmpty={true}
                           trimWhitespace={false}
@@ -1125,8 +1215,11 @@ export default function CreateDispatch() {
                           cells={function(row, col) {
                             const cellProperties: any = {};
                             let classNames = [];
+                            const cellValue = editedData?.[row]?.[col];
                             
+                            // Lock all cells in column A (tour names)
                             if (col === 0) {
+                              cellProperties.readOnly = true;
                               classNames.push('htLeft');
                             }
                             
@@ -1145,6 +1238,17 @@ export default function CreateDispatch() {
                             
                             if (row === 0) {
                               classNames.push('ship-info-cell');
+                            }
+
+                            if (row === 8 && (col === 19 || col === 20) && typeof cellValue === 'string' && cellValue.toLowerCase().includes('lost pax')) {
+                              classNames.push('lost-pax-heading-cell');
+                            }
+
+                            if (col === 19 && [9, 10, 11].includes(row) && typeof cellValue === 'string') {
+                              const normalizedValue = cellValue.trim().toLowerCase();
+                              if (['weather', 'operational', 'notes'].includes(normalizedValue)) {
+                                classNames.push('lost-pax-subheading-cell');
+                              }
                             }
                             
                             // NEW TEMPLATE STRUCTURE (Bahamas/Dominican Republic)
@@ -1206,9 +1310,14 @@ export default function CreateDispatch() {
                               cellProperties.allowInvalid = true;
                             }
                             
-                            // Date/Time cells: B5, B11, B13, B15
-                            if ((row === 4 && col === 1) || ((row === 10 || row === 12 || row === 14) && col === 1)) {
+                            // Date/Time cells: B11, B13, B15 use relaxed time/date validator
+                            if (((row === 10 || row === 12 || row === 14) && col === 1)) {
                               cellProperties.validator = dateTimeValidator;
+                              cellProperties.allowInvalid = true;
+                            }
+                            // B5 uses strict "dd-mmm-yyyy" validator (e.g., 22-oct-2025, month can be upper or lower case)
+                            if (row === 4 && col === 1) {
+                              cellProperties.validator = b5DateValidator;
                               cellProperties.allowInvalid = true;
                             }
                             
@@ -1537,6 +1646,22 @@ export default function CreateDispatch() {
       </Dialog>
 
       <style>{`
+        .lost-pax-heading-cell {
+          font-weight: 700;
+          text-align: center !important;
+          border: 2px solid #0f172a !important;
+          background-color: #f1f5f9 !important;
+          text-transform: uppercase;
+        }
+
+        .lost-pax-subheading-cell {
+          font-weight: 600;
+          border: 2px solid #0f172a !important;
+          background-color: #f8fafc !important;
+          text-align: left !important;
+          padding-left: 8px !important;
+        }
+
         /* Validation styling - Excel-themed with thin red border */
         .htInvalid {
           border: 1px solid #dc2626 !important;

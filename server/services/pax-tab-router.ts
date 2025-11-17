@@ -56,17 +56,23 @@ export class PaxTabRouter {
         'MM/dd/yyyy',  // 12/22/2025
         'd/M/yyyy',    // 2/1/2025
         'yyyy-MM-dd',  // 2025-12-22
+        'dd-MMM-yyyy', // 10-Oct-2025
+        'd-MMM-yyyy',  // 5-Oct-2025
       ];
 
-      for (const fmt of formats) {
-        try {
-          const parsed = parse(dateValue, fmt, new Date());
-          if (isValid(parsed)) {
-            console.log(`→ PaxTabRouter: Successfully parsed with format "${fmt}": ${parsed.toISOString()}`);
-            return parsed;
+      // Try parsing with original and case-normalized variants to accept e.g. "10-oct-2025"
+      const candidates = [dateValue, dateValue.toUpperCase(), dateValue.toLowerCase()];
+      for (const candidate of candidates) {
+        for (const fmt of formats) {
+          try {
+            const parsed = parse(candidate, fmt, new Date());
+            if (isValid(parsed)) {
+              console.log(`→ PaxTabRouter: Successfully parsed with format "${fmt}": ${parsed.toISOString()}`);
+              return parsed;
+            }
+          } catch (e) {
+            // Continue to next format
           }
-        } catch (e) {
-          // Continue to next format
         }
       }
     }

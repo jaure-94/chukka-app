@@ -10,6 +10,7 @@ export interface ConsolidatedPaxData {
   records: CrossShipPaxRecord[];
   totalRecordCount: number;
   lastUpdatedByShip: string;
+  totalsByShip?: Record<string, { paxOnBoard: number; paxOnTour: number }>;
 }
 
 export interface CrossShipPaxRecord extends ValidatedPaxRecord {
@@ -115,6 +116,30 @@ export class ConsolidatedPaxProcessor {
     // Extract tour records
     const records: any[] = [];
     
+    // CRITICAL: Sum ONLY the three tour rows (11, 13, 15) for totals
+    // Q11 + Q13 + Q15 = total pax on board
+    // R11 + R13 + R15 = total pax on tour
+    const tourRows = [11, 13, 15];
+    let columnPaxOnBoardTotal = 0;
+    let columnPaxOnTourTotal = 0;
+    
+    // First, calculate totals from the three specific tour rows
+    for (const row of tourRows) {
+      const paxOnBoardCell = worksheet.getCell(row, 17); // Column Q
+      const paxOnTourCell = worksheet.getCell(row, 18); // Column R
+      
+      const rowPaxOnBoard = this.extractNumericValue(paxOnBoardCell.value);
+      const rowPaxOnTour = this.extractNumericValue(paxOnTourCell.value);
+      
+      columnPaxOnBoardTotal += rowPaxOnBoard;
+      columnPaxOnTourTotal += rowPaxOnTour;
+      
+      console.log(`→ ConsolidatedPaxProcessor: ${shipId} Row ${row} - Q${row}=${rowPaxOnBoard}, R${row}=${rowPaxOnTour}`);
+    }
+    
+    console.log(`→ ConsolidatedPaxProcessor: ${shipId} Column totals - Q11+Q13+Q15=${columnPaxOnBoardTotal}, R11+R13+R15=${columnPaxOnTourTotal}`);
+    
+    // Scan for tour data starting from row 8 to extract individual tour records
     for (let row = 8; row <= 200; row++) {
       const tourNameCell = worksheet.getCell(row, 1);
       const allotmentCell = worksheet.getCell(row, 8);
@@ -150,7 +175,9 @@ export class ConsolidatedPaxProcessor {
       shipName,
       country,
       port,
-      records
+      records,
+      totalPaxOnBoard: columnPaxOnBoardTotal,
+      totalPaxOnTour: columnPaxOnTourTotal
     };
   }
 
@@ -162,9 +189,16 @@ export class ConsolidatedPaxProcessor {
     
     const crossShipRecords: CrossShipPaxRecord[] = [];
     const contributingShips: string[] = [];
+    const totalsByShip: Record<string, { paxOnBoard: number; paxOnTour: number }> = {};
 
     for (const [shipId, shipData] of Object.entries(allShipData)) {
       contributingShips.push(shipId);
+      const fallbackPaxOnBoard = shipData.records.reduce((sum, record) => sum + (record.paxOnBoard || 0), 0);
+      const fallbackPaxOnTour = shipData.records.reduce((sum, record) => sum + (record.paxOnTour || 0), 0);
+      totalsByShip[shipId] = {
+        paxOnBoard: shipData.totalPaxOnBoard ?? fallbackPaxOnBoard,
+        paxOnTour: shipData.totalPaxOnTour ?? fallbackPaxOnTour
+      };
       
       // Validate records for this ship
       const validatedRecords = this.validateAndMapRecords(shipData.records);
@@ -193,7 +227,8 @@ export class ConsolidatedPaxProcessor {
       contributingShips,
       records: crossShipRecords,
       totalRecordCount: crossShipRecords.length,
-      lastUpdatedByShip: contributingShips[contributingShips.length - 1] || 'unknown'
+      lastUpdatedByShip: contributingShips[contributingShips.length - 1] || 'unknown',
+      totalsByShip
     };
   }
 
@@ -243,12 +278,22 @@ export class ConsolidatedPaxProcessor {
 
     console.log(`→ ConsolidatedPaxProcessor: INDIVIDUAL ship data - Ship: ${shipData.shipName}, Date: ${shipData.date}, Records: ${shipData.records.length}`);
 
+    const fallbackPaxOnBoard = shipData.records.reduce((sum, record) => sum + (record.paxOnBoard || 0), 0);
+    const fallbackPaxOnTour = shipData.records.reduce((sum, record) => sum + (record.paxOnTour || 0), 0);
+    const shipTotals = {
+      paxOnBoard: shipData.totalPaxOnBoard ?? fallbackPaxOnBoard,
+      paxOnTour: shipData.totalPaxOnTour ?? fallbackPaxOnTour
+    };
+
     // Create consolidated data with ONLY this ship's current data (no other ships)
     const consolidatedData: ConsolidatedPaxData = {
       contributingShips: [shipId],
       records: [],
       totalRecordCount: 0,
-      lastUpdatedByShip: shipId
+      lastUpdatedByShip: shipId,
+      totalsByShip: {
+        [shipId]: shipTotals
+      }
     };
 
     // Validate records for ONLY this ship's current dispatch
@@ -406,8 +451,10 @@ export class ConsolidatedPaxProcessor {
       invisible: { sold: 0, allotment: 0 }
     };
 
-    let totalPaxOnBoard = 0;
-    let totalPaxOnTour = 0;
+    const shipTotals = consolidatedData.totalsByShip?.[consolidatedData.lastUpdatedByShip];
+    let totalPaxOnBoard = shipTotals?.paxOnBoard ?? 0;
+    let totalPaxOnTour = shipTotals?.paxOnTour ?? 0;
+    const shouldAccumulateTotals = !shipTotals;
 
     console.log(`→ ConsolidatedPaxProcessor: Aggregating ${consolidatedData.records.length} records from ${consolidatedData.contributingShips.length} ships`);
     
@@ -487,8 +534,10 @@ export class ConsolidatedPaxProcessor {
       invisible: { sold: 0, allotment: 0 }
     };
 
-    let totalPaxOnBoard = 0;
-    let totalPaxOnTour = 0;
+    const shipTotals = consolidatedData.totalsByShip?.[consolidatedData.lastUpdatedByShip];
+    let totalPaxOnBoard = shipTotals?.paxOnBoard ?? 0;
+    let totalPaxOnTour = shipTotals?.paxOnTour ?? 0;
+    const shouldAccumulateTotals = !shipTotals;
 
     console.log(`→ ConsolidatedPaxProcessor: Using individual values from single ship (no aggregation)`);
     
@@ -508,11 +557,9 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
-      // Take from first record only, don't accumulate
-      if (totalPaxOnBoard === 0) {
-        totalPaxOnBoard = record.paxOnBoard;
-        totalPaxOnTour = record.paxOnTour;
+      if (shouldAccumulateTotals) {
+        totalPaxOnBoard += record.paxOnBoard || 0;
+        totalPaxOnTour += record.paxOnTour || 0;
       }
     }
 
@@ -846,8 +893,10 @@ export class ConsolidatedPaxProcessor {
       invisible: { sold: 0, allotment: 0 }
     };
 
-    let totalPaxOnBoard = 0;
-    let totalPaxOnTour = 0;
+    const shipTotals = consolidatedData.totalsByShip?.[consolidatedData.lastUpdatedByShip];
+    let totalPaxOnBoard = shipTotals?.paxOnBoard ?? 0;
+    let totalPaxOnTour = shipTotals?.paxOnTour ?? 0;
+    const shouldAccumulateTotals = !shipTotals;
 
     // Filter to only include records from the triggering ship
     const triggeringShipRecords = consolidatedData.records.filter(record => 
@@ -870,11 +919,9 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
-      // Take from first record only, don't accumulate
-      if (totalPaxOnBoard === 0) {
-        totalPaxOnBoard = record.paxOnBoard;
-        totalPaxOnTour = record.paxOnTour;
+      if (shouldAccumulateTotals) {
+        totalPaxOnBoard += record.paxOnBoard || 0;
+        totalPaxOnTour += record.paxOnTour || 0;
       }
     }
 
@@ -948,13 +995,8 @@ export class ConsolidatedPaxProcessor {
         tourTotals.invisible.allotment = record.allotment;
       }
 
-      // FIXED: paxOnBoard and paxOnTour are SHIP-LEVEL totals (same across all tours)
-      // Take from first record only, don't accumulate
-      if (totalPaxOnBoard === 0) {
-        totalPaxOnBoard = record.paxOnBoard;
-        totalPaxOnTour = record.paxOnTour;
-        console.log(`→ ConsolidatedPaxProcessor: Using ship-level PAX totals - OnBoard: ${totalPaxOnBoard}, OnTour: ${totalPaxOnTour}`);
-      }
+      totalPaxOnBoard += record.paxOnBoard || 0;
+      totalPaxOnTour += record.paxOnTour || 0;
     }
 
     console.log(`→ ConsolidatedPaxProcessor: Final ship values - Cat: ${tourTotals.catamaran.sold}/${tourTotals.catamaran.allotment}, Champ: ${tourTotals.champagne.sold}/${tourTotals.champagne.allotment}, Inv: ${tourTotals.invisible.sold}/${tourTotals.invisible.allotment}, PAX: ${totalPaxOnBoard}/${totalPaxOnTour}`);
@@ -1022,13 +1064,54 @@ export class ConsolidatedPaxProcessor {
     return validatedRecords;
   }
 
-  private replaceDelimiter(worksheet: ExcelJS.Worksheet, row: number, col: number, delimiter: string, value: string | number): void {
-    const cell = worksheet.getCell(row, col);
-    
-    if (cell.value && String(cell.value).includes(delimiter)) {
-      cell.value = value;
-      console.log(`→ ConsolidatedPaxProcessor: Replaced ${delimiter} at ${cell.address} = ${value}`);
+  private replaceDelimiter(
+    worksheet: ExcelJS.Worksheet,
+    row: number,
+    col: number,
+    delimiter: string,
+    value: string | number
+  ): void {
+    const rowRef = worksheet.getRow(row);
+    const primaryCell = rowRef.getCell(col);
+
+    if (this.cellContainsDelimiter(primaryCell, delimiter)) {
+      primaryCell.value = value;
+      console.log(`→ ConsolidatedPaxProcessor: Replaced ${delimiter} at ${primaryCell.address} = ${value}`);
+      return;
     }
+
+    let fallbackCell: ExcelJS.Cell | undefined;
+
+    rowRef.eachCell({ includeEmpty: false }, (cell) => {
+      if (!fallbackCell && this.cellContainsDelimiter(cell, delimiter)) {
+        fallbackCell = cell;
+      }
+    });
+
+    if (!fallbackCell) {
+      for (let rowIndex = 1; rowIndex <= worksheet.rowCount && !fallbackCell; rowIndex++) {
+        const worksheetRow = worksheet.getRow(rowIndex);
+        worksheetRow.eachCell({ includeEmpty: false }, (cell) => {
+          if (!fallbackCell && this.cellContainsDelimiter(cell, delimiter)) {
+            fallbackCell = cell;
+          }
+        });
+      }
+    }
+
+    if (fallbackCell) {
+      fallbackCell.value = value;
+      console.log(`→ ConsolidatedPaxProcessor: Replaced ${delimiter} at ${fallbackCell.address} (fallback) = ${value}`);
+    } else {
+      primaryCell.value = value;
+      console.warn(`→ ConsolidatedPaxProcessor: Delimiter ${delimiter} not found; overwrote ${primaryCell.address} directly with ${value}`);
+    }
+  }
+
+  private cellContainsDelimiter(cell: ExcelJS.Cell | undefined, delimiter: string): boolean {
+    if (!cell) return false;
+    const text = cell.text;
+    return typeof text === 'string' && text.includes(delimiter);
   }
 
   private getCellValue(worksheet: ExcelJS.Worksheet, address: string): string {
