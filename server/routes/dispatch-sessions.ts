@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { storage } from "../storage";
-import { authenticateToken } from "../auth/middleware";
+import { storage } from "../storage.js";
+import { authenticateToken } from "../auth/middleware.js";
 import { insertDispatchSessionSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
 

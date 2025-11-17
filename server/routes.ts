@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import authRoutes from "./auth/routes";
-import userRoutes from "./auth/userRoutes";
-import dispatchSessionRoutes from "./routes/dispatch-sessions";
-import { authenticateToken } from "./auth/middleware";
+import authRoutes from "./auth/routes.js";
+import userRoutes from "./auth/userRoutes.js";
+import dispatchSessionRoutes from "./routes/dispatch-sessions.js";
+import { authenticateToken } from "./auth/middleware.js";
 import { 
   requireAuth, 
   requireDispatchAccess, 
@@ -14,20 +14,20 @@ import {
   requirePAXEdit,
   requireTemplateAccess,
   requireTemplateEdit
-} from "./auth/roleMiddleware";
-import { storage } from "./storage";
+} from "./auth/roleMiddleware.js";
+import { storage } from "./storage.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { ExcelParser } from "./services/excel-parser";
-import { TemplateProcessor } from "./services/template-processor";
-import { DropboxService } from "./services/dropbox-service";
-import { EODProcessor } from "./services/eod-processor-exceljs";
-import { DispatchGenerator } from "./services/dispatch-generator";
-import { simpleEODProcessor } from "./services/simple-eod-processor";
-import { cellExtractor } from "./services/cell-extractor";
-import { PaxProcessor } from "./services/pax-processor";
-import { ConsolidatedPaxProcessor } from "./services/consolidated-pax-processor";
+import { ExcelParser } from "./services/excel-parser.js";
+import { TemplateProcessor } from "./services/template-processor.js";
+import { DropboxService } from "./services/dropbox-service.js";
+import { EODProcessor } from "./services/eod-processor-exceljs.js";
+import { DispatchGenerator } from "./services/dispatch-generator.js";
+import { simpleEODProcessor } from "./services/simple-eod-processor.js";
+import { cellExtractor } from "./services/cell-extractor.js";
+import { PaxProcessor } from "./services/pax-processor.js";
+import { ConsolidatedPaxProcessor } from "./services/consolidated-pax-processor.js";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { 

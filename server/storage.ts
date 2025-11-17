@@ -36,7 +36,7 @@ import {
   type InsertConsolidatedPaxReport,
   type InsertDispatchSession
 } from "@shared/schema";
-import { db, withRetry } from "./db";
+import { db, withRetry } from "./db.js";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {

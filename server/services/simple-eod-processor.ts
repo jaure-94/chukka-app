@@ -1,8 +1,8 @@
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
-import { cellExtractor, TemplateHeaderData } from "./cell-extractor";
-import { storage } from "../storage";
+import { cellExtractor, TemplateHeaderData } from "./cell-extractor.js";
+import { storage } from "../storage.js";
 
 export class SimpleEODProcessor {
   private outputDir = path.join(process.cwd(), "output");

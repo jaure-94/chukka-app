@@ -2,8 +2,8 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 import { nanoid } from 'nanoid';
-import { PaxProcessor, type PaxReportData, type ValidatedPaxRecord } from './pax-processor';
-import { paxTabRouter } from './pax-tab-router';
+import { PaxProcessor, type PaxReportData, type ValidatedPaxRecord } from './pax-processor.js';
+import { paxTabRouter } from './pax-tab-router.js';
 
 export interface ConsolidatedPaxData {
   contributingShips: string[];

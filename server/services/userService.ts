@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../db.js";
 import { users, type User, type InsertUser } from "@shared/schema";
-import { type UserRole } from "../auth/config";
+import { type UserRole } from "../auth/config.js";
 import bcrypt from "bcryptjs";
 
 export interface UserServiceResult<T = any> {

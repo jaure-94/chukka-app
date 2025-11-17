@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { UserService } from "../services/userService";
+import { UserService } from "../services/userService.js";
 import { insertUserSchema, updateUserSchema } from "@shared/schema";
-import { type UserRole } from "./config";
+import { type UserRole } from "./config.js";
 import { ZodError } from "zod";
 
 export interface AuthenticatedRequest extends Request {

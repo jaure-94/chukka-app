@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { UserController, type AuthenticatedRequest } from "./userController";
-import { authenticateToken, rateLimit } from "./middleware";
-import { requireAdmin } from "./roleMiddleware";
+import { UserController, type AuthenticatedRequest } from "./userController.js";
+import { authenticateToken, rateLimit } from "./middleware.js";
+import { requireAdmin } from "./roleMiddleware.js";
 
 const router = Router();
 const userController = new UserController();

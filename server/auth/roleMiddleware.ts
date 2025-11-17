@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { USER_ROLES, ROLE_PERMISSIONS, PERMISSIONS, type UserRole } from "./config";
-import type { Permission } from "./config";
+import { USER_ROLES, ROLE_PERMISSIONS, PERMISSIONS, type UserRole } from "./config.js";
+import type { Permission } from "./config.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: {

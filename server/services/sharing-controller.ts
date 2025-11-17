@@ -1,5 +1,5 @@
 import { eq, desc, and } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../db.js";
 import { 
   sharingActivities, 
   shareTemplates, 
@@ -8,8 +8,8 @@ import {
   type SharingActivity, 
   type ShareTemplate 
 } from "@shared/schema";
-import { EmailService } from "./email-service";
-import { DropboxService } from "./dropbox-service";
+import { EmailService } from "./email-service.js";
+import { DropboxService } from "./dropbox-service.js";
 import fs from "fs";
 import path from "path";
 
