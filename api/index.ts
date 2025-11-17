@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { registerRoutes } from '../server/routes';
-import { serveStatic } from '../server/vite';
+import { registerRoutes } from '../server/routes.js';
+import { serveStatic } from '../server/vite.js';
 
 const app = express();
 app.use(express.json());
