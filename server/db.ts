@@ -21,10 +21,15 @@ export const pool = new Pool({
 });
 
 // Add error handling for the pool
-pool.on('error', (err) => {
-  console.error('Database pool error:', err);
+pool.on('error', (err: unknown) => {
+  if (err instanceof Error) {
+    console.error('Database pool error:', err);
+  } else {
+    console.error('Database pool error:', JSON.stringify(err));
+  }
   // Don't crash the application, just log the error
 });
+
 
 // Add connection retry logic
 let dbInstance: ReturnType<typeof drizzle> | null = null;
