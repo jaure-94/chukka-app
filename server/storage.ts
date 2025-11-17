@@ -35,7 +35,7 @@ import {
   type InsertExtractedDispatchData,
   type InsertConsolidatedPaxReport,
   type InsertDispatchSession
-} from "../../shared/schema.js";
+} from "../shared/schema.js";
 import { db, withRetry } from "./db.js";
 import { eq, desc, and } from "drizzle-orm";
 
