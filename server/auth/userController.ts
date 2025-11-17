@@ -471,7 +471,7 @@ export class UserController {
           "You must be logged in to view permissions");
       }
 
-      const { ROLE_PERMISSIONS } = await import("./config");
+      const { ROLE_PERMISSIONS } = await import("./config.js");
       const userPermissions = ROLE_PERMISSIONS[req.user.role as keyof typeof ROLE_PERMISSIONS] || [];
 
       return this.sendSuccessResponse(res, 200, "Permissions retrieved successfully", {

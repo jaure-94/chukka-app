@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/dispatch-sessions", dispatchSessionRoutes);
 
   // Initialize default superuser if none exists (non-blocking)
-  const userService = await import("./services/userService");
+  const userService = await import("./services/userService.js");
   const userServiceInstance = new userService.UserService();
   userServiceInstance.createDefaultSuperuser().catch((error) => {
     console.error("Failed to create default superuser:", error);

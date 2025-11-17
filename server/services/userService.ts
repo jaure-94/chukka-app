@@ -181,7 +181,7 @@ export class UserService {
    */
   public async generateTokenForUser(user: User): Promise<string> {
     const jwt = await import("jsonwebtoken");
-    const { jwtConfig } = await import("../auth/config");
+    const { jwtConfig } = await import("../auth/config.js");
     
     const payload = {
       userId: user.id,
@@ -558,7 +558,7 @@ export class UserService {
       }
 
       // Generate JWT token
-      const { generateToken } = await import("../auth/jwt");
+      const { generateToken } = await import("../auth/jwt.js");
       const token = generateToken(user);
 
       return {
