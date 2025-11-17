@@ -93,10 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dispatch session management routes
   app.use("/api/dispatch-sessions", dispatchSessionRoutes);
 
-  // Initialize default superuser if none exists
+  // Initialize default superuser if none exists (non-blocking)
   const userService = await import("./services/userService");
   const userServiceInstance = new userService.UserService();
-  await userServiceInstance.createDefaultSuperuser();
+  userServiceInstance.createDefaultSuperuser().catch((error) => {
+    console.error("Failed to create default superuser:", error);
+    // Don't throw - allow app to continue even if superuser creation fails
+  });
 
   // Serve uploaded files - ship-aware
   app.get("/api/files/:shipId/:filename", async (req, res) => {
