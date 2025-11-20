@@ -39,28 +39,34 @@ import {
   insertDispatchRecordSchema
 } from "../shared/schema.js";
 
-const upload = multer({ 
-  storage: multer.diskStorage({
-    destination: function(req, file, cb) {
-      // Use ship-specific directory
-      const shipId = req.body.shipId || 'ship-a';
-      const uploadDir = path.join('uploads', shipId);
-      
-      // Ensure directory exists
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      cb(null, uploadDir);
-    },
-    filename: function(req, file, cb) {
-      // Keep original filename structure but ensure uniqueness
-      const timestamp = Date.now();
-      const ext = path.extname(file.originalname);
-      const name = path.basename(file.originalname, ext);
-      cb(null, `${name}_${timestamp}${ext}`);
-    }
-  }),
+// On Vercel, use memory storage and write to /tmp (writable directory)
+// Locally, use disk storage for persistence
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+
+const upload = multer({
+  storage: isVercel 
+    ? multer.memoryStorage() // Use memory storage on Vercel
+    : multer.diskStorage({
+        destination: function(req, file, cb) {
+          // Use ship-specific directory
+          const shipId = req.body.shipId || 'ship-a';
+          const uploadDir = path.join('uploads', shipId);
+          
+          // Ensure directory exists
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          
+          cb(null, uploadDir);
+        },
+        filename: function(req, file, cb) {
+          // Keep original filename structure but ensure uniqueness
+          const timestamp = Date.now();
+          const ext = path.extname(file.originalname);
+          const name = path.basename(file.originalname, ext);
+          cb(null, `${name}_${timestamp}${ext}`);
+        }
+      }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -223,8 +229,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const uploadedFile = await storage.createUploadedFile(fileData);
 
+      // Handle memory storage (Vercel) vs disk storage (local)
+      let filePath: string;
+      if ((req.file as any).buffer) {
+        // Memory storage - write to /tmp first, then read
+        const tmpDir = path.join('/tmp', 'uploads', shipId);
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        filePath = path.join(tmpDir, req.file.filename);
+        fs.writeFileSync(filePath, (req.file as any).buffer);
+      } else {
+        // Disk storage - use existing path
+        filePath = req.file.path;
+      }
+
       // Parse Excel file from ship-specific directory
-      const parsedData = await excelParser.parseFile(req.file.path);
+      const parsedData = await excelParser.parseFile(filePath);
       
       // Store parsed data in database
       for (const sheet of parsedData.sheets) {
@@ -254,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createDispatchVersion({
         filename: uploadedFile.filename,
         originalFilename: uploadedFile.originalName,
-        filePath: req.file.path, // Use the actual path from multer
+        filePath: filePath, // Use the actual path (from /tmp on Vercel or uploads/ locally)
         shipId: shipId,
         version: nextVersion,
         description: `Edited dispatch sheet v${nextVersion} for ${shipId}`,
@@ -433,6 +454,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to handle file upload path (memory storage on Vercel vs disk storage locally)
+  function getUploadedFilePath(req: Express.Request, shipId: string): string {
+    const file = (req as any).file;
+    
+    if (file.buffer) {
+      // Memory storage - write to /tmp (Vercel writable directory)
+      const timestamp = Date.now();
+      const ext = path.extname(file.originalname);
+      const name = path.basename(file.originalname, ext);
+      const filename = `${name}_${timestamp}${ext}`;
+      
+      // Ensure /tmp directory exists and create ship-specific subdirectory
+      const tmpDir = path.join('/tmp', 'uploads', shipId);
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      
+      const filePath = path.join(tmpDir, filename);
+      fs.writeFileSync(filePath, file.buffer);
+      
+      console.log(`File saved to /tmp: ${filePath}`);
+      return filePath;
+    } else {
+      // Disk storage - use existing path
+      return file.path;
+    }
+  }
+
   // Template management routes
   app.post("/api/templates/dispatch", upload.single("template"), async (req, res) => {
     try {
@@ -443,10 +492,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const filePath = getUploadedFilePath(req, shipId);
+
       const templateData = insertDispatchTemplateSchema.parse({
         filename: req.file.filename,
         originalFilename: req.file.originalname,
-        filePath: req.file.path,
+        filePath: filePath,
         shipId: shipId,
       });
 
@@ -454,7 +505,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(template);
     } catch (error) {
       console.error("Dispatch template upload error:", error);
-      res.status(500).json({ message: "Template upload failed" });
+      res.status(500).json({ 
+        message: "Template upload failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -467,10 +521,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const filePath = getUploadedFilePath(req, shipId);
+
       const templateData = insertEodTemplateSchema.parse({
         filename: req.file.filename,
         originalFilename: req.file.originalname,
-        filePath: req.file.path,
+        filePath: filePath,
         shipId: shipId,
       });
 
@@ -478,7 +534,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(template);
     } catch (error) {
       console.error("EOD template upload error:", error);
-      res.status(500).json({ message: "Template upload failed" });
+      res.status(500).json({ 
+        message: "Template upload failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -491,10 +550,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const filePath = getUploadedFilePath(req, shipId);
+
       const templateData = insertPaxTemplateSchema.parse({
         filename: req.file.filename,
         originalFilename: req.file.originalname,
-        filePath: req.file.path,
+        filePath: filePath,
         shipId: shipId,
       });
 
@@ -502,7 +563,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(template);
     } catch (error) {
       console.error("PAX template upload error:", error);
-      res.status(500).json({ message: "Template upload failed" });
+      res.status(500).json({ 
+        message: "Template upload failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -760,7 +824,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const editedWorkbook = new ExcelJS.Workbook();
       
       await templateWorkbook.xlsx.readFile(templatePath);
-      await editedWorkbook.xlsx.readFile(req.file.path);
+      
+      // Handle memory storage (Vercel) vs disk storage (local)
+      let editedFilePath: string;
+      if ((req.file as any).buffer) {
+        // Memory storage - write to /tmp first, then read
+        const tmpFile = path.join('/tmp', `edited_${Date.now()}.xlsx`);
+        fs.writeFileSync(tmpFile, (req.file as any).buffer);
+        editedFilePath = tmpFile;
+      } else {
+        // Disk storage - use existing path
+        editedFilePath = req.file.path;
+      }
+      
+      await editedWorkbook.xlsx.readFile(editedFilePath);
       
       const templateWorksheet = templateWorkbook.getWorksheet(1);
       const editedWorksheet = editedWorkbook.getWorksheet(1);
@@ -848,7 +925,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save the formatted file with a new filename in ship-specific directory
       const timestamp = Date.now();
       const newFilename = `edited_dispatch_${timestamp}.xlsx`;
-      const shipUploadDir = path.join(process.cwd(), "uploads", shipId);
+      
+      // On Vercel, use /tmp; locally use uploads directory
+      let shipUploadDir: string;
+      if (isVercel) {
+        shipUploadDir = path.join('/tmp', 'uploads', shipId);
+      } else {
+        shipUploadDir = path.join(process.cwd(), "uploads", shipId);
+      }
+      
       const outputPath = path.join(shipUploadDir, newFilename);
       
       // Ensure ship-specific upload directory exists
