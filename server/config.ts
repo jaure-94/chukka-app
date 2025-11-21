@@ -11,6 +11,7 @@ if (fs.existsSync(envLocalPath) && process.env.NODE_ENV !== 'production') {
 export const config = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
+  BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT || 5000,
 };
@@ -19,4 +20,5 @@ export const config = {
 if (process.env.NODE_ENV === 'production') {
   console.log('Production mode - DATABASE_URL:', config.DATABASE_URL ? 'SET' : 'MISSING');
   console.log('Production mode - JWT_SECRET:', config.JWT_SECRET ? 'SET' : 'MISSING');
+  console.log('Production mode - BLOB_READ_WRITE_TOKEN:', config.BLOB_READ_WRITE_TOKEN ? 'SET' : 'MISSING');
 }

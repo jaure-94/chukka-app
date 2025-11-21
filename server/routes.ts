@@ -28,6 +28,7 @@ import { simpleEODProcessor } from "./services/simple-eod-processor.js";
 import { cellExtractor } from "./services/cell-extractor.js";
 import { PaxProcessor } from "./services/pax-processor.js";
 import { ConsolidatedPaxProcessor } from "./services/consolidated-pax-processor.js";
+import { blobStorage } from "./services/blob-storage.js";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { 
@@ -219,9 +220,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const shipId = req.body.shipId || 'ship-a';
+      const { key: blobKey, filename: generatedFilename } = buildBlobKey({
+        category: "uploads",
+        shipId,
+        originalFilename: req.file.originalname || req.file.filename,
+        fallbackPrefix: "dispatch",
+      });
+      const storedFilename = req.file.filename || generatedFilename;
+      req.file.filename = storedFilename;
+
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = getUploadedFileBuffer(req.file);
+      } catch (error) {
+        console.error("Failed to read uploaded file buffer:", error);
+        return res.status(500).json({ message: "Unable to read uploaded file" });
+      }
+
+      let blobUrl: string | undefined;
+      try {
+        const uploadResult = await blobStorage.uploadFile(
+          fileBuffer,
+          blobKey,
+          req.file.mimetype || "application/octet-stream",
+          false
+        );
+        blobUrl = uploadResult.url;
+      } catch (error) {
+        console.warn("Blob upload failed; falling back to local storage path:", error);
+      }
 
       const fileData = insertUploadedFileSchema.parse({
-        filename: req.file.filename,
+        filename: storedFilename,
         originalName: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size,
@@ -275,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createDispatchVersion({
         filename: uploadedFile.filename,
         originalFilename: uploadedFile.originalName,
-        filePath: filePath, // Use the actual path (from /tmp on Vercel or uploads/ locally)
+        filePath: blobUrl ?? filePath,
         shipId: shipId,
         version: nextVersion,
         description: `Edited dispatch sheet v${nextVersion} for ${shipId}`,
@@ -482,6 +512,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  function getUploadedFileBuffer(file: Express.Multer.File): Buffer {
+    if ((file as any).buffer) {
+      return Buffer.from((file as any).buffer);
+    }
+    if (file.path && fs.existsSync(file.path)) {
+      return fs.readFileSync(file.path);
+    }
+    throw new Error("Uploaded file buffer is not available");
+  }
+
+  function buildBlobKey(options: {
+    category: string;
+    shipId?: string;
+    originalFilename?: string;
+    fallbackPrefix: string;
+  }): { key: string; filename: string } {
+    const { category, shipId, originalFilename, fallbackPrefix } = options;
+    const ext = path.extname(originalFilename || "") || ".xlsx";
+    const rawBase = originalFilename ? path.basename(originalFilename, ext) : fallbackPrefix;
+    const safeBase = (rawBase || fallbackPrefix).replace(/[^a-zA-Z0-9-_]/g, "_");
+    const filename = `${safeBase}_${Date.now()}${ext}`;
+    const segments = [category];
+    if (shipId) {
+      segments.push(shipId);
+    }
+    segments.push(filename);
+    return { key: segments.join("/"), filename };
+  }
+
   // Template management routes
   app.post("/api/templates/dispatch", upload.single("template"), async (req, res) => {
     try {
@@ -492,12 +551,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const { key: blobKey, filename: generatedFilename } = buildBlobKey({
+        category: "templates/dispatch",
+        shipId,
+        originalFilename: req.file.originalname || req.file.filename,
+        fallbackPrefix: "dispatch_template",
+      });
+      const storedFilename = req.file.filename || generatedFilename;
+      req.file.filename = storedFilename;
+
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = getUploadedFileBuffer(req.file);
+      } catch (error) {
+        console.error("Failed to read dispatch template buffer:", error);
+        return res.status(500).json({ message: "Unable to read template file" });
+      }
+
+      let blobUrl: string | undefined;
+      try {
+        const uploadResult = await blobStorage.uploadFile(
+          fileBuffer,
+          blobKey,
+          req.file.mimetype || "application/octet-stream",
+          false
+        );
+        blobUrl = uploadResult.url;
+      } catch (error) {
+        console.warn("Blob upload failed for dispatch template; using local path fallback:", error);
+      }
+
       const filePath = getUploadedFilePath(req, shipId);
 
       const templateData = insertDispatchTemplateSchema.parse({
-        filename: req.file.filename,
+        filename: storedFilename,
         originalFilename: req.file.originalname,
-        filePath: filePath,
+        filePath: blobUrl ?? filePath,
         shipId: shipId,
       });
 
@@ -521,12 +610,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const { key: blobKey, filename: generatedFilename } = buildBlobKey({
+        category: "templates/eod",
+        shipId,
+        originalFilename: req.file.originalname || req.file.filename,
+        fallbackPrefix: "eod_template",
+      });
+      const storedFilename = req.file.filename || generatedFilename;
+      req.file.filename = storedFilename;
+
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = getUploadedFileBuffer(req.file);
+      } catch (error) {
+        console.error("Failed to read EOD template buffer:", error);
+        return res.status(500).json({ message: "Unable to read template file" });
+      }
+
+      let blobUrl: string | undefined;
+      try {
+        const uploadResult = await blobStorage.uploadFile(
+          fileBuffer,
+          blobKey,
+          req.file.mimetype || "application/octet-stream",
+          false
+        );
+        blobUrl = uploadResult.url;
+      } catch (error) {
+        console.warn("Blob upload failed for EOD template; using local path fallback:", error);
+      }
+
       const filePath = getUploadedFilePath(req, shipId);
 
       const templateData = insertEodTemplateSchema.parse({
-        filename: req.file.filename,
+        filename: storedFilename,
         originalFilename: req.file.originalname,
-        filePath: filePath,
+        filePath: blobUrl ?? filePath,
         shipId: shipId,
       });
 
@@ -550,12 +669,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract ship ID from request body or default to ship-a
       const shipId = req.body.shipId || 'ship-a';
 
+      const { key: blobKey, filename: generatedFilename } = buildBlobKey({
+        category: "templates/pax",
+        shipId,
+        originalFilename: req.file.originalname || req.file.filename,
+        fallbackPrefix: "pax_template",
+      });
+      const storedFilename = req.file.filename || generatedFilename;
+      req.file.filename = storedFilename;
+
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = getUploadedFileBuffer(req.file);
+      } catch (error) {
+        console.error("Failed to read PAX template buffer:", error);
+        return res.status(500).json({ message: "Unable to read template file" });
+      }
+
+      let blobUrl: string | undefined;
+      try {
+        const uploadResult = await blobStorage.uploadFile(
+          fileBuffer,
+          blobKey,
+          req.file.mimetype || "application/octet-stream",
+          false
+        );
+        blobUrl = uploadResult.url;
+      } catch (error) {
+        console.warn("Blob upload failed for PAX template; using local path fallback:", error);
+      }
+
       const filePath = getUploadedFilePath(req, shipId);
 
       const templateData = insertPaxTemplateSchema.parse({
-        filename: req.file.filename,
+        filename: storedFilename,
         originalFilename: req.file.originalname,
-        filePath: filePath,
+        filePath: blobUrl ?? filePath,
         shipId: shipId,
       });
 
@@ -814,30 +963,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: `No active dispatch template found for ${shipId}` });
       }
 
-      const templatePath = path.resolve(dispatchTemplate.filePath);
-      if (!fs.existsSync(templatePath)) {
-        return res.status(404).json({ message: "Dispatch template file not found" });
+      const templateWorkbook = new ExcelJS.Workbook();
+      if (dispatchTemplate.filePath && blobStorage.isBlobUrl(dispatchTemplate.filePath)) {
+        const templateBuffer = await blobStorage.downloadFile(dispatchTemplate.filePath);
+        await templateWorkbook.xlsx.load(templateBuffer);
+      } else {
+        const templatePath = path.resolve(dispatchTemplate.filePath);
+        if (!fs.existsSync(templatePath)) {
+          return res.status(404).json({ message: "Dispatch template file not found" });
+        }
+        await templateWorkbook.xlsx.readFile(templatePath);
       }
 
-      // Create a new dispatch version with formatting preservation
-      const templateWorkbook = new ExcelJS.Workbook();
       const editedWorkbook = new ExcelJS.Workbook();
-      
-      await templateWorkbook.xlsx.readFile(templatePath);
-      
-      // Handle memory storage (Vercel) vs disk storage (local)
-      let editedFilePath: string;
-      if ((req.file as any).buffer) {
-        // Memory storage - write to /tmp first, then read
-        const tmpFile = path.join('/tmp', `edited_${Date.now()}.xlsx`);
-        fs.writeFileSync(tmpFile, (req.file as any).buffer);
-        editedFilePath = tmpFile;
-      } else {
-        // Disk storage - use existing path
-        editedFilePath = req.file.path;
+      let editedFileBuffer: Buffer;
+      try {
+        editedFileBuffer = getUploadedFileBuffer(req.file);
+      } catch (error) {
+        console.error("Failed to read edited dispatch sheet buffer:", error);
+        return res.status(500).json({ message: "Unable to read uploaded dispatch sheet" });
       }
-      
-      await editedWorkbook.xlsx.readFile(editedFilePath);
+      await editedWorkbook.xlsx.load(editedFileBuffer);
       
       const templateWorksheet = templateWorkbook.getWorksheet(1);
       const editedWorksheet = editedWorkbook.getWorksheet(1);
@@ -940,15 +1086,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!fs.existsSync(shipUploadDir)) {
         fs.mkdirSync(shipUploadDir, { recursive: true });
       }
-      
-      await templateWorkbook.xlsx.writeFile(outputPath);
+
+      const finalBuffer = Buffer.from(await templateWorkbook.xlsx.writeBuffer());
+      fs.writeFileSync(outputPath, finalBuffer);
+
+      const { key: blobKey } = buildBlobKey({
+        category: "dispatch/versions",
+        shipId,
+        originalFilename: newFilename,
+        fallbackPrefix: "edited_dispatch"
+      });
+      let blobUrl: string | undefined;
+      try {
+        const uploadResult = await blobStorage.uploadFile(
+          finalBuffer,
+          blobKey,
+          req.file.mimetype || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          false
+        );
+        blobUrl = uploadResult.url;
+      } catch (error) {
+        console.warn("Blob upload failed for saved dispatch sheet; using local path fallback:", error);
+      }
       
       // Create file record in database
       const fileData = insertUploadedFileSchema.parse({
         filename: newFilename,
         originalName: req.file.originalname,
         mimetype: req.file.mimetype,
-        size: fs.statSync(outputPath).size,
+        size: finalBuffer.length,
       });
 
       const uploadedFile = await storage.createUploadedFile(fileData);
@@ -960,14 +1126,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createDispatchVersion({
         filename: newFilename,
         originalFilename: req.file.originalname,
-        filePath: outputPath, // Use the complete absolute path
+        filePath: blobUrl ?? outputPath,
         shipId: shipId,
         version: nextVersion,
         description: `Formatted dispatch sheet v${nextVersion} (${shipId})`,
       });
 
       // Clean up the original uploaded file
-      fs.unlinkSync(req.file.path);
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
 
       console.log(`Saved formatted dispatch sheet: ${newFilename}`);
       
