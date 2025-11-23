@@ -1,4 +1,4 @@
-import { put, get, del, type PutBlobResult, type GetBlobResult } from '@vercel/blob';
+import { put, del, type PutBlobResult } from '@vercel/blob';
 import { config } from '../config.js';
 import ExcelJS from 'exceljs';
 
@@ -109,24 +109,11 @@ export class BlobStorageService {
       throw new Error(`Invalid blob URL: ${blobUrl}`);
     }
 
-    if (!this.token) {
-      throw new Error('BLOB_READ_WRITE_TOKEN is not configured. Cannot download file.');
-    }
-
     try {
-      const blob: GetBlobResult = await get(blobUrl, {
-        token: this.token,
-      });
-
-      if (!blob || !blob.downloadUrl) {
-        throw new Error('Blob download URL not available');
-      }
-
-      // Fetch the actual file content from the download URL
-      const response = await fetch(blob.downloadUrl);
+      const response = await fetch(blobUrl);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch blob content: ${response.statusText}`);
+        throw new Error(`Failed to fetch blob content: ${response.status} ${response.statusText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
