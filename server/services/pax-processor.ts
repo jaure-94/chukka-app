@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 import { nanoid } from 'nanoid';
+import { blobStorage } from './blob-storage.js';
 
 export interface PaxReportData {
   date: string;
@@ -51,7 +52,11 @@ export class PaxProcessor {
 
     // Load PAX template
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(paxTemplatePath);
+    if (blobStorage.isBlobUrl(paxTemplatePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(paxTemplatePath));
+    } else {
+      await workbook.xlsx.readFile(paxTemplatePath);
+    }
     const worksheet = workbook.getWorksheet(1);
 
     if (!worksheet) {
@@ -61,20 +66,28 @@ export class PaxProcessor {
     // Generate PAX report
     await this.generatePaxReport(worksheet, dispatchData, validatedRecords);
 
-    // Save the generated report to ship-specific directory
+    // Save the generated report - use blob storage on Vercel, filesystem locally
     const outputFilename = `pax_${Date.now()}.xlsx`;
-    const shipOutputDir = path.join(process.cwd(), 'output', shipId);
-    const outputPath = path.join(shipOutputDir, outputFilename);
+    const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
     
-    // Ensure ship-specific output directory exists
-    if (!fs.existsSync(shipOutputDir)) {
-      fs.mkdirSync(shipOutputDir, { recursive: true });
+    if (useBlob) {
+      const blobKey = `output/${shipId}/${outputFilename}`;
+      const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+      console.log(`→ PaxProcessor: PAX report saved to blob storage: ${blobUrl}`);
+      return blobUrl; // Return blob URL instead of filename
+    } else {
+      const shipOutputDir = path.join(process.cwd(), 'output', shipId);
+      const outputPath = path.join(shipOutputDir, outputFilename);
+      
+      // Ensure ship-specific output directory exists
+      if (!fs.existsSync(shipOutputDir)) {
+        fs.mkdirSync(shipOutputDir, { recursive: true });
+      }
+      
+      await workbook.xlsx.writeFile(outputPath);
+      console.log(`→ PaxProcessor: PAX report saved to ${outputPath}`);
+      return outputFilename;
     }
-    
-    await workbook.xlsx.writeFile(outputPath);
-
-    console.log(`→ PaxProcessor: PAX report saved to ${outputPath}`);
-    return outputFilename;
   }
 
   /**
@@ -84,7 +97,11 @@ export class PaxProcessor {
     const workbook = new ExcelJS.Workbook();
     
     // Enable formula calculations when reading the file
-    await workbook.xlsx.readFile(filePath);
+    if (blobStorage.isBlobUrl(filePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(filePath));
+    } else {
+      await workbook.xlsx.readFile(filePath);
+    }
     
     // Force recalculation of formulas
     const worksheet = workbook.getWorksheet(1);
@@ -473,7 +490,11 @@ export class PaxProcessor {
 
     // Load existing PAX report
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(existingPaxPath);
+    if (blobStorage.isBlobUrl(existingPaxPath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(existingPaxPath));
+    } else {
+      await workbook.xlsx.readFile(existingPaxPath);
+    }
     const worksheet = workbook.getWorksheet(1);
 
     if (!worksheet) {
@@ -487,11 +508,20 @@ export class PaxProcessor {
     // Add new records to the existing PAX report
     await this.addRecordsToExistingPax(worksheet, dispatchData, validatedRecords, nextRow);
 
-    // Save the updated report back to the SAME file (overwrite existing)
-    await workbook.xlsx.writeFile(existingPaxPath);
-
-    console.log(`→ PaxProcessor: Updated existing PAX report: ${existingPaxPath}`);
-    return path.basename(existingPaxPath);
+    // Save the updated report back - use blob storage if it was a blob URL
+    const useBlob = blobStorage.isBlobUrl(existingPaxPath) || process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+    
+    if (useBlob && blobStorage.isBlobUrl(existingPaxPath)) {
+      // Extract blob key from URL or generate new one
+      const blobKey = `output/${shipId}/pax_${Date.now()}.xlsx`;
+      const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey, false); // Don't add random suffix for overwrite
+      console.log(`→ PaxProcessor: Updated existing PAX report in blob storage: ${blobUrl}`);
+      return blobUrl;
+    } else {
+      await workbook.xlsx.writeFile(existingPaxPath);
+      console.log(`→ PaxProcessor: Updated existing PAX report: ${existingPaxPath}`);
+      return path.basename(existingPaxPath);
+    }
   }
 
   /**

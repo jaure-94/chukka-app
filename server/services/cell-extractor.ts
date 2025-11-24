@@ -1,5 +1,6 @@
 import XLSX from "xlsx";
 import fs from "fs";
+import { blobStorage } from "./blob-storage.js";
 
 export interface CellData {
   cellA8: string;  // Tour name
@@ -31,11 +32,16 @@ export class CellExtractor {
   async extractCells(filePath: string): Promise<CellData> {
     console.log(`→ CellExtractor: Reading file ${filePath}`);
     
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
+    let workbook;
+    if (blobStorage.isBlobUrl(filePath)) {
+      const buffer = await blobStorage.loadFileBufferFromBlob(filePath);
+      workbook = XLSX.read(buffer, { type: 'buffer' });
+    } else {
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      workbook = XLSX.readFile(filePath);
     }
-
-    const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0]; // Use first sheet
     const worksheet = workbook.Sheets[sheetName];
 
@@ -67,14 +73,20 @@ export class CellExtractor {
    */
   async extractMultipleRecords(filePath: string): Promise<MultipleRecordData> {
     console.log(`→ CellExtractor: *** STARTING extractMultipleRecords for ${filePath} ***`);
-    console.log(`→ CellExtractor: File exists: ${fs.existsSync(filePath)}`);
     
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
+    let workbook;
+    if (blobStorage.isBlobUrl(filePath)) {
+      console.log(`→ CellExtractor: Loading workbook from blob...`);
+      const buffer = await blobStorage.loadFileBufferFromBlob(filePath);
+      workbook = XLSX.read(buffer, { type: 'buffer' });
+    } else {
+      console.log(`→ CellExtractor: File exists: ${fs.existsSync(filePath)}`);
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      console.log(`→ CellExtractor: Loading workbook...`);
+      workbook = XLSX.readFile(filePath);
     }
-
-    console.log(`→ CellExtractor: Loading workbook...`);
-    const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0]; // Use first sheet
     const worksheet = workbook.Sheets[sheetName];
     console.log(`→ CellExtractor: Processing sheet "${sheetName}"`);

@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
 import type { DispatchRecord } from "../../shared/schema.js";
+import { blobStorage } from "./blob-storage.js";
 
 export class DispatchGenerator {
   private outputDir = path.join(process.cwd(), "output");
@@ -23,12 +24,15 @@ export class DispatchGenerator {
     try {
       console.log(`Loading dispatch template from: ${templatePath}`);
       
-      if (!fs.existsSync(templatePath)) {
-        throw new Error(`Dispatch template file not found: ${templatePath}`);
-      }
-      
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(templatePath);
+      if (blobStorage.isBlobUrl(templatePath)) {
+        await workbook.xlsx.load(await blobStorage.downloadFile(templatePath));
+      } else {
+        if (!fs.existsSync(templatePath)) {
+          throw new Error(`Dispatch template file not found: ${templatePath}`);
+        }
+        await workbook.xlsx.readFile(templatePath);
+      }
       const worksheet = workbook.getWorksheet(1);
       
       if (!worksheet) {
@@ -117,10 +121,18 @@ export class DispatchGenerator {
 
       // Save the updated dispatch file
       console.log(`Saving dispatch file to: ${outputPath}`);
-      await workbook.xlsx.writeFile(outputPath);
+      const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
       
-      console.log('Dispatch file generation completed successfully');
-      return outputPath;
+      if (useBlob) {
+        const blobKey = `output/dispatch_${Date.now()}.xlsx`;
+        const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+        console.log('Dispatch file generation completed successfully, saved to blob:', blobUrl);
+        return blobUrl;
+      } else {
+        await workbook.xlsx.writeFile(outputPath);
+        console.log('Dispatch file generation completed successfully');
+        return outputPath;
+      }
       
     } catch (error) {
       console.error('Dispatch file generation failed:', error);

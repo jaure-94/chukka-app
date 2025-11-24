@@ -1,4 +1,5 @@
 import XLSX from "xlsx";
+import { blobStorage } from "./blob-storage.js";
 
 export interface ParsedSheet {
   name: string;
@@ -62,7 +63,13 @@ export class ExcelParser {
 
   async parseFile(filePath: string): Promise<ParsedExcelData> {
     try {
-      const workbook = XLSX.readFile(filePath);
+      let workbook;
+      if (blobStorage.isBlobUrl(filePath)) {
+        const buffer = await blobStorage.loadFileBufferFromBlob(filePath);
+        workbook = XLSX.read(buffer, { type: 'buffer' });
+      } else {
+        workbook = XLSX.readFile(filePath);
+      }
       const sheets: ParsedSheet[] = [];
 
       // Determine if this is an edited dispatch file vs original template

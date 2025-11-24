@@ -4,6 +4,7 @@ import fs from 'fs';
 import { nanoid } from 'nanoid';
 import { PaxProcessor, type PaxReportData, type ValidatedPaxRecord } from './pax-processor.js';
 import { paxTabRouter } from './pax-tab-router.js';
+import { blobStorage } from './blob-storage.js';
 
 export interface ConsolidatedPaxData {
   contributingShips: string[];
@@ -97,7 +98,11 @@ export class ConsolidatedPaxProcessor {
     // Use the existing PaxProcessor's private method logic
     // We'll replicate the extraction logic here for consolidated processing
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
+    if (blobStorage.isBlobUrl(filePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(filePath));
+    } else {
+      await workbook.xlsx.readFile(filePath);
+    }
     const worksheet = workbook.getWorksheet(1);
 
     if (!worksheet) {
@@ -339,12 +344,15 @@ export class ConsolidatedPaxProcessor {
     // Load PAX template
     const workbook = new ExcelJS.Workbook();
     
-    // Check if template file exists
-    if (!fs.existsSync(templatePath)) {
-      throw new Error(`PAX template not found at: ${templatePath}`);
+    if (blobStorage.isBlobUrl(templatePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(templatePath));
+    } else {
+      // Check if template file exists
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(`PAX template not found at: ${templatePath}`);
+      }
+      await workbook.xlsx.readFile(templatePath);
     }
-    
-    await workbook.xlsx.readFile(templatePath);
     const worksheet = workbook.getWorksheet(1);
 
     if (!worksheet) {
@@ -354,20 +362,28 @@ export class ConsolidatedPaxProcessor {
     // Generate consolidated report data
     await this.populateConsolidatedReport(worksheet, consolidatedData);
 
-    // Save to consolidated directory
+    // Save to consolidated directory or blob storage
     const outputFilename = `consolidated_pax_${Date.now()}.xlsx`;
-    const consolidatedDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
-    const outputPath = path.join(consolidatedDir, outputFilename);
+    const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
     
-    // Ensure consolidated directory exists
-    if (!fs.existsSync(consolidatedDir)) {
-      fs.mkdirSync(consolidatedDir, { recursive: true });
+    if (useBlob) {
+      const blobKey = `output/consolidated/pax/${outputFilename}`;
+      const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+      console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX report saved to blob: ${blobUrl}`);
+      return blobUrl;
+    } else {
+      const consolidatedDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
+      const outputPath = path.join(consolidatedDir, outputFilename);
+      
+      // Ensure consolidated directory exists
+      if (!fs.existsSync(consolidatedDir)) {
+        fs.mkdirSync(consolidatedDir, { recursive: true });
+      }
+      
+      await workbook.xlsx.writeFile(outputPath);
+      console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX report saved to ${outputPath}`);
+      return outputFilename;
     }
-    
-    await workbook.xlsx.writeFile(outputPath);
-
-    console.log(`→ ConsolidatedPaxProcessor: Consolidated PAX report saved to ${outputPath}`);
-    return outputFilename;
   }
 
   /**
@@ -379,12 +395,15 @@ export class ConsolidatedPaxProcessor {
     // Load PAX template
     const workbook = new ExcelJS.Workbook();
     
-    // Check if template file exists
-    if (!fs.existsSync(templatePath)) {
-      throw new Error(`PAX template not found at: ${templatePath}`);
+    if (blobStorage.isBlobUrl(templatePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(templatePath));
+    } else {
+      // Check if template file exists
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(`PAX template not found at: ${templatePath}`);
+      }
+      await workbook.xlsx.readFile(templatePath);
     }
-    
-    await workbook.xlsx.readFile(templatePath);
     
     // Validate PAX template has all required tabs
     const validation = paxTabRouter.validatePaxTemplate(workbook);
@@ -422,20 +441,28 @@ export class ConsolidatedPaxProcessor {
       console.log(`→ ConsolidatedPaxProcessor: ✓ Tab "${tabName}" populated successfully (single ship)`);
     }
 
-    // Save to consolidated directory
+    // Save to consolidated directory or blob storage
     const outputFilename = `consolidated_pax_${Date.now()}.xlsx`;
-    const consolidatedDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
-    const outputPath = path.join(consolidatedDir, outputFilename);
+    const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
     
-    // Ensure consolidated directory exists
-    if (!fs.existsSync(consolidatedDir)) {
-      fs.mkdirSync(consolidatedDir, { recursive: true });
+    if (useBlob) {
+      const blobKey = `output/consolidated/pax/${outputFilename}`;
+      const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+      console.log(`→ ConsolidatedPaxProcessor: Single ship PAX report saved to blob: ${blobUrl}`);
+      return blobUrl;
+    } else {
+      const consolidatedDir = path.join(process.cwd(), 'output', 'consolidated', 'pax');
+      const outputPath = path.join(consolidatedDir, outputFilename);
+      
+      // Ensure consolidated directory exists
+      if (!fs.existsSync(consolidatedDir)) {
+        fs.mkdirSync(consolidatedDir, { recursive: true });
+      }
+      
+      await workbook.xlsx.writeFile(outputPath);
+      console.log(`→ ConsolidatedPaxProcessor: Single ship PAX report saved to ${outputPath}`);
+      return outputFilename;
     }
-    
-    await workbook.xlsx.writeFile(outputPath);
-
-    console.log(`→ ConsolidatedPaxProcessor: Single ship PAX report saved to ${outputPath}`);
-    return outputFilename;
   }
 
   /**
@@ -752,7 +779,11 @@ export class ConsolidatedPaxProcessor {
     
     // Load existing PAX file
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(existingFilePath);
+    if (blobStorage.isBlobUrl(existingFilePath)) {
+      await workbook.xlsx.load(await blobStorage.downloadFile(existingFilePath));
+    } else {
+      await workbook.xlsx.readFile(existingFilePath);
+    }
     
     // Validate template has all required tabs
     const validation = paxTabRouter.validatePaxTemplate(workbook);
@@ -796,7 +827,15 @@ export class ConsolidatedPaxProcessor {
     
     // Save the updated workbook back to the same file (OVERWRITE existing)
     console.log(`→ ConsolidatedPaxProcessor: Saving changes to EXISTING file: ${path.basename(existingFilePath)}`);
-    await workbook.xlsx.writeFile(existingFilePath);
+    const useBlob = blobStorage.isBlobUrl(existingFilePath) || process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+    if (useBlob && blobStorage.isBlobUrl(existingFilePath)) {
+      // Extract blob key from URL or generate new one
+      const blobKey = `output/consolidated/pax/consolidated_pax_${Date.now()}.xlsx`;
+      const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey, false); // Don't add random suffix for overwrite
+      console.log(`→ ConsolidatedPaxProcessor: Updated existing consolidated PAX in blob: ${blobUrl}`);
+    } else {
+      await workbook.xlsx.writeFile(existingFilePath);
+    }
     
     console.log('→ ConsolidatedPaxProcessor: ✓ Successfully updated existing consolidated PAX file with multi-tab support');
     console.log(`→ ConsolidatedPaxProcessor: ═══════════════════════════════════════`);

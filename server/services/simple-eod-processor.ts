@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { cellExtractor, TemplateHeaderData } from "./cell-extractor.js";
 import { storage } from "../storage.js";
+import { blobStorage } from "./blob-storage.js";
 
 export class SimpleEODProcessor {
   private outputDir = path.join(process.cwd(), "output");
@@ -46,12 +47,15 @@ export class SimpleEODProcessor {
       console.log(`→ SimpleEOD: Found ${multipleData.records.length} new tour records to add`);
       
       // Load existing EOD report
-      if (!fs.existsSync(existingEodPath)) {
-        throw new Error(`Existing EOD report not found: ${existingEodPath}`);
-      }
-      
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(existingEodPath);
+      if (blobStorage.isBlobUrl(existingEodPath)) {
+        await workbook.xlsx.load(await blobStorage.downloadFile(existingEodPath));
+      } else {
+        if (!fs.existsSync(existingEodPath)) {
+          throw new Error(`Existing EOD report not found: ${existingEodPath}`);
+        }
+        await workbook.xlsx.readFile(existingEodPath);
+      }
       const worksheet = workbook.getWorksheet(1);
       
       if (!worksheet) {
@@ -115,11 +119,17 @@ export class SimpleEODProcessor {
       this.updateTotalsSection(worksheet, newTotalsStart, multipleData.records);
       
       // Save the updated file
-      await workbook.xlsx.writeFile(outputPath);
-      
-      console.log(`→ SimpleEOD: Successfully added ${newRecordsCount} tour sections to existing EOD report`);
-      
-      return outputPath;
+      const useBlob = blobStorage.isBlobUrl(existingEodPath) || process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+      if (useBlob && blobStorage.isBlobUrl(existingEodPath)) {
+        const blobKey = `output/${shipId}/eod_${Date.now()}.xlsx`;
+        const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey, false);
+        console.log(`→ SimpleEOD: Successfully added ${newRecordsCount} tour sections to existing EOD report in blob: ${blobUrl}`);
+        return blobUrl;
+      } else {
+        await workbook.xlsx.writeFile(outputPath);
+        console.log(`→ SimpleEOD: Successfully added ${newRecordsCount} tour sections to existing EOD report: ${outputPath}`);
+        return outputPath;
+      }
       
     } catch (error) {
       console.error('→ SimpleEOD: Error adding successive dispatch entry:', error);
@@ -318,11 +328,17 @@ export class SimpleEODProcessor {
       this.updateTotalsSection(worksheet, totalsSectionStartRow, multipleData.records);
       
       // Save the processed file
-      await workbook.xlsx.writeFile(outputPath);
-      
-      console.log(`→ SimpleEOD: Processed ${multipleData.records.length} records and saved to ${outputPath}`);
-      
-      return outputPath;
+      const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+      if (useBlob) {
+        const blobKey = `output/${shipId}/eod_${Date.now()}.xlsx`;
+        const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+        console.log(`→ SimpleEOD: Processed ${multipleData.records.length} records and saved to blob: ${blobUrl}`);
+        return blobUrl;
+      } else {
+        await workbook.xlsx.writeFile(outputPath);
+        console.log(`→ SimpleEOD: Processed ${multipleData.records.length} records and saved to ${outputPath}`);
+        return outputPath;
+      }
       
     } catch (error) {
       console.error('→ SimpleEOD: Error processing multiple records:', error);
@@ -879,12 +895,15 @@ export class SimpleEODProcessor {
       console.log('→ SimpleEOD: Step 3 - Replace delimiters in EOD template');
       
       // Load EOD template
-      if (!fs.existsSync(eodTemplatePath)) {
-        throw new Error(`EOD template file not found: ${eodTemplatePath}`);
-      }
-      
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(eodTemplatePath);
+      if (blobStorage.isBlobUrl(eodTemplatePath)) {
+        await workbook.xlsx.load(await blobStorage.downloadFile(eodTemplatePath));
+      } else {
+        if (!fs.existsSync(eodTemplatePath)) {
+          throw new Error(`EOD template file not found: ${eodTemplatePath}`);
+        }
+        await workbook.xlsx.readFile(eodTemplatePath);
+      }
       const worksheet = workbook.getWorksheet(1);
       
       if (!worksheet) {
@@ -963,8 +982,17 @@ export class SimpleEODProcessor {
       });
 
       // Save the processed file
-      await workbook.xlsx.writeFile(outputPath);
-      console.log(`→ SimpleEOD: Step 4 - Saved populated EOD report to ${outputPath}`);
+      const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+      let finalPath: string;
+      if (useBlob) {
+        const blobKey = `output/eod_${Date.now()}.xlsx`;
+        finalPath = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
+        console.log(`→ SimpleEOD: Step 4 - Saved populated EOD report to blob: ${finalPath}`);
+      } else {
+        await workbook.xlsx.writeFile(outputPath);
+        finalPath = outputPath;
+        console.log(`→ SimpleEOD: Step 4 - Saved populated EOD report to ${outputPath}`);
+      }
       
       // Log success summary
       console.log(`
@@ -975,10 +1003,10 @@ export class SimpleEODProcessor {
   ✓ Replaced B17 with: "${cellData.cellA8}"
   ✓ Replaced I22 with: "${cellData.cellB8}"
   ✓ Replaced {{notes}} placeholder with: "${cellData.cellH8}"
-  ✓ Generated file: ${path.basename(outputPath)}
+  ✓ Generated file: ${useBlob ? finalPath : path.basename(outputPath)}
       `);
 
-      return outputPath;
+      return finalPath;
     } catch (error) {
       console.error('→ SimpleEOD: Error processing EOD template:', error);
       throw error;
