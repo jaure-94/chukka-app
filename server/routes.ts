@@ -2322,11 +2322,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           const latestReport = consolidatedReports[0];
-          const consolidatedPaxPath = path.join(process.cwd(), latestReport.filePath);
+          // Use filePath as-is (could be blob URL or filesystem path)
+          let consolidatedPaxPath = latestReport.filePath;
           
-          // Check if file exists
-          if (!fs.existsSync(consolidatedPaxPath)) {
-            throw new Error(`Consolidated PAX file not found: ${latestReport.filename}`);
+          // Only check filesystem if it's not a blob URL
+          if (!blobStorage.isBlobUrl(consolidatedPaxPath)) {
+            // If relative path, make it absolute
+            if (!path.isAbsolute(consolidatedPaxPath)) {
+              consolidatedPaxPath = path.join(process.cwd(), consolidatedPaxPath);
+            }
+            
+            // Check if file exists (only for filesystem paths)
+            if (!fs.existsSync(consolidatedPaxPath)) {
+              throw new Error(`Consolidated PAX file not found: ${latestReport.filename}`);
+            }
           }
           
           return {
@@ -2341,6 +2350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error(`Report type ${type} is not available`);
         }
         
+        // reportInfo.path could be a blob URL or filesystem path - pass it as-is
         return {
           path: reportInfo.path,
           filename: reportInfo.filename,

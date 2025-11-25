@@ -31,14 +31,32 @@ export class DropboxService {
     }
   }
 
-  async uploadFile(localFilePath: string, dropboxPath: string): Promise<boolean> {
+  async uploadFile(filePathOrUrl: string, dropboxPath: string): Promise<boolean> {
     if (!this.accessToken) {
       console.error("Dropbox access token not configured");
       return false;
     }
 
     try {
-      const fileContent = fs.readFileSync(localFilePath);
+      let fileContent: Buffer;
+      let sourceFilename: string;
+
+      // Check if it's a blob URL
+      if (blobStorage.isBlobUrl(filePathOrUrl)) {
+        console.log(`→ DropboxService: Downloading file from blob storage: ${filePathOrUrl}`);
+        fileContent = await blobStorage.downloadFile(filePathOrUrl);
+        // Extract filename from blob URL or use a default
+        sourceFilename = path.basename(filePathOrUrl.split('?')[0]) || path.basename(dropboxPath);
+        console.log(`→ DropboxService: Downloaded ${fileContent.length} bytes from blob storage`);
+      } else {
+        // Local filesystem path
+        if (!fs.existsSync(filePathOrUrl)) {
+          console.error(`→ DropboxService: File not found: ${filePathOrUrl}`);
+          return false;
+        }
+        fileContent = fs.readFileSync(filePathOrUrl);
+        sourceFilename = path.basename(filePathOrUrl);
+      }
       
       const response = await fetch("https://content.dropboxapi.com/2/files/upload", {
         method: "POST",
@@ -61,11 +79,11 @@ export class DropboxService {
       }
 
       const result = await response.json();
-      console.log("File uploaded to Dropbox:", result.path_display);
+      console.log("→ DropboxService: File uploaded to Dropbox:", result.path_display);
       
       // Store metadata
       const metadata: DropboxFileMetadata = {
-        filename: path.basename(localFilePath),
+        filename: sourceFilename,
         dropboxPath: result.path_display,
         uploadedAt: new Date(),
         size: result.size,

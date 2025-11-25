@@ -10,6 +10,7 @@ import {
 } from "../../shared/schema.js";
 import { EmailService } from "./email-service.js";
 import { DropboxService } from "./dropbox-service.js";
+import { blobStorage } from "./blob-storage.js";
 import fs from "fs";
 import path from "path";
 
@@ -110,14 +111,33 @@ export class SharingController {
 
         console.log(`Starting email sharing to ${params.recipients.length} recipient(s)`);
 
-        // Prepare email attachments
-        const emailAttachments = params.reportFiles.map(file => ({
-          filename: file.filename,
-          content: fs.readFileSync(file.path),
-          type: path.extname(file.filename) === '.xlsx' 
-            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            : 'application/octet-stream',
-        }));
+        // Prepare email attachments - handle both blob URLs and filesystem paths
+        const emailAttachments = await Promise.all(
+          params.reportFiles.map(async (file) => {
+            let fileContent: Buffer;
+            
+            // Check if it's a blob URL
+            if (blobStorage.isBlobUrl(file.path)) {
+              console.log(`→ SharingController: Downloading file from blob storage for email: ${file.path}`);
+              fileContent = await blobStorage.downloadFile(file.path);
+              console.log(`→ SharingController: Downloaded ${fileContent.length} bytes from blob storage`);
+            } else {
+              // Local filesystem path
+              if (!fs.existsSync(file.path)) {
+                throw new Error(`File not found: ${file.path}`);
+              }
+              fileContent = fs.readFileSync(file.path);
+            }
+            
+            return {
+              filename: file.filename,
+              content: fileContent,
+              type: path.extname(file.filename) === '.xlsx' 
+                ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                : 'application/octet-stream',
+            };
+          })
+        );
 
         const emailOptions = {
           reportTypes: params.reportTypes,
