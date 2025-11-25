@@ -44,30 +44,30 @@ import {
 // Locally, use disk storage for persistence
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 
-const upload = multer({
+const upload = multer({ 
   storage: isVercel 
     ? multer.memoryStorage() // Use memory storage on Vercel
     : multer.diskStorage({
-        destination: function(req, file, cb) {
-          // Use ship-specific directory
-          const shipId = req.body.shipId || 'ship-a';
-          const uploadDir = path.join('uploads', shipId);
-          
-          // Ensure directory exists
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          }
-          
-          cb(null, uploadDir);
-        },
-        filename: function(req, file, cb) {
-          // Keep original filename structure but ensure uniqueness
-          const timestamp = Date.now();
-          const ext = path.extname(file.originalname);
-          const name = path.basename(file.originalname, ext);
-          cb(null, `${name}_${timestamp}${ext}`);
-        }
-      }),
+    destination: function(req, file, cb) {
+      // Use ship-specific directory
+      const shipId = req.body.shipId || 'ship-a';
+      const uploadDir = path.join('uploads', shipId);
+      
+      // Ensure directory exists
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      cb(null, uploadDir);
+    },
+    filename: function(req, file, cb) {
+      // Keep original filename structure but ensure uniqueness
+      const timestamp = Date.now();
+      const ext = path.extname(file.originalname);
+      const name = path.basename(file.originalname, ext);
+      cb(null, `${name}_${timestamp}${ext}`);
+    }
+  }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -108,21 +108,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Don't throw - allow app to continue even if superuser creation fails
   });
 
+  // Helper function to handle file download (blob URL or filesystem)
+  async function handleFileDownload(filePathOrUrl: string, res: Express.Response, filename?: string, forceDownload: boolean = true): Promise<void> {
+    // Check if it's a blob URL
+    if (blobStorage.isBlobUrl(filePathOrUrl)) {
+      try {
+        // For downloads, proxy through server to ensure proper headers
+        // For views, we can redirect to CDN for better performance
+        if (forceDownload) {
+          console.log(`→ Downloading from blob URL (proxying): ${filePathOrUrl}`);
+          const buffer = await blobStorage.downloadFile(filePathOrUrl);
+          
+          if (!res.headersSent) {
+            // Set appropriate headers for Excel files
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            if (filename) {
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            }
+            
+            res.send(buffer);
+          }
+        } else {
+          // For viewing, redirect to CDN (faster)
+          if (!res.headersSent) {
+            console.log(`→ Redirecting to blob URL: ${filePathOrUrl}`);
+            res.redirect(302, filePathOrUrl);
+          }
+        }
+        return;
+      } catch (error) {
+        console.error(`→ Failed to download from blob URL: ${error}`);
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            message: "Failed to download file from blob storage",
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+        return;
+      }
+    }
+
+    // For filesystem paths, check if file exists and serve it
+    let filePath = filePathOrUrl;
+    if (!path.isAbsolute(filePath)) {
+      filePath = path.join(process.cwd(), filePath);
+    }
+      
+    if (!fs.existsSync(filePath)) {
+      console.log(`→ File not found on filesystem: ${filePath}`);
+      if (!res.headersSent) {
+        res.status(404).json({ message: "File not found" });
+      }
+      return;
+    }
+
+    if (!res.headersSent) {
+      // Set appropriate headers for Excel files
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      if (filename) {
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      }
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    }
+  }
+
   // Serve uploaded files - ship-aware
   app.get("/api/files/:shipId/:filename", async (req, res) => {
     try {
       const { shipId, filename } = req.params;
-      const filePath = path.join(process.cwd(), "uploads", shipId, filename);
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "File not found" });
+      // First, try to find the file in the database templates (might be stored in blob storage)
+      // Check if this filename matches any active template
+      try {
+        const dispatchTemplate = await storage.getActiveDispatchTemplate(shipId);
+        if (dispatchTemplate?.filePath && (dispatchTemplate.filename === filename || dispatchTemplate.filePath.includes(filename))) {
+          console.log(`→ Found dispatch template in database: ${dispatchTemplate.filePath}`);
+          await handleFileDownload(dispatchTemplate.filePath, res, dispatchTemplate.originalFilename || filename);
+          return;
+        }
+      } catch (error) {
+        // Continue to next check
       }
 
-      // Set appropriate headers for Excel files
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      try {
+        const eodTemplate = await storage.getActiveEodTemplate(shipId);
+        if (eodTemplate?.filePath && (eodTemplate.filename === filename || eodTemplate.filePath.includes(filename))) {
+          console.log(`→ Found EOD template in database: ${eodTemplate.filePath}`);
+          await handleFileDownload(eodTemplate.filePath, res, eodTemplate.originalFilename || filename);
+          return;
+        }
+      } catch (error) {
+        // Continue to next check
+      }
+
+      try {
+        const paxTemplate = await storage.getActivePaxTemplate(shipId);
+        if (paxTemplate?.filePath && (paxTemplate.filename === filename || paxTemplate.filePath.includes(filename))) {
+          console.log(`→ Found PAX template in database: ${paxTemplate.filePath}`);
+          await handleFileDownload(paxTemplate.filePath, res, paxTemplate.originalFilename || filename);
+          return;
+        }
+      } catch (error) {
+        // Continue to filesystem lookup
+      }
+
+      // Fallback to filesystem lookup
+      const filePath = path.join(process.cwd(), "uploads", shipId, filename);
+      await handleFileDownload(filePath, res, filename);
     } catch (error) {
       console.error("File serving error:", error);
       res.status(500).json({ message: "Failed to serve file" });
@@ -133,6 +227,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/files/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
+      
+      // First, try to find in database templates (ship-a default)
+      try {
+        const dispatchTemplate = await storage.getActiveDispatchTemplate('ship-a');
+        if (dispatchTemplate?.filePath && (dispatchTemplate.filename === filename || dispatchTemplate.filePath.includes(filename))) {
+          await handleFileDownload(dispatchTemplate.filePath, res, dispatchTemplate.originalFilename || filename);
+          return;
+        }
+      } catch (error) {
+        // Continue to filesystem lookup
+      }
+
       // Try ship-a first for backwards compatibility
       let filePath = path.join(process.cwd(), "uploads", "ship-a", filename);
       
@@ -141,15 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filePath = path.join(process.cwd(), "uploads", filename);
       }
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      // Set appropriate headers for Excel files
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      await handleFileDownload(filePath, res, filename);
     } catch (error) {
       console.error("File serving error:", error);
       res.status(500).json({ message: "Failed to serve file" });
@@ -171,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shipId = req.query.ship as string;
       }
       
-      let filePath;
+      let filePathOrUrl: string | undefined;
       
       // Check if this is a consolidated PAX file request
       if (shipId === 'consolidated' && req.params.filename) {
@@ -180,28 +278,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const actualFilename = req.query.file as string;
         
         if (consolidatedType === 'pax' && actualFilename) {
-          filePath = path.join(process.cwd(), "output", "consolidated", "pax", actualFilename);
+          // First check if this is a blob URL stored in database (check generated reports)
+          try {
+            const recentReports = await storage.getRecentGeneratedReports(10);
+            const report = recentReports.find(r => 
+              r.eodFilePath && (r.eodFilePath.includes(actualFilename) || path.basename(r.eodFilePath) === actualFilename)
+            );
+            if (report?.eodFilePath && blobStorage.isBlobUrl(report.eodFilePath)) {
+              filePathOrUrl = report.eodFilePath;
+            }
+          } catch (error) {
+            console.log(`→ Consolidated PAX database lookup failed: ${error}`);
+          }
+          
+          // Fallback to filesystem
+          if (!filePathOrUrl) {
+            filePathOrUrl = path.join(process.cwd(), "output", "consolidated", "pax", actualFilename);
+          }
         } else {
           return res.status(400).json({ message: "Invalid consolidated file request. Use format: /api/output/consolidated/pax?file=filename.xlsx" });
         }
       } else if (shipId) {
-        // Ship-specific path
-        filePath = path.join(process.cwd(), "output", shipId, filename);
+        // Ship-specific path - check database for blob URLs first
+        try {
+          // Check dispatch versions (for saved dispatch sheets)
+          const dispatchVersions = await storage.getDispatchVersions(shipId, 10);
+          const version = dispatchVersions.find(v => 
+            v.filePath && (v.filePath.includes(filename) || path.basename(v.filePath) === filename)
+          );
+          if (version?.filePath && blobStorage.isBlobUrl(version.filePath)) {
+            filePathOrUrl = version.filePath;
+          }
+        } catch (error) {
+          console.log(`→ Dispatch version lookup failed: ${error}`);
+        }
+        
+        // Check generated reports
+        if (!filePathOrUrl) {
+          try {
+            const recentReports = await storage.getRecentGeneratedReports(10, shipId);
+            const report = recentReports.find(r => 
+              (r.dispatchFilePath && (r.dispatchFilePath.includes(filename) || path.basename(r.dispatchFilePath) === filename)) ||
+              (r.eodFilePath && (r.eodFilePath.includes(filename) || path.basename(r.eodFilePath) === filename))
+            );
+            if (report) {
+              filePathOrUrl = report.dispatchFilePath?.includes(filename) ? report.dispatchFilePath : report.eodFilePath;
+            }
+          } catch (error) {
+            console.log(`→ Generated report lookup failed: ${error}`);
+          }
+        }
+        
+        // Fallback to filesystem
+        if (!filePathOrUrl) {
+          filePathOrUrl = path.join(process.cwd(), "output", shipId, filename);
+        }
       } else {
         // Legacy path for backwards compatibility
-        filePath = path.join(process.cwd(), "output", filename);
+        filePathOrUrl = path.join(process.cwd(), "output", filename);
       }
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "File not found" });
-      }
-
-      // Set appropriate headers for Excel files
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      await handleFileDownload(filePathOrUrl, res, filename);
     } catch (error) {
       console.error("Output file serving error:", error);
       res.status(500).json({ message: "Failed to serve output file" });
@@ -401,20 +538,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Handle both absolute and relative paths
-      let filePath = job.resultFilePath;
-      if (!path.isAbsolute(filePath)) {
-        filePath = path.join(process.cwd(), filePath);
-      }
+      // Handle blob URLs or filesystem paths
+      const filePathOrUrl = job.resultFilePath;
+      const filename = path.basename(filePathOrUrl);
       
-      console.log(`Attempting to download file: ${filePath}`);
+      console.log(`Attempting to download file: ${filePathOrUrl}`);
       
-      if (!fs.existsSync(filePath)) {
-        console.error(`File not found: ${filePath}`);
-        return res.status(404).json({ message: "File not found on disk" });
-      }
-
-      res.download(filePath);
+      await handleFileDownload(filePathOrUrl, res, filename);
     } catch (error) {
       console.error("Download error:", error);
       res.status(500).json({ message: "Download failed" });
@@ -770,20 +900,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/templates/dispatch/download", async (req, res) => {
     try {
       const shipId = req.query.ship as string;
+      console.log(`→ Download dispatch template requested for ship: ${shipId || 'default'}`);
+      
       const template = await storage.getActiveDispatchTemplate(shipId);
-      if (!template || !template.filePath) {
+      console.log(`→ Template lookup result:`, template ? { id: template.id, filename: template.filename, hasFilePath: !!template.filePath } : 'null');
+      
+      if (!template) {
+        console.log(`→ No template found for ship ${shipId || 'default'}`);
         return res.status(404).json({ message: `Dispatch template not found for ${shipId || 'default ship'}` });
       }
-
-      const filePath = path.resolve(template.filePath);
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Template file not found" });
+      
+      if (!template.filePath) {
+        console.log(`→ Template found but filePath is null/undefined`);
+        return res.status(404).json({ message: `Template file path not available` });
       }
 
-      res.download(filePath, template.originalFilename || "dispatch_template.xlsx");
+      console.log(`→ Downloading template from: ${template.filePath}`);
+      await handleFileDownload(template.filePath, res, template.originalFilename || "dispatch_template.xlsx");
     } catch (error) {
       console.error("Dispatch template download error:", error);
-      res.status(500).json({ message: "Failed to download dispatch template" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to download dispatch template", error: error instanceof Error ? error.message : 'Unknown error' });
+      }
     }
   });
 
@@ -796,12 +934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: `EOD template not found for ${shipId || 'default ship'}` });
       }
 
-      const filePath = path.resolve(template.filePath);
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Template file not found" });
-      }
-
-      res.download(filePath, template.originalFilename || "eod_template.xlsx");
+      await handleFileDownload(template.filePath, res, template.originalFilename || "eod_template.xlsx");
     } catch (error) {
       console.error("EOD template download error:", error);
       res.status(500).json({ message: "Failed to download EOD template" });
@@ -855,12 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: `PAX template not found for ${shipId || 'default ship'}` });
       }
 
-      const filePath = path.resolve(template.filePath);
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Template file not found" });
-      }
-
-      res.download(filePath, template.originalFilename || "pax_template.xlsx");
+      await handleFileDownload(template.filePath, res, template.originalFilename || "pax_template.xlsx");
     } catch (error) {
       console.error("PAX template download error:", error);
       res.status(500).json({ message: "Failed to download PAX template" });
@@ -968,9 +1096,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const templateBuffer = await blobStorage.downloadFile(dispatchTemplate.filePath);
         await templateWorkbook.xlsx.load(templateBuffer);
       } else {
-        const templatePath = path.resolve(dispatchTemplate.filePath);
-        if (!fs.existsSync(templatePath)) {
-          return res.status(404).json({ message: "Dispatch template file not found" });
+      const templatePath = path.resolve(dispatchTemplate.filePath);
+      if (!fs.existsSync(templatePath)) {
+        return res.status(404).json({ message: "Dispatch template file not found" });
         }
         await templateWorkbook.xlsx.readFile(templatePath);
       }
@@ -1086,7 +1214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!fs.existsSync(shipUploadDir)) {
         fs.mkdirSync(shipUploadDir, { recursive: true });
       }
-
+      
       const finalBuffer = Buffer.from(await templateWorkbook.xlsx.writeBuffer());
       fs.writeFileSync(outputPath, finalBuffer);
 
@@ -1134,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Clean up the original uploaded file
       if (req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      fs.unlinkSync(req.file.path);
       }
 
       console.log(`Saved formatted dispatch sheet: ${newFilename}`);
@@ -1912,20 +2040,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/consolidated-pax/download/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
-      const filePath = path.join(consolidatedOutputDir, filename);
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Consolidated PAX file not found" });
+      // First check if this is a blob URL stored in database
+      let filePathOrUrl: string | undefined;
+      try {
+        const recentReports = await storage.getRecentGeneratedReports(10);
+        const report = recentReports.find(r => 
+          r.eodFilePath && (r.eodFilePath.includes(filename) || path.basename(r.eodFilePath) === filename)
+        );
+        if (report?.eodFilePath) {
+          filePathOrUrl = report.eodFilePath;
+        }
+      } catch (error) {
+        console.log(`→ Consolidated PAX database lookup failed: ${error}`);
+      }
+      
+      // Fallback to filesystem
+      if (!filePathOrUrl) {
+        const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
+        filePathOrUrl = path.join(consolidatedOutputDir, filename);
       }
 
       console.log(`→ Downloading consolidated PAX file: ${filename}`);
-      
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      await handleFileDownload(filePathOrUrl, res, filename);
     } catch (error) {
       console.error("Consolidated PAX download error:", error);
       res.status(500).json({ message: "Failed to download consolidated PAX file" });
@@ -1936,20 +2073,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/consolidated-pax/view/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
-      const filePath = path.join(consolidatedOutputDir, filename);
       
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Consolidated PAX file not found" });
+      // First check if this is a blob URL stored in database
+      let filePathOrUrl: string | undefined;
+      try {
+        const recentReports = await storage.getRecentGeneratedReports(10);
+        const report = recentReports.find(r => 
+          r.eodFilePath && (r.eodFilePath.includes(filename) || path.basename(r.eodFilePath) === filename)
+        );
+        if (report?.eodFilePath) {
+          filePathOrUrl = report.eodFilePath;
+        }
+      } catch (error) {
+        console.log(`→ Consolidated PAX database lookup failed: ${error}`);
+      }
+      
+      // Fallback to filesystem
+      if (!filePathOrUrl) {
+        const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
+        filePathOrUrl = path.join(consolidatedOutputDir, filename);
       }
 
       console.log(`→ Viewing consolidated PAX file: ${filename}`);
+      
+      // For blob URLs, redirect; for filesystem, serve with view headers
+      if (blobStorage.isBlobUrl(filePathOrUrl)) {
+        res.redirect(302, filePathOrUrl);
+        return;
+      }
+      
+      if (!fs.existsSync(filePathOrUrl)) {
+        return res.status(404).json({ message: "Consolidated PAX file not found" });
+      }
       
       // Set headers for viewing (no attachment disposition)
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Cache-Control', 'no-cache');
       
-      const fileStream = fs.createReadStream(filePath);
+      const fileStream = fs.createReadStream(filePathOrUrl);
       fileStream.pipe(res);
     } catch (error) {
       console.error("Consolidated PAX view error:", error);
@@ -1966,22 +2127,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      const filePath = type === 'dispatch' ? report.dispatchFilePath : report.eodFilePath;
+      const filePathOrUrl = type === 'dispatch' ? report.dispatchFilePath : report.eodFilePath;
       
-      if (!filePath) {
+      if (!filePathOrUrl) {
         return res.status(404).json({ message: "Report file path not available" });
       }
 
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Report file not found" });
-      }
-
-      const filename = path.basename(filePath);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      const filename = path.basename(filePathOrUrl);
+      await handleFileDownload(filePathOrUrl, res, filename);
     } catch (error) {
       console.error("Report download error:", error);
       res.status(500).json({ message: "Download failed" });

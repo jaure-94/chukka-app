@@ -131,6 +131,10 @@ export default function CreateDispatch() {
 
     const allRows = jsonData as SpreadsheetData;
     const extraRows = 10;
+    // Add at least 2 extra columns to accommodate merged "Lost Pax" cells (needs column U)
+    // The merged cell spans from column T (19) to U (20), so we need at least column 20
+    const extraColumns = Math.max(2, 21 - actualColumnCount); // Ensure we have at least 21 columns (A-U)
+    const totalColumnCount = actualColumnCount + extraColumns;
     const totalRowsWithExtra = actualRowCount + extraRows;
     const completeRows: SpreadsheetData = [];
 
@@ -138,7 +142,7 @@ export default function CreateDispatch() {
       const row = allRows[r] || [];
       const completeRow: (string | number)[] = [];
       
-      for (let c = 0; c < actualColumnCount; c++) {
+      for (let c = 0; c < totalColumnCount; c++) {
         let cellValue = row[c] !== undefined ? row[c] : '';
 
         if (c === 1 && r >= 10) {
@@ -151,7 +155,7 @@ export default function CreateDispatch() {
       completeRows.push(completeRow);
     }
 
-    const genericHeaders = Array.from({length: actualColumnCount}, (_, i) => {
+    const genericHeaders = Array.from({length: totalColumnCount}, (_, i) => {
       if (i < 26) {
         return String.fromCharCode(65 + i);
       } else {
@@ -228,7 +232,20 @@ export default function CreateDispatch() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/files/${dispatchTemplate.filename}`);
+      // Check if filePath is a blob URL (Vercel Blob Storage)
+      const isBlobUrl = dispatchTemplate.filePath.startsWith('https://') && 
+                       (dispatchTemplate.filePath.includes('blob.vercel-storage.com') || 
+                        dispatchTemplate.filePath.includes('public.blob.vercel-storage.com'));
+      
+      let response: Response;
+      if (isBlobUrl) {
+        // Fetch directly from blob URL
+        response = await fetch(dispatchTemplate.filePath);
+      } else {
+        // Fetch from local API endpoint
+        response = await fetch(`/api/files/${dispatchTemplate.filename}`);
+      }
+      
       if (!response.ok) throw new Error('Failed to fetch template');
       
       const arrayBuffer = await response.arrayBuffer();
