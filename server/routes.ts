@@ -1474,7 +1474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filename: latestVersion.filename,
           originalName: latestVersion.originalFilename,
           mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          size: fs.existsSync(dispatchFilePath) ? fs.statSync(dispatchFilePath).size : 0,
+          size: blobStorage.isBlobUrl(dispatchFilePath) ? 0 : (fs.existsSync(dispatchFilePath) ? fs.statSync(dispatchFilePath).size : 0),
           uploadedAt: new Date()
         };
       } else {
@@ -1498,7 +1498,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Parse dispatch data (dispatchFilePath is already set above)
-      console.log('File exists:', fs.existsSync(dispatchFilePath));
+      // Only check filesystem existence if it's not a blob URL
+      if (!blobStorage.isBlobUrl(dispatchFilePath)) {
+        console.log('File exists:', fs.existsSync(dispatchFilePath));
+      } else {
+        console.log('Dispatch file is a blob URL:', dispatchFilePath);
+      }
       const dispatchData = await excelParser.parseFile(dispatchFilePath);
       console.log('Dispatch data for EOD processing:', JSON.stringify({
         sheets: dispatchData.sheets.map(sheet => ({
@@ -1519,17 +1524,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const eodOutputPath = path.join(shipOutputDir, `eod_${timestamp}.xlsx`);
-      const eodTemplatePath = path.join(process.cwd(), eodTemplate.filePath);
-      await simpleEODProcessor.processMultipleRecords(
+      
+      // Use filePath as-is if it's a blob URL, otherwise make it absolute
+      let eodTemplatePath = eodTemplate.filePath;
+      console.log(`→ EOD template filePath from database: ${eodTemplatePath}`);
+      console.log(`→ filePath type: ${typeof eodTemplatePath}`);
+      console.log(`→ filePath starts with https://? ${eodTemplatePath?.startsWith('https://')}`);
+      console.log(`→ Is blob URL? ${blobStorage.isBlobUrl(eodTemplatePath)}`);
+      
+      // CRITICAL: Check for blob URL BEFORE any path manipulation
+      if (blobStorage.isBlobUrl(eodTemplatePath)) {
+        console.log('→ Using blob URL for EOD template (passing as-is):', eodTemplatePath);
+        // Do NOT modify blob URLs - pass them directly
+      } else if (eodTemplatePath && typeof eodTemplatePath === 'string') {
+        // Only join with cwd if it's a filesystem path
+        if (!path.isAbsolute(eodTemplatePath)) {
+          eodTemplatePath = path.join(process.cwd(), eodTemplatePath);
+        }
+        console.log('→ Using filesystem path for EOD template:', eodTemplatePath);
+      } else {
+        throw new Error(`Invalid EOD template filePath: ${eodTemplatePath}`);
+      }
+      
+      console.log(`→ Final EOD template path being passed to processor: ${eodTemplatePath}`);
+      
+      const eodResult = await simpleEODProcessor.processMultipleRecords(
         eodTemplatePath,
         parseInt(dispatchFileId),
         dispatchFilePath,
-        eodOutputPath
+        eodOutputPath,
+        shipId
       );
 
       // Generate dispatch report as well - for now, just copy the original file to ship-specific directory
       const dispatchOutputPath = path.join(shipOutputDir, `dispatch_${timestamp}.xlsx`);
-      fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+      
+      // Handle dispatch file copy - check if it's a blob URL
+      if (blobStorage.isBlobUrl(dispatchFilePath)) {
+        // Download from blob and save to local output directory
+        const dispatchBuffer = await blobStorage.downloadFile(dispatchFilePath);
+        fs.writeFileSync(dispatchOutputPath, dispatchBuffer);
+      } else {
+        fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+      }
 
       // Create a new dispatch version record with ship ID
       const dispatchVersion = await storage.createDispatchVersion({
@@ -1539,11 +1576,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shipId: shipId
       });
 
+      // Extract filename from result (could be blob URL or filesystem path)
+      const eodFilename = blobStorage.isBlobUrl(eodResult)
+        ? path.basename(eodResult.split('?')[0])
+        : path.basename(eodResult);
+
       // Return success with ship-specific information
       res.json({
         success: true,
         dispatchFile: path.basename(dispatchOutputPath),
-        eodFile: path.basename(eodOutputPath),
+        eodFile: eodFilename,
+        eodFilePath: eodResult, // Include full path/URL for blob storage
         shipId: shipId,
         message: `EOD report generated successfully for ${shipId}`,
         dispatchVersionId: dispatchVersion.id
@@ -1564,9 +1607,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Save consolidated PAX report to database
         try {
+          // consolidatedResult.filename is either a blob URL (if blob storage) or just filename (if filesystem)
+          const filePath = blobStorage.isBlobUrl(consolidatedResult.filename) 
+            ? consolidatedResult.filename 
+            : `output/consolidated/pax/${consolidatedResult.filename}`;
+          const filename = blobStorage.isBlobUrl(consolidatedResult.filename)
+            ? path.basename(consolidatedResult.filename.split('?')[0])
+            : consolidatedResult.filename;
+          
           const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
-            filename: consolidatedResult.filename,
-            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            filename: filename,
+            filePath: filePath,
             contributingShips: consolidatedResult.data.contributingShips,
             totalRecordCount: consolidatedResult.data.totalRecordCount,
             lastUpdatedByShip: shipId
@@ -1610,27 +1661,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No dispatch versions found" });
       }
 
-      // Check if existing EOD file exists in ship-specific directory
-      const shipOutputDir = path.join(process.cwd(), "output", shipId);
-      const existingEodPath = path.join(shipOutputDir, existingEodFilename);
+      // Find existing EOD file - check database first (might be blob URL), then filesystem
+      let existingEodPath: string | undefined;
       
-
-      if (!fs.existsSync(existingEodPath)) {
-        return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodPath}` });
+      // Check generated reports for EOD file
+      try {
+        const recentReports = await storage.getRecentGeneratedReports(50, shipId);
+        const eodReport = recentReports.find(r => 
+          r.eodFilePath && (r.eodFilePath.includes(existingEodFilename) || path.basename(r.eodFilePath) === existingEodFilename)
+        );
+        if (eodReport?.eodFilePath) {
+          existingEodPath = eodReport.eodFilePath;
+          console.log(`→ Found existing EOD file in database: ${existingEodPath}`);
+        }
+      } catch (error) {
+        console.log(`→ Database lookup for EOD file failed: ${error}`);
+      }
+      
+      // Fallback to filesystem if not found in database
+      if (!existingEodPath) {
+        const shipOutputDir = path.join(process.cwd(), "output", shipId);
+        existingEodPath = path.join(shipOutputDir, existingEodFilename);
+        
+        if (!blobStorage.isBlobUrl(existingEodPath) && !fs.existsSync(existingEodPath)) {
+          return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
+        }
       }
 
       // Update the existing EOD file in-place (don't create new files)
-      await simpleEODProcessor.addSuccessiveDispatchEntry(
+      const updatedEodPath = await simpleEODProcessor.addSuccessiveDispatchEntry(
         existingEodPath,
         dispatchFilePath,
-        existingEodPath  // Save back to the same file
+        existingEodPath,  // Save back to the same file
+        shipId
       );
 
-      // No need to copy dispatch file or create new versions for successive entries
+      // Extract filename from result (could be blob URL or filesystem path)
+      const eodFilename = blobStorage.isBlobUrl(updatedEodPath)
+        ? path.basename(updatedEodPath.split('?')[0])
+        : path.basename(updatedEodPath);
 
       res.json({
         success: true,
-        eodFile: existingEodFilename,  // Return the same filename since we updated in-place
+        eodFile: eodFilename,
+        eodFilePath: updatedEodPath, // Include full path/URL for blob storage
         shipId: shipId,
         message: `Successive dispatch entry added successfully for ${shipId}`,
         originalEodFile: existingEodFilename
@@ -1650,9 +1724,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Save consolidated PAX report to database
         try {
+          // consolidatedResult.filename is either a blob URL (if blob storage) or just filename (if filesystem)
+          const filePath = blobStorage.isBlobUrl(consolidatedResult.filename) 
+            ? consolidatedResult.filename 
+            : `output/consolidated/pax/${consolidatedResult.filename}`;
+          const filename = blobStorage.isBlobUrl(consolidatedResult.filename)
+            ? path.basename(consolidatedResult.filename.split('?')[0])
+            : consolidatedResult.filename;
+          
           const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
-            filename: consolidatedResult.filename,
-            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            filename: filename,
+            filePath: filePath,
             contributingShips: consolidatedResult.data.contributingShips,
             totalRecordCount: consolidatedResult.data.totalRecordCount,
             lastUpdatedByShip: shipId
@@ -1709,10 +1791,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: `No active PAX template found for ${shipId}` });
       }
 
-      console.log('File exists:', fs.existsSync(dispatchFilePath));
+      // Use filePath as-is if it's a blob URL, otherwise make it absolute
+      let paxTemplatePath = paxTemplate.filePath;
+      if (!blobStorage.isBlobUrl(paxTemplatePath)) {
+        // Only join with cwd if it's a filesystem path
+        if (!path.isAbsolute(paxTemplatePath)) {
+          paxTemplatePath = path.join(process.cwd(), paxTemplatePath);
+        }
+        console.log('File exists:', fs.existsSync(paxTemplatePath));
+      } else {
+        console.log('Using blob URL for PAX template:', paxTemplatePath);
+      }
       
       // Generate PAX report using PaxProcessor with ship ID
-      const paxTemplatePath = path.join(process.cwd(), paxTemplate.filePath);
       const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath, shipId);
       
       res.json({
@@ -1764,8 +1855,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: `No active PAX template found for ${shipId}` });
       }
 
+      // Use filePath as-is if it's a blob URL, otherwise make it absolute
+      let paxTemplatePath = paxTemplate.filePath;
+      if (!blobStorage.isBlobUrl(paxTemplatePath)) {
+        // Only join with cwd if it's a filesystem path
+        if (!path.isAbsolute(paxTemplatePath)) {
+          paxTemplatePath = path.join(process.cwd(), paxTemplatePath);
+        }
+      } else {
+        console.log('Using blob URL for PAX template:', paxTemplatePath);
+      }
+
       // Generate new PAX report using PaxProcessor with ship ID
-      const paxTemplatePath = path.join(process.cwd(), paxTemplate.filePath);
       const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath, shipId);
 
       // Auto-generate consolidated PAX report
@@ -1788,9 +1889,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Save consolidated PAX report to database
         try {
+          // consolidatedResult.filename is either a blob URL (if blob storage) or just filename (if filesystem)
+          const filePath = blobStorage.isBlobUrl(consolidatedResult.filename) 
+            ? consolidatedResult.filename 
+            : `output/consolidated/pax/${consolidatedResult.filename}`;
+          const filename = blobStorage.isBlobUrl(consolidatedResult.filename)
+            ? path.basename(consolidatedResult.filename.split('?')[0])
+            : consolidatedResult.filename;
+          
           const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
-            filename: consolidatedResult.filename,
-            filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+            filename: filename,
+            filePath: filePath,
             contributingShips: consolidatedResult.data.contributingShips,
             totalRecordCount: consolidatedResult.data.totalRecordCount,
             lastUpdatedByShip: shipId
@@ -2010,9 +2119,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Save consolidated PAX report to database
+      // consolidatedResult.filename is either a blob URL (if blob storage) or just filename (if filesystem)
+      const filePath = blobStorage.isBlobUrl(consolidatedResult.filename) 
+        ? consolidatedResult.filename 
+        : `output/consolidated/pax/${consolidatedResult.filename}`;
+      const filename = blobStorage.isBlobUrl(consolidatedResult.filename)
+        ? path.basename(consolidatedResult.filename.split('?')[0])
+        : consolidatedResult.filename;
+      
       const consolidatedPaxRecord = await storage.createConsolidatedPaxReport({
-        filename: consolidatedResult.filename,
-        filePath: `output/consolidated/pax/${consolidatedResult.filename}`,
+        filename: filename,
+        filePath: filePath,
         contributingShips: consolidatedResult.data.contributingShips,
         totalRecordCount: consolidatedResult.data.totalRecordCount,
         lastUpdatedByShip: user.username
@@ -2022,7 +2139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         message: "Consolidated PAX report generated successfully",
-        filename: consolidatedResult.filename,
+        filename: filename, // Return the extracted filename, not the blob URL
         contributingShips: consolidatedResult.data.contributingShips,
         totalRecords: consolidatedResult.data.totalRecordCount
       });
@@ -2039,33 +2156,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download consolidated PAX report by filename
   app.get("/api/consolidated-pax/download/:filename", async (req, res) => {
     try {
-      const { filename } = req.params;
+      // URL decode the filename parameter (it might be URL-encoded)
+      let filename = decodeURIComponent(req.params.filename);
+      console.log(`→ Downloading consolidated PAX file (decoded): ${filename}`);
+      console.log(`→ Is blob URL? ${blobStorage.isBlobUrl(filename)}`);
       
-      // First check if this is a blob URL stored in database
+      // Check if the filename parameter is actually a blob URL
+      if (blobStorage.isBlobUrl(filename)) {
+        console.log(`→ Filename parameter is a blob URL, using directly: ${filename}`);
+        const downloadFilename = path.basename(filename.split('?')[0]);
+        await handleFileDownload(filename, res, downloadFilename);
+        return;
+      }
+      
+      // First check consolidated PAX reports table (this is where consolidated PAX reports are stored)
       let filePathOrUrl: string | undefined;
       try {
-        const recentReports = await storage.getRecentGeneratedReports(10);
-        const report = recentReports.find(r => 
-          r.eodFilePath && (r.eodFilePath.includes(filename) || path.basename(r.eodFilePath) === filename)
-        );
-        if (report?.eodFilePath) {
-          filePathOrUrl = report.eodFilePath;
+        // Try to find by filename
+        const consolidatedReport = await storage.getConsolidatedPaxReportByFilename(filename);
+        if (consolidatedReport) {
+          // Check if filename field contains a blob URL (old records)
+          if (blobStorage.isBlobUrl(consolidatedReport.filename)) {
+            filePathOrUrl = consolidatedReport.filename;
+            console.log(`→ Found consolidated PAX report with blob URL in filename field: ${filePathOrUrl}`);
+          } else if (consolidatedReport.filePath) {
+            filePathOrUrl = consolidatedReport.filePath;
+            console.log(`→ Found consolidated PAX report in database: ${filePathOrUrl}`);
+          }
+        }
+        
+        // If not found by exact filename match, search all reports
+        if (!filePathOrUrl) {
+          const allReports = await storage.getRecentConsolidatedPaxReports(50);
+          const report = allReports.find(r => {
+            // Check if filename matches (could be blob URL in old records)
+            if (r.filename === filename || blobStorage.isBlobUrl(r.filename)) {
+              return true;
+            }
+            // Check if filePath matches
+            if (r.filePath && (r.filePath.includes(filename) || path.basename(r.filePath) === filename)) {
+              return true;
+            }
+            // Check if filename parameter matches the blob URL in filename field
+            if (blobStorage.isBlobUrl(filename) && blobStorage.isBlobUrl(r.filename) && r.filename === filename) {
+              return true;
+            }
+            return false;
+          });
+          
+          if (report) {
+            // Prefer filePath, but use filename if it's a blob URL (old records)
+            if (blobStorage.isBlobUrl(report.filename)) {
+              filePathOrUrl = report.filename;
+              console.log(`→ Found consolidated PAX report by filename match (blob URL in filename field): ${filePathOrUrl}`);
+            } else if (report.filePath) {
+              filePathOrUrl = report.filePath;
+              console.log(`→ Found consolidated PAX report by filePath match: ${filePathOrUrl}`);
+            }
+          }
         }
       } catch (error) {
         console.log(`→ Consolidated PAX database lookup failed: ${error}`);
       }
       
-      // Fallback to filesystem
+      // Fallback to filesystem if not found in database (only if it's not a blob URL)
       if (!filePathOrUrl) {
-        const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
-        filePathOrUrl = path.join(consolidatedOutputDir, filename);
+        if (blobStorage.isBlobUrl(filename)) {
+          // If filename is a blob URL but not found in DB, use it directly (might be from old record format)
+          console.log(`→ Filename is blob URL but not in DB, using directly: ${filename}`);
+          filePathOrUrl = filename;
+        } else {
+          console.log(`→ Consolidated PAX not found in database, trying filesystem...`);
+          const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
+          filePathOrUrl = path.join(consolidatedOutputDir, filename);
+        }
       }
 
-      console.log(`→ Downloading consolidated PAX file: ${filename}`);
-      await handleFileDownload(filePathOrUrl, res, filename);
+      // Extract just the filename for the download (not the full blob URL)
+      const downloadFilename = blobStorage.isBlobUrl(filePathOrUrl) 
+        ? path.basename(filePathOrUrl.split('?')[0])
+        : path.basename(filePathOrUrl);
+      
+      await handleFileDownload(filePathOrUrl, res, downloadFilename);
     } catch (error) {
       console.error("Consolidated PAX download error:", error);
-      res.status(500).json({ message: "Failed to download consolidated PAX file" });
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to download consolidated PAX file" });
+      }
     }
   });
 
@@ -2073,28 +2250,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/consolidated-pax/view/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
+      console.log(`→ Viewing consolidated PAX file: ${filename}`);
       
-      // First check if this is a blob URL stored in database
+      // First check consolidated PAX reports table (this is where consolidated PAX reports are stored)
       let filePathOrUrl: string | undefined;
       try {
-        const recentReports = await storage.getRecentGeneratedReports(10);
-        const report = recentReports.find(r => 
-          r.eodFilePath && (r.eodFilePath.includes(filename) || path.basename(r.eodFilePath) === filename)
-        );
-        if (report?.eodFilePath) {
-          filePathOrUrl = report.eodFilePath;
+        const consolidatedReport = await storage.getConsolidatedPaxReportByFilename(filename);
+        if (consolidatedReport?.filePath) {
+          filePathOrUrl = consolidatedReport.filePath;
+          console.log(`→ Found consolidated PAX report in database: ${filePathOrUrl}`);
         }
       } catch (error) {
         console.log(`→ Consolidated PAX database lookup failed: ${error}`);
       }
       
-      // Fallback to filesystem
+      // Fallback to filesystem if not found in database
       if (!filePathOrUrl) {
+        console.log(`→ Consolidated PAX not found in database, trying filesystem...`);
         const consolidatedOutputDir = path.join(process.cwd(), "output", "consolidated", "pax");
         filePathOrUrl = path.join(consolidatedOutputDir, filename);
       }
-
-      console.log(`→ Viewing consolidated PAX file: ${filename}`);
       
       // For blob URLs, redirect; for filesystem, serve with view headers
       if (blobStorage.isBlobUrl(filePathOrUrl)) {

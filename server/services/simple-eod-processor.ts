@@ -144,12 +144,18 @@ export class SimpleEODProcessor {
     eodTemplatePath: string,
     dispatchFileId: number,
     dispatchFilePath: string,
-    outputPath: string
+    outputPath: string,
+    shipId: string = 'ship-a'
   ): Promise<string> {
     try {
       console.log('→ SimpleEOD: Processing multiple dispatch records');
       console.log(`→ SimpleEOD: About to call cellExtractor.extractMultipleRecords with path: ${dispatchFilePath}`);
-      console.log(`→ SimpleEOD: File exists at path: ${fs.existsSync(dispatchFilePath)}`);
+      // Only check filesystem existence if it's not a blob URL
+      if (!blobStorage.isBlobUrl(dispatchFilePath)) {
+        console.log(`→ SimpleEOD: File exists at path: ${fs.existsSync(dispatchFilePath)}`);
+      } else {
+        console.log(`→ SimpleEOD: Dispatch file is a blob URL`);
+      }
       
       // Extract all dispatch records
       let multipleData;
@@ -171,13 +177,18 @@ export class SimpleEODProcessor {
       
       console.log(`→ SimpleEOD: Found ${multipleData.records.length} tour records to process`);
       
-      // Load EOD template
-      if (!fs.existsSync(eodTemplatePath)) {
-        throw new Error(`EOD template file not found: ${eodTemplatePath}`);
-      }
-      
+      // Load EOD template - handle both blob URLs and filesystem paths
       const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(eodTemplatePath);
+      if (blobStorage.isBlobUrl(eodTemplatePath)) {
+        console.log(`→ SimpleEOD: Loading EOD template from blob storage: ${eodTemplatePath}`);
+        await workbook.xlsx.load(await blobStorage.downloadFile(eodTemplatePath));
+      } else {
+        if (!fs.existsSync(eodTemplatePath)) {
+          throw new Error(`EOD template file not found: ${eodTemplatePath}`);
+        }
+        console.log(`→ SimpleEOD: Loading EOD template from filesystem: ${eodTemplatePath}`);
+        await workbook.xlsx.readFile(eodTemplatePath);
+      }
       const worksheet = workbook.getWorksheet(1);
       
       if (!worksheet) {
