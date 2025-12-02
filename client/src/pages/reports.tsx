@@ -287,24 +287,45 @@ export default function Reports() {
       <div className={`flex-1 flex flex-col transition-all duration-300 ${
         isCollapsed ? 'md:ml-16' : 'md:ml-64'
       }`}>
+        {/* Mobile Header with Navigation */}
+        <header className="bg-white border-b border-gray-200 md:hidden sticky top-0 z-20">
+          <div className="px-3 sm:px-4 py-2 sm:py-3">
+            <div className="flex items-center gap-3">
+              <MobileNavigation />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                  Reports
+                </h1>
+                {currentShip && (
+                  <p className="text-xs sm:text-sm text-blue-600 truncate">
+                    {getShipDisplayName(currentShip)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Breadcrumbs - Mobile Optimized */}
         <Breadcrumbs />
+
         <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
+        {/* Header - Desktop Only */}
+        <header className="bg-white shadow-sm border-b hidden md:block">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="py-6 flex items-center justify-between">
               <div className="flex items-center">
                 <MobileNavigation />
                 <div className="ml-4 md:ml-0">
-                  <h1 className="text-3xl font-bold text-gray-900">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     Reports
                     {currentShip && (
-                      <span className="text-lg font-normal text-blue-600 block mt-1">
+                      <span className="text-base sm:text-lg font-normal text-blue-600 block mt-1">
                         for {getShipDisplayName(currentShip)}
                       </span>
                     )}
                   </h1>
-                  <p className="mt-2 text-gray-600">
+                  <p className="mt-2 text-sm sm:text-base text-gray-600">
                     {currentShip 
                       ? `Generate and manage your dispatch and EOD reports for ${getShipDisplayName(currentShip)}`
                       : 'Generate and manage your dispatch and EOD reports'
@@ -317,41 +338,41 @@ export default function Reports() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+        <main className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 overflow-y-auto">
           {/* Ship Selector */}
-          <div className="mb-8">
+          <div className="mb-4 sm:mb-6 md:mb-8">
             <ShipSelector />
           </div>
 
           {!currentShip ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Please select a ship above to view reports.</p>
-                <p className="text-sm text-gray-500">Each ship maintains separate reports and data for complete isolation.</p>
+            <Card className="touch-manipulation">
+              <CardContent className="text-center py-6 sm:py-8 px-3 sm:px-4">
+                <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500 mx-auto mb-3 sm:mb-4" />
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Please select a ship above to view reports.</p>
+                <p className="text-xs sm:text-sm text-gray-500">Each ship maintains separate reports and data for complete isolation.</p>
               </CardContent>
             </Card>
           ) : (
           <div>
             {/* Latest Reports Quick Access */}
-          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-green-50 border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center text-blue-900">
-                <File className="w-5 h-5 mr-2" />
-                Latest Reports - Quick Access
+          <Card className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-blue-50 to-green-50 border-0 shadow-lg touch-manipulation">
+            <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+              <CardTitle className="flex items-center text-blue-900 text-base sm:text-lg">
+                <File className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                <span>Latest Reports - Quick Access</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {/* Most Recent EOD Report */}
-                <div className="bg-white rounded-lg p-6 border border-blue-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <FileText className="w-4 h-4 mr-2 text-blue-600" />
-                      Latest EOD Report
+                <div className="bg-white rounded-lg p-4 sm:p-5 md:p-6 border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center text-sm sm:text-base">
+                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-blue-600 flex-shrink-0" />
+                      <span className="truncate">Latest EOD Report</span>
                     </h3>
                     {outputFiles.find((file: any) => file.filename.startsWith('eod_')) && (
-                      <Badge className="bg-green-100 text-green-800">Available</Badge>
+                      <Badge className="bg-green-100 text-green-800 text-xs flex-shrink-0">Available</Badge>
                     )}
                   </div>
                   
@@ -366,76 +387,77 @@ export default function Reports() {
                     
                     return latestEOD ? (
                       <div>
-                        <div className="text-sm text-gray-600 mb-3">
-                          <div className="flex items-center mb-1">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Generated: {new Date(latestEOD.createdAt).toLocaleDateString('en-US', {
-                              month: 'long',
+                        <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-1.5">
+                          <div className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1.5 flex-shrink-0" />
+                            <span className="truncate">Generated: {new Date(latestEOD.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
                               day: 'numeric',
                               year: 'numeric'
-                            })}
+                            })}</span>
                           </div>
-                          <div className="text-xs text-gray-500 ml-4">
+                          <div className="text-xs text-gray-500 ml-4.5">
                             {new Date(latestEOD.createdAt).toLocaleTimeString('en-US', {
                               hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
+                              minute: '2-digit'
                             })}
                           </div>
-                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                          <div className="text-xs text-gray-500 ml-4.5 break-words">
                             File: {latestEOD.filename}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={() => window.open(`/api/output/${latestEOD.filename}?ship=${currentShip}`, '_blank')}
-                          >
-                            <Download className="w-3 h-3 mr-2" />
-                            Download
-                          </Button>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={() => window.open(`/api/output/${latestEOD.filename}?ship=${currentShip}`, '_blank')}
+                            >
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">Download</span>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-blue-600 text-blue-600 hover:bg-blue-50 active:bg-blue-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={() => handleViewEodReport(latestEOD.filename)}
+                              disabled={loadingEod}
+                            >
+                              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">{loadingEod ? 'Loading...' : 'View'}</span>
+                            </Button>
+                          </div>
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleViewEodReport(latestEOD.filename)}
-                            disabled={loadingEod}
-                          >
-                            <FileText className="w-3 h-3 mr-2" />
-                            {loadingEod ? 'Loading...' : 'View'}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                             onClick={() => openShareModal(['eod'])}
                           >
-                            <Share className="w-3 h-3 mr-2" />
+                            <Share className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
                             Share Report
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <FileText className="w-6 h-6 text-gray-400" />
+                      <div className="text-center py-4 sm:py-6">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                          <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                         </div>
-                        <p className="text-gray-500 text-sm">No EOD reports generated yet</p>
+                        <p className="text-xs sm:text-sm text-gray-500">No EOD reports generated yet</p>
                       </div>
                     );
                   })()}
                 </div>
 
                 {/* Most Recent Dispatch Sheet */}
-                <div className="bg-white rounded-lg p-6 border border-green-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <FileText className="w-4 h-4 mr-2 text-green-600" />
-                      Latest Dispatch Sheet
+                <div className="bg-white rounded-lg p-4 sm:p-5 md:p-6 border border-green-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center text-sm sm:text-base">
+                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-green-600 flex-shrink-0" />
+                      <span className="truncate">Latest Dispatch Sheet</span>
                     </h3>
                     {dispatchVersions.length > 0 && (
-                      <Badge className="bg-blue-100 text-blue-800">Available</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 text-xs flex-shrink-0">Available</Badge>
                     )}
                   </div>
                   
@@ -444,76 +466,77 @@ export default function Reports() {
                     
                     return latestDispatch ? (
                       <div>
-                        <div className="text-sm text-gray-600 mb-3">
-                          <div className="flex items-center mb-1">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Saved: {new Date(latestDispatch.createdAt).toLocaleDateString('en-US', {
-                              month: 'long',
+                        <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-1.5">
+                          <div className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1.5 flex-shrink-0" />
+                            <span className="truncate">Saved: {new Date(latestDispatch.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
                               day: 'numeric',
                               year: 'numeric'
-                            })}
+                            })}</span>
                           </div>
-                          <div className="text-xs text-gray-500 ml-4">
+                          <div className="text-xs text-gray-500 ml-4.5">
                             {new Date(latestDispatch.createdAt).toLocaleTimeString('en-US', {
                               hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
+                              minute: '2-digit'
                             })}
                           </div>
-                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                          <div className="text-xs text-gray-500 ml-4.5 break-words">
                             File: {latestDispatch.originalFilename}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-green-600 text-green-600 hover:bg-green-50 active:bg-green-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
+                            >
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">Download</span>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={() => handleViewDispatchSheet(latestDispatch.filename)}
+                              disabled={loadingDispatch}
+                            >
+                              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">{loadingDispatch ? 'Loading...' : 'View'}</span>
+                            </Button>
+                          </div>
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="border-green-600 text-green-600 hover:bg-green-50"
-                            onClick={() => window.open(`/api/files/${latestDispatch.filename}`, '_blank')}
-                          >
-                            <Download className="w-3 h-3 mr-2" />
-                            Download
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => handleViewDispatchSheet(latestDispatch.filename)}
-                            disabled={loadingDispatch}
-                          >
-                            <FileText className="w-3 h-3 mr-2" />
-                            {loadingDispatch ? 'Loading...' : 'View'}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                             onClick={() => openShareModal(['dispatch'])}
                           >
-                            <Share className="w-3 h-3 mr-2" />
+                            <Share className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
                             Share Report
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <FileText className="w-6 h-6 text-gray-400" />
+                      <div className="text-center py-4 sm:py-6">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                          <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                         </div>
-                        <p className="text-gray-500 text-sm">No dispatch sheets saved yet</p>
+                        <p className="text-xs sm:text-sm text-gray-500">No dispatch sheets saved yet</p>
                       </div>
                     );
                   })()}
                 </div>
 
                 {/* Most Recent PAX Report */}
-                <div className="bg-white rounded-lg p-6 border border-orange-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-orange-600" />
-                      Latest PAX Report
+                <div className="bg-white rounded-lg p-4 sm:p-5 md:p-6 border border-orange-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center text-sm sm:text-base">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-orange-600 flex-shrink-0" />
+                      <span className="truncate">Latest PAX Report</span>
                     </h3>
                     {outputFiles.find((file: any) => file.filename.startsWith('pax_')) && (
-                      <Badge className="bg-green-100 text-green-800">Available</Badge>
+                      <Badge className="bg-green-100 text-green-800 text-xs flex-shrink-0">Available</Badge>
                     )}
                   </div>
                   
@@ -524,83 +547,77 @@ export default function Reports() {
                     
                     return latestPAX ? (
                       <div>
-                        <div className="text-sm text-gray-600 mb-3">
-                          <div className="flex items-center mb-1">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Generated: {new Date(latestPAX.createdAt).toLocaleDateString('en-US', {
-                              month: 'long',
+                        <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-1.5">
+                          <div className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1.5 flex-shrink-0" />
+                            <span className="truncate">Generated: {new Date(latestPAX.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
                               day: 'numeric',
                               year: 'numeric'
-                            })}
+                            })}</span>
                           </div>
-                          <div className="text-xs text-gray-500 ml-4">
+                          <div className="text-xs text-gray-500 ml-4.5">
                             {new Date(latestPAX.createdAt).toLocaleTimeString('en-US', {
                               hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit'
+                              minute: '2-digit'
                             })}
                           </div>
-                          <div className="text-xs text-gray-500 ml-4 mt-1">
+                          <div className="text-xs text-gray-500 ml-4.5 break-words">
                             File: {latestPAX.filename}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
-                            onClick={() => {
-                              console.log('Attempting to download PAX file:', latestPAX.filename);
-                              const downloadUrl = `/api/output/${latestPAX.filename}?ship=${currentShip}`;
-                              console.log('Download URL:', downloadUrl);
-                              
-                              // Try window.open first
-                              const newWindow = window.open(downloadUrl, '_blank');
-                              
-                              // If popup blocked, use direct location
-                              if (!newWindow || newWindow.closed) {
-                                console.log('Popup blocked, trying direct download...');
-                                window.location.href = downloadUrl;
-                              }
-                            }}
-                          >
-                            <Download className="w-3 h-3 mr-2" />
-                            Download
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="border-orange-600 text-orange-600 hover:bg-orange-50"
-                            onClick={handleGeneratePaxReport}
-                            disabled={paxGenerating}
-                          >
-                            <Users className="w-3 h-3 mr-2" />
-                            {paxGenerating ? 'Generating...' : 'Generate New'}
-                          </Button>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={() => {
+                                const downloadUrl = `/api/output/${latestPAX.filename}?ship=${currentShip}`;
+                                const newWindow = window.open(downloadUrl, '_blank');
+                                if (!newWindow || newWindow.closed) {
+                                  window.location.href = downloadUrl;
+                                }
+                              }}
+                            >
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">Download</span>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-orange-600 text-orange-600 hover:bg-orange-50 active:bg-orange-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
+                              onClick={handleGeneratePaxReport}
+                              disabled={paxGenerating}
+                            >
+                              <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                              <span className="truncate">{paxGenerating ? 'Generating...' : 'Generate New'}</span>
+                            </Button>
+                          </div>
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="col-span-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 active:bg-emerald-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                             onClick={() => openShareModal(['pax'])}
                           >
-                            <Share className="w-3 h-3 mr-2" />
+                            <Share className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
                             Share Report
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <Users className="w-6 h-6 text-gray-400" />
+                      <div className="text-center py-4 sm:py-6">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                         </div>
-                        <p className="text-gray-500 text-sm">No PAX reports generated yet</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mb-3">No PAX reports generated yet</p>
                         <Button 
                           size="sm" 
-                          className="mt-3 bg-orange-600 hover:bg-orange-700"
+                          className="bg-orange-600 hover:bg-orange-700 active:bg-orange-800 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                           onClick={handleGeneratePaxReport}
                           disabled={paxGenerating}
                         >
-                          <Users className="w-3 h-3 mr-2" />
-                          {paxGenerating ? 'Generating...' : 'Generate PAX Report'}
+                          <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                          <span className="truncate">{paxGenerating ? 'Generating...' : 'Generate PAX Report'}</span>
                         </Button>
                       </div>
                     );
@@ -609,16 +626,16 @@ export default function Reports() {
               </div>
               
               {/* Share All Reports Button */}
-              <div className="mt-6 text-center">
+              <div className="mt-4 sm:mt-6 text-center">
                 <Button 
                   onClick={() => openShareModal(['eod', 'dispatch', 'pax'])}
-                  className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-6 py-2"
+                  className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 active:from-emerald-800 active:to-blue-800 text-white px-4 sm:px-6 py-2 sm:py-2.5 h-11 sm:h-12 text-sm sm:text-base touch-manipulation w-full sm:w-auto"
                   size="lg"
                 >
-                  <Share className="w-4 h-4 mr-2" />
-                  Share All Available Reports
+                  <Share className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">Share All Available Reports</span>
                 </Button>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs sm:text-sm text-gray-500 mt-2 px-2">
                   Share EOD, Dispatch, and PAX reports via email or Dropbox
                 </p>
               </div>
@@ -628,47 +645,47 @@ export default function Reports() {
 
 
           {/* Generated Files */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center text-gray-800">
-                <File className="w-5 h-5 mr-2 text-gray-600" />
-                Generated Files
+          <Card className="mb-4 sm:mb-6 md:mb-8 touch-manipulation">
+            <CardHeader className="px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+              <CardTitle className="flex items-center text-gray-800 text-base sm:text-lg">
+                <File className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-gray-600 flex-shrink-0" />
+                <span>Generated Files</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
               {isLoadingFiles ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
-                  <p className="text-gray-500 mt-2 text-sm">Loading files...</p>
+                <div className="text-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-gray-400 mx-auto"></div>
+                  <p className="text-gray-500 mt-2 text-xs sm:text-sm">Loading files...</p>
                 </div>
               ) : (outputFiles as any[]).length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <File className="w-6 h-6 text-gray-400" />
+                <div className="text-center py-8 sm:py-12">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <File className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 text-sm">No files generated yet</p>
+                  <p className="text-xs sm:text-sm text-gray-500">No files generated yet</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {(showAllFiles ? (outputFiles as any[]) : (outputFiles as any[]).slice(0, 4)).map((file: any) => (
                     <div
                       key={file.filename}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                        <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0 ${
                           file.type === 'EOD Report' ? 'bg-emerald-500' : 
                           file.type === 'PAX Report' ? 'bg-orange-500' : 'bg-blue-500'
                         }`}></div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                             {file.filename}
                           </h4>
-                          <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 mt-0.5 sm:mt-1">
                             <span>{file.type}</span>
-                            <span>•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span>{(file.size / 1024).toFixed(1)} KB</span>
-                            <span>•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span>{new Date(file.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
@@ -676,33 +693,26 @@ export default function Reports() {
                       
                       <Button
                         onClick={() => {
-                          console.log('Downloading file:', file.filename, 'Type:', file.type);
-                          console.log('Download URL:', file.downloadUrl);
-                          
-                          // Try window.open first
                           const newWindow = window.open(file.downloadUrl, '_blank');
-                          
-                          // If popup blocked, use direct location
                           if (!newWindow || newWindow.closed) {
-                            console.log('Popup blocked, trying direct download...');
                             window.location.href = file.downloadUrl;
                           }
                         }}
                         size="sm"
                         variant="ghost"
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-gray-600 hover:text-gray-900 active:text-gray-700 h-9 sm:h-10 w-9 sm:w-10 p-0 flex-shrink-0 touch-manipulation"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                     </div>
                   ))}
                   
                   {(outputFiles as any[]).length > 4 && (
-                    <div className="text-center pt-4 border-t border-gray-200">
+                    <div className="text-center pt-3 sm:pt-4 border-t border-gray-200">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-gray-600 hover:text-gray-900 active:text-gray-700 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                         onClick={() => setShowAllFiles(!showAllFiles)}
                       >
                         {showAllFiles ? 'View Less' : `View More (${(outputFiles as any[]).length - 4} more files)`}
@@ -715,30 +725,30 @@ export default function Reports() {
           </Card>
 
           {/* Report Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <Card>
-              <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mt-4 sm:mt-6 md:mt-8">
+            <Card className="touch-manipulation hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                    <p className="text-2xl font-bold text-gray-900">{generatedReports.length}</p>
+                  <div className="ml-3 sm:ml-4 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Total Reports</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{generatedReports.length}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
+            <Card className="touch-manipulation hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Records</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="ml-3 sm:ml-4 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">Total Records</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {generatedReports.reduce((total, report) => total + report.recordCount, 0)}
                     </p>
                   </div>
@@ -746,15 +756,15 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
+            <Card className="touch-manipulation hover:shadow-md transition-shadow sm:col-span-2 md:col-span-1">
+              <CardContent className="p-4 sm:p-5 md:p-6">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Users className="w-4 h-4 text-purple-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">This Month</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="ml-3 sm:ml-4 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">This Month</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {recentJobs.filter(job => {
                         const jobDate = new Date(job.createdAt);
                         const now = new Date();
@@ -774,30 +784,30 @@ export default function Reports() {
 
       {/* EOD Report Viewer Modal */}
       <Dialog open={eodViewerOpen} onOpenChange={setEodViewerOpen}>
-        <DialogContent className="max-w-6xl max-h-[80vh] p-0">
-          <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-blue-600" />
-              EOD Report Viewer
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-6xl max-h-[90vh] p-0 w-full mx-auto">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <DialogTitle className="flex items-center text-base sm:text-lg">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600 flex-shrink-0" />
+              <span>EOD Report Viewer</span>
             </DialogTitle>
             <Button
               variant="ghost"
               size="sm"
-              className="absolute right-4 top-4"
+              className="absolute right-3 sm:right-4 top-3 sm:top-4 h-8 w-8 sm:h-9 sm:w-9 p-0 touch-manipulation"
               onClick={() => setEodViewerOpen(false)}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </DialogHeader>
-          <div className="px-6 pb-6 overflow-hidden">
-            <div className="border rounded-lg overflow-hidden">
+          <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 overflow-hidden">
+            <div className="border rounded-lg overflow-auto">
               <HotTable
                 data={eodSpreadsheetData}
                 colHeaders={true}
                 rowHeaders={true}
                 readOnly={true}
                 width="100%"
-                height="500px"
+                height="400px"
                 stretchH="all"
                 autoWrapRow={true}
                 autoWrapCol={true}
@@ -811,30 +821,30 @@ export default function Reports() {
 
       {/* Dispatch Sheet Viewer Modal */}
       <Dialog open={dispatchViewerOpen} onOpenChange={setDispatchViewerOpen}>
-        <DialogContent className="max-w-6xl max-h-[80vh] p-0">
-          <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-green-600" />
-              Dispatch Sheet Viewer
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-6xl max-h-[90vh] p-0 w-full mx-auto">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <DialogTitle className="flex items-center text-base sm:text-lg">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600 flex-shrink-0" />
+              <span>Dispatch Sheet Viewer</span>
             </DialogTitle>
             <Button
               variant="ghost"
               size="sm"
-              className="absolute right-4 top-4"
+              className="absolute right-3 sm:right-4 top-3 sm:top-4 h-8 w-8 sm:h-9 sm:w-9 p-0 touch-manipulation"
               onClick={() => setDispatchViewerOpen(false)}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </DialogHeader>
-          <div className="px-6 pb-6 overflow-hidden">
-            <div className="border rounded-lg overflow-hidden">
+          <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 overflow-hidden">
+            <div className="border rounded-lg overflow-auto">
               <HotTable
                 data={dispatchSpreadsheetData}
                 colHeaders={true}
                 rowHeaders={true}
                 readOnly={true}
                 width="100%"
-                height="500px"
+                height="400px"
                 stretchH="all"
                 autoWrapRow={true}
                 autoWrapCol={true}

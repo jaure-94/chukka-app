@@ -365,6 +365,7 @@ export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const [mobileExpandedItems, setMobileExpandedItems] = useState<string[]>([]);
+  const { user, logoutMutation } = useAuth();
 
   const toggleMobileExpanded = (itemName: string) => {
     setMobileExpandedItems(prev => 
@@ -377,6 +378,25 @@ export function MobileNavigation() {
   const isMobileItemExpanded = (itemName: string) => mobileExpandedItems.includes(itemName);
   const isMobileSubItemActive = (subItems: { href: string }[] | undefined) => 
     subItems?.some(subItem => location === subItem.href) || false;
+
+  // Filter navigation items based on user role
+  const getFilteredMobileNavigationItems = () => {
+    if (!user) return navigationItems;
+    
+    return navigationItems.filter(item => {
+      // General users cannot access "Dispatch Records", "Users", and "Share Reports" pages
+      if (user.role === 'general') {
+        return item.name !== 'Dispatch Records' && item.name !== 'Users' && item.name !== 'Share Reports';
+      }
+      // Dispatchers cannot access "Users" page
+      if (user.role === 'dispatcher') {
+        return item.name !== 'Users';
+      }
+      return true;
+    });
+  };
+
+  const filteredMobileNavigationItems = getFilteredMobileNavigationItems();
 
   return (
     <>
@@ -400,8 +420,8 @@ export function MobileNavigation() {
               setIsOpen(false);
             }} 
           />
-          <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg">
-            <div className="p-4 border-b border-gray-200">
+          <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex-1 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg p-3 border border-cyan-200 shadow-sm">
                   <div className="flex items-center space-x-3">
@@ -426,8 +446,8 @@ export function MobileNavigation() {
               </div>
             </div>
             
-            <nav className="px-2 py-4 space-y-1">
-              {navigationItems.map((item) => {
+            <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+              {filteredMobileNavigationItems.map((item) => {
                 const Icon = item.icon;
                 const hasSubItems = item.subItems && item.subItems.length > 0;
                 const isActive = item.href ? location === item.href : false;
@@ -524,6 +544,78 @@ export function MobileNavigation() {
                 );
               })}
             </nav>
+
+            {/* Mobile User Profile Card */}
+            {user && (
+              <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="w-full">
+                    <div className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation">
+                      <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
+                        <AvatarFallback className="bg-blue-100 text-blue-700 text-sm sm:text-base font-medium">
+                          {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm sm:text-base font-medium text-gray-900 truncate">
+                          {user.firstName && user.lastName 
+                            ? `${user.firstName} ${user.lastName}` 
+                            : user.username || 'Loading...'}
+                        </p>
+                        <div className="flex items-center space-x-1 mt-0.5">
+                          <Badge 
+                            variant={
+                              user.role === 'superuser' ? 'default' : 
+                              user.role === 'admin' ? 'secondary' : 
+                              user.role === 'dispatcher' ? 'outline' : 'outline'
+                            }
+                            className="text-xs sm:text-sm px-1.5 sm:px-2 py-0.5"
+                          >
+                            {user.role === 'superuser' && <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" />}
+                            {user.role === 'admin' && <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" />}
+                            {user.role === 'dispatcher' && <Clipboard className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" />}
+                            {user.role === 'general' && <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" />}
+                            <span className="truncate">
+                              {(user.role?.charAt(0).toUpperCase() || '') + (user.role?.slice(1) || '')}
+                            </span>
+                          </Badge>
+                        </div>
+                      </div>
+                      <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 sm:w-64">
+                    <Link href="/profile" onClick={() => setIsOpen(false)}>
+                      <DropdownMenuItem className="text-sm sm:text-base h-10 sm:h-11 touch-manipulation">
+                        <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                        Profile
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link href="/account-management" onClick={() => setIsOpen(false)}>
+                      <DropdownMenuItem className="text-sm sm:text-base h-10 sm:h-11 touch-manipulation">
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                        Account Management
+                      </DropdownMenuItem>
+                    </Link>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        setIsOpen(false);
+                        logoutMutation.mutate(undefined, {
+                          onSuccess: () => {
+                            window.location.href = '/login';
+                          }
+                        });
+                      }}
+                      className="text-red-600 text-sm sm:text-base h-10 sm:h-11 touch-manipulation"
+                    >
+                      <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         </div>
       )}

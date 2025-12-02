@@ -17,10 +17,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { SidebarNavigation } from "@/components/sidebar-navigation";
+import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ArrowLeft, User, UserPlus, Save, Loader2 } from "lucide-react";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -54,6 +55,7 @@ export default function CreateUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const isMobile = useIsMobile();
 
   // Check if superuser already exists
   const { data: users } = useQuery({
@@ -125,11 +127,34 @@ export default function CreateUser() {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <SidebarNavigation />
       
+      {/* Mobile Header */}
+      {isMobile && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm md:hidden">
+          <div className="flex items-center justify-between px-3 sm:px-4 h-[60px]">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <MobileNavigation />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">Create User</h1>
+                <p className="text-xs text-gray-500 truncate">Add new account</p>
+              </div>
+            </div>
+            <Button 
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/users")}
+              className="h-9 px-2 flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </div>
+        </header>
+      )}
+
       {/* Main Content */}
       <main className={`flex-1 transition-all duration-300 ${
         isCollapsed ? 'ml-16' : 'ml-64'
-      } flex flex-col`}>
-        {/* Breadcrumbs - Sticky at top */}
+      } ${isMobile ? 'ml-0 mt-[60px]' : ''} flex flex-col`}>
+        {/* Breadcrumbs */}
         <Breadcrumbs 
           items={[
             { label: "Dashboard", href: "/" },
@@ -138,51 +163,61 @@ export default function CreateUser() {
           ]}
         />
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-3 sm:p-4 md:p-6">
             <div className="w-full max-w-4xl mx-auto">
 
-            {/* Back Button */}
-            <Button 
-              variant="ghost" 
-              onClick={() => setLocation("/users")}
-              className="mb-6 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Users
-            </Button>
+            {/* Desktop Back Button */}
+            {!isMobile && (
+              <Button 
+                variant="ghost" 
+                onClick={() => setLocation("/users")}
+                className="mb-6 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Users
+              </Button>
+            )}
 
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <UserPlus className="w-8 h-8 mr-3 text-blue-600" />
-                Create New User
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Add a new user to the system with appropriate permissions and details
-              </p>
-            </div>
+            {/* Desktop Header */}
+            {!isMobile && (
+              <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+                  <UserPlus className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-600" />
+                  Create New User
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-2">
+                  Add a new user to the system with appropriate permissions and details
+                </p>
+              </div>
+            )}
 
             {/* Form Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <User className="w-5 h-5 mr-2 text-blue-600" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center text-lg sm:text-xl">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" />
                   User Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                     {/* Personal Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>First Name *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">First Name *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter first name" {...field} />
+                              <Input 
+                                placeholder="Enter first name" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="text"
+                                autoCapitalize="words"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -194,9 +229,15 @@ export default function CreateUser() {
                         name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Last Name *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Last Name *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter last name" {...field} />
+                              <Input 
+                                placeholder="Enter last name" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="text"
+                                autoCapitalize="words"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -205,15 +246,22 @@ export default function CreateUser() {
                     </div>
 
                     {/* Account Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Username *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter username" {...field} />
+                              <Input 
+                                placeholder="Enter username" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="text"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -225,9 +273,17 @@ export default function CreateUser() {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email Address *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Email Address *</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="Enter email address" {...field} />
+                              <Input 
+                                type="email" 
+                                placeholder="Enter email address" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="email"
+                                autoCapitalize="none"
+                                autoComplete="email"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -236,15 +292,21 @@ export default function CreateUser() {
                     </div>
 
                     {/* Password Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Password *</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="Enter password" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="Enter password" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                autoComplete="new-password"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -256,9 +318,15 @@ export default function CreateUser() {
                         name="confirmPassword"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Confirm Password *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Confirm Password *</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="Confirm password" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="Confirm password" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                autoComplete="new-password"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -267,16 +335,16 @@ export default function CreateUser() {
                     </div>
 
                     {/* Role and Work Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Role *</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Role *</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-11 sm:h-10 text-sm sm:text-base">
                                   <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                               </FormControl>
@@ -299,9 +367,15 @@ export default function CreateUser() {
                         name="position"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Position</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Position</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter job position" {...field} />
+                              <Input 
+                                placeholder="Enter job position" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="text"
+                                autoCapitalize="words"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -313,9 +387,14 @@ export default function CreateUser() {
                         name="employeeNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Employee Number</FormLabel>
+                            <FormLabel className="text-sm sm:text-base">Employee Number</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter employee number" {...field} />
+                              <Input 
+                                placeholder="Enter employee number" 
+                                {...field} 
+                                className="h-11 sm:h-10 text-sm sm:text-base"
+                                inputMode="numeric"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -324,29 +403,30 @@ export default function CreateUser() {
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+                    <div className={`flex items-center ${isMobile ? 'flex-col-reverse' : 'justify-end'} space-y-3 ${isMobile ? '' : 'space-y-0'} space-x-0 ${isMobile ? '' : 'space-x-4'} pt-4 sm:pt-6 border-t ${isMobile ? 'sticky bottom-0 bg-white pb-safe' : ''}`}>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setLocation("/users")}
                         disabled={createUserMutation.isPending}
+                        className={`${isMobile ? 'w-full h-11' : 'h-10'} text-sm sm:text-base touch-manipulation`}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         disabled={createUserMutation.isPending}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className={`bg-blue-600 hover:bg-blue-700 ${isMobile ? 'w-full h-11' : 'h-10'} text-sm sm:text-base touch-manipulation`}
                       >
                         {createUserMutation.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Creating User...
+                            <span className="min-w-0 truncate">Creating User...</span>
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4 mr-2" />
-                            Create User
+                            <Save className="w-4 h-4 mr-2 flex-shrink-0" />
+                            <span className="min-w-0 truncate">Create User</span>
                           </>
                         )}
                       </Button>

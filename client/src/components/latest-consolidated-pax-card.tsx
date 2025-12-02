@@ -87,14 +87,14 @@ export function LatestConsolidatedPaxCard() {
 
   if (isLoading) {
     return (
-      <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-blue-900">
-            <Globe className="h-5 w-5 mr-2" />
-            Latest Consolidated PAX Report
+      <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 touch-manipulation">
+        <CardHeader className="pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+          <CardTitle className="flex items-center text-blue-900 text-base sm:text-lg">
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+            <span>Latest Consolidated PAX Report</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
           <div className="animate-pulse space-y-3">
             <div className="h-4 bg-blue-200 rounded w-3/4"></div>
             <div className="h-3 bg-blue-200 rounded w-1/2"></div>
@@ -107,21 +107,21 @@ export function LatestConsolidatedPaxCard() {
 
   if (error || !latestReport) {
     return (
-      <Card className="border border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-yellow-900">
-            <Globe className="h-5 w-5 mr-2" />
-            Latest Consolidated PAX Report
+      <Card className="border border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50 touch-manipulation">
+        <CardHeader className="pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+          <CardTitle className="flex items-center text-yellow-900 text-base sm:text-lg">
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+            <span>Latest Consolidated PAX Report</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center text-yellow-700">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span className="text-sm">No consolidated reports available yet</span>
+        <CardContent className="space-y-4 px-3 sm:px-6 pb-4 sm:pb-6">
+          <div className="flex items-center text-yellow-700 text-xs sm:text-sm">
+            <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>No consolidated reports available yet</span>
           </div>
           <Button 
             onClick={handleShare}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 h-10 sm:h-11 text-xs sm:text-sm touch-manipulation"
           >
             <Share className="h-4 w-4 mr-2" />
             Share Reports
@@ -132,67 +132,67 @@ export function LatestConsolidatedPaxCard() {
   }
 
   return (
-    <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-blue-900">
-          <div className="flex items-center">
-            <Globe className="h-5 w-5 mr-2" />
-            Latest Consolidated PAX Report
+    <Card className="border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-shadow touch-manipulation">
+      <CardHeader className="pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+        <CardTitle className="flex items-center justify-between text-blue-900 text-base sm:text-lg">
+          <div className="flex items-center min-w-0">
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+            <span className="truncate">Latest Consolidated PAX Report</span>
           </div>
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs flex-shrink-0 ml-2">
             Latest
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-4 sm:pb-6">
         {/* Report Summary */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Report File:</span>
-            <span className="text-sm text-blue-700 font-mono bg-blue-100 px-2 py-1 rounded">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-blue-900">Report File:</span>
+            <span className="text-xs sm:text-sm text-blue-700 font-mono bg-blue-100 px-2 py-1 rounded break-all sm:break-words text-right sm:text-left">
               {latestReport.filename}
             </span>
           </div>
           
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Total Records:</span>
-            <div className="flex items-center text-blue-700">
-              <Users className="h-4 w-4 mr-1" />
-              <span className="font-semibold">{latestReport.totalRecordCount}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-blue-900">Total Records:</span>
+            <div className="flex items-center text-blue-700 justify-end sm:justify-start">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+              <span className="font-semibold text-xs sm:text-sm">{latestReport.totalRecordCount}</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Contributing Ships:</span>
-            <div className="flex items-center space-x-1">
-              <Ship className="h-4 w-4 text-blue-600" />
-              <span className="text-sm text-blue-700 font-medium">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-blue-900">Contributing Ships:</span>
+            <div className="flex items-center space-x-1 justify-end sm:justify-start">
+              <Ship className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-blue-700 font-medium">
                 {latestReport.contributingShips.length} ships
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Last Updated:</span>
-            <div className="flex items-center text-blue-700">
-              <Clock className="h-4 w-4 mr-1" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-blue-900">Last Updated:</span>
+            <div className="flex items-center text-blue-700 justify-end sm:justify-start">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
               <span className="text-xs">
                 {formatDistanceToNow(new Date(latestReport.updatedAt))} ago
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Updated By:</span>
-            <Badge variant="outline" className="border-blue-300 text-blue-700">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm font-medium text-blue-900">Updated By:</span>
+            <Badge variant="outline" className="border-blue-300 text-blue-700 text-xs w-fit sm:w-auto">
               Ship {latestReport.lastUpdatedByShip.toUpperCase()}
             </Badge>
           </div>
         </div>
 
         {/* Contributing Ships List */}
-        <div className="border-t pt-3">
-          <span className="text-sm font-medium text-blue-900 mb-2 block">Ships Included:</span>
+        <div className="border-t pt-2 sm:pt-3">
+          <span className="text-xs sm:text-sm font-medium text-blue-900 mb-1.5 sm:mb-2 block">Ships Included:</span>
           <div className="flex flex-wrap gap-1">
             {latestReport.contributingShips.map((ship) => (
               <Badge 
@@ -213,30 +213,30 @@ export function LatestConsolidatedPaxCard() {
             size="sm"
             onClick={handleViewLatest}
             disabled={isLoadingView}
-            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            className="border-blue-300 text-blue-700 hover:bg-blue-50 active:bg-blue-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
             data-testid="button-view-latest-pax"
           >
-            <Eye className="h-4 w-4 mr-1" />
-            {isLoadingView ? 'Loading...' : 'View'}
+            <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+            <span className="truncate">{isLoadingView ? 'Loading...' : 'View'}</span>
           </Button>
           <Button 
             variant="outline" 
             size="sm"
             onClick={handleDownloadLatest}
-            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            className="border-blue-300 text-blue-700 hover:bg-blue-50 active:bg-blue-100 h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
             data-testid="button-download-latest-pax"
           >
-            <Download className="h-4 w-4 mr-1" />
-            Download
+            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+            <span className="truncate">Download</span>
           </Button>
           <Button 
             size="sm"
             onClick={handleShare}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
             data-testid="button-share-latest-pax"
           >
-            <Share className="h-4 w-4 mr-1" />
-            Share
+            <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+            <span className="truncate">Share</span>
           </Button>
         </div>
 
@@ -248,25 +248,25 @@ export function LatestConsolidatedPaxCard() {
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-blue-900">
-              <FileText className="w-5 h-5 mr-2" />
-              View Consolidated PAX Report
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-7xl max-h-[90vh] overflow-hidden p-0 w-full mx-auto">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <DialogTitle className="flex items-center text-blue-900 text-base sm:text-lg">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+              <span>View Consolidated PAX Report</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="p-4 overflow-hidden">
+          <div className="p-3 sm:p-4 overflow-hidden">
             {latestReport && (
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-blue-900">Report: {latestReport.filename}</span>
+              <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <span className="font-medium text-blue-900 break-words">Report: {latestReport.filename}</span>
                   <span className="text-blue-700">{latestReport.totalRecordCount} records from {latestReport.contributingShips.length} ships</span>
                 </div>
               </div>
             )}
             
             {viewData.length > 0 && (
-              <div className="border rounded-lg overflow-auto" style={{ height: '60vh' }}>
+              <div className="border rounded-lg overflow-auto" style={{ height: '50vh' }}>
                 <HotTable
                   ref={hotTableRef}
                   data={viewData}
@@ -289,10 +289,11 @@ export function LatestConsolidatedPaxCard() {
               </div>
             )}
             
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end mt-3 sm:mt-4">
               <Button 
                 onClick={() => setViewModalOpen(false)}
                 variant="outline"
+                className="h-9 sm:h-10 text-xs sm:text-sm touch-manipulation"
                 data-testid="button-close-view-modal"
               >
                 Close

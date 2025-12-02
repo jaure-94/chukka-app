@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SidebarNavigation, MobileNavigation } from "@/components/sidebar-navigation";
 import { useSidebar } from "@/contexts/sidebar-context";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Loader2, Plus, Edit, Trash2, Shield, User, Mail, Building, Hash, Calendar, CheckCircle, XCircle, Search } from "lucide-react";
 
 const createUserSchema = z.object({
@@ -47,6 +49,7 @@ interface User {
 
 export default function AccountManagement() {
   const { isCollapsed } = useSidebar();
+  const isMobile = useIsMobile();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -253,15 +256,33 @@ export default function AccountManagement() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <SidebarNavigation />
-      <MobileNavigation />
       
-      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Account Management</h1>
-            <p className="text-gray-600">Manage user accounts, roles, and permissions</p>
+      {/* Mobile Header */}
+      {isMobile && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm md:hidden">
+          <div className="flex items-center justify-between px-3 sm:px-4 h-[60px]">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <MobileNavigation />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">Account Management</h1>
+                <p className="text-xs text-gray-500 truncate">Manage users</p>
+              </div>
+            </div>
           </div>
+        </header>
+      )}
+      
+      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'} ${isMobile ? 'ml-0 mt-[60px]' : ''}`}>
+        {/* Breadcrumbs */}
+        <Breadcrumbs />
+        <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+          {/* Desktop Header */}
+          {!isMobile && (
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Account Management</h1>
+              <p className="text-sm sm:text-base text-gray-600">Manage user accounts, roles, and permissions</p>
+            </div>
+          )}
 
           {/* Alerts */}
           {error && (
@@ -279,20 +300,20 @@ export default function AccountManagement() {
 
           {/* Controls */}
           <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <div className="relative">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+                  <div className="relative flex-1 sm:flex-initial">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
                       placeholder="Search users..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10 w-full sm:w-64 h-11 sm:h-10 text-sm sm:text-base"
                     />
                   </div>
                   <Select value={roleFilter} onValueChange={setRoleFilter}>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-48 h-11 sm:h-10 text-sm sm:text-base">
                       <SelectValue placeholder="Filter by role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -308,26 +329,28 @@ export default function AccountManagement() {
                 
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation">
                       <Plus className="w-4 h-4 mr-2" />
                       Create User
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className="w-[calc(100%-2rem)] sm:w-full sm:max-w-md mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
-                      <DialogTitle>Create New User</DialogTitle>
-                      <DialogDescription>
+                      <DialogTitle className="text-lg sm:text-xl break-words">Create New User</DialogTitle>
+                      <DialogDescription className="text-sm sm:text-base break-words">
                         Add a new user to the system with appropriate role and permissions
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
+                          <Label htmlFor="firstName" className="text-sm sm:text-base">First Name</Label>
                           <Input
                             id="firstName"
                             {...createForm.register("firstName")}
-                            className="h-9"
+                            className="h-11 sm:h-10 text-sm sm:text-base"
+                            inputMode="text"
+                            autoCapitalize="words"
                           />
                           {createForm.formState.errors.firstName && (
                             <p className="text-xs text-red-600">
@@ -336,11 +359,13 @@ export default function AccountManagement() {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
+                          <Label htmlFor="lastName" className="text-sm sm:text-base">Last Name</Label>
                           <Input
                             id="lastName"
                             {...createForm.register("lastName")}
-                            className="h-9"
+                            className="h-11 sm:h-10 text-sm sm:text-base"
+                            inputMode="text"
+                            autoCapitalize="words"
                           />
                           {createForm.formState.errors.lastName && (
                             <p className="text-xs text-red-600">
@@ -351,11 +376,14 @@ export default function AccountManagement() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
+                        <Label htmlFor="username" className="text-sm sm:text-base">Username</Label>
                         <Input
                           id="username"
                           {...createForm.register("username")}
-                          className="h-9"
+                          className="h-11 sm:h-10 text-sm sm:text-base"
+                          inputMode="text"
+                          autoCapitalize="none"
+                          autoCorrect="off"
                         />
                         {createForm.formState.errors.username && (
                           <p className="text-xs text-red-600">
@@ -365,12 +393,15 @@ export default function AccountManagement() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="text-sm sm:text-base">Email</Label>
                         <Input
                           id="email"
                           type="email"
                           {...createForm.register("email")}
-                          className="h-9"
+                          className="h-11 sm:h-10 text-sm sm:text-base"
+                          inputMode="email"
+                          autoCapitalize="none"
+                          autoComplete="email"
                         />
                         {createForm.formState.errors.email && (
                           <p className="text-xs text-red-600">
@@ -380,12 +411,13 @@ export default function AccountManagement() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
                         <Input
                           id="password"
                           type="password"
                           {...createForm.register("password")}
-                          className="h-9"
+                          className="h-11 sm:h-10 text-sm sm:text-base"
+                          autoComplete="new-password"
                         />
                         {createForm.formState.errors.password && (
                           <p className="text-xs text-red-600">
@@ -395,12 +427,12 @@ export default function AccountManagement() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
+                        <Label htmlFor="role" className="text-sm sm:text-base">Role</Label>
                         <Select
                           value={createForm.watch("role")}
                           onValueChange={(value) => createForm.setValue("role", value as any)}
                         >
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-11 sm:h-10 text-sm sm:text-base">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -418,43 +450,51 @@ export default function AccountManagement() {
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="position">Position</Label>
+                          <Label htmlFor="position" className="text-sm sm:text-base">Position</Label>
                           <Input
                             id="position"
                             {...createForm.register("position")}
-                            className="h-9"
+                            className="h-11 sm:h-10 text-sm sm:text-base"
                             placeholder="Optional"
+                            inputMode="text"
+                            autoCapitalize="words"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="employeeNumber">Employee #</Label>
+                          <Label htmlFor="employeeNumber" className="text-sm sm:text-base">Employee #</Label>
                           <Input
                             id="employeeNumber"
                             {...createForm.register("employeeNumber")}
-                            className="h-9"
+                            className="h-11 sm:h-10 text-sm sm:text-base"
                             placeholder="Optional"
+                            inputMode="numeric"
                           />
                         </div>
                       </div>
                       
-                      <DialogFooter>
+                      <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setIsCreateDialogOpen(false)}
+                          className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
                         >
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button 
+                          type="submit" 
+                          disabled={isLoading}
+                          className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
+                        >
                           {isLoading ? (
                             <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Creating...
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin flex-shrink-0" />
+                              <span className="min-w-0 truncate">Creating...</span>
                             </>
                           ) : (
-                            "Create User"
+                            <span className="min-w-0 truncate">Create User</span>
                           )}
                         </Button>
                       </DialogFooter>
@@ -467,136 +507,228 @@ export default function AccountManagement() {
 
           {/* Users Table */}
           <Card>
-            <CardHeader>
-              <CardTitle>Users ({filteredUsers.length})</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg sm:text-xl">Users ({filteredUsers.length})</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Manage user accounts and their access levels
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Employee #</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium text-gray-900">
-                              {user.firstName} {user.lastName}
+            <CardContent className="p-0 sm:p-6">
+              {isMobile ? (
+                /* Mobile Card View */
+                <div className="p-4 space-y-3">
+                  {filteredUsers.map((user) => (
+                    <Card key={user.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm text-gray-900 truncate">
+                                {user.firstName} {user.lastName}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <Badge variant={getRoleBadgeVariant(user.role)} className="flex items-center gap-1 w-fit text-xs">
+                                  {getRoleIcon(user.role)}
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </Badge>
+                                <Badge variant={user.isActive ? "default" : "secondary"} className="flex items-center gap-1 w-fit text-xs">
+                                  {user.isActive ? (
+                                    <CheckCircle className="w-3 h-3" />
+                                  ) : (
+                                    <XCircle className="w-3 h-3" />
+                                  )}
+                                  {user.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                {user.username}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" />
-                                {user.email}
-                              </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(user)}
+                                className="h-9 w-9 p-0 touch-manipulation"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeactivate(user)}
+                                className="h-9 w-9 p-0 touch-manipulation"
+                              >
+                                {user.isActive ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="h-9 w-9 p-0 text-red-600 hover:text-red-700 touch-manipulation"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getRoleBadgeVariant(user.role)} className="flex items-center gap-1 w-fit">
-                            {getRoleIcon(user.role)}
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          {user.position || "—"}
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          {user.employeeNumber ? (
+                          <div className="space-y-2 text-xs text-gray-600">
                             <div className="flex items-center gap-1">
-                              <Hash className="w-3 h-3" />
-                              {user.employeeNumber}
+                              <User className="w-3 h-3" />
+                              <span className="truncate">{user.username}</span>
                             </div>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.isActive ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
-                            {user.isActive ? (
-                              <CheckCircle className="w-3 h-3" />
-                            ) : (
-                              <XCircle className="w-3 h-3" />
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              <span className="truncate break-all">{user.email}</span>
+                            </div>
+                            {user.position && (
+                              <div className="truncate">
+                                <span className="font-medium">Position:</span> {user.position}
+                              </div>
                             )}
-                            {user.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(user.createdAt).toLocaleDateString()}
+                            {user.employeeNumber && (
+                              <div className="flex items-center gap-1">
+                                <Hash className="w-3 h-3" />
+                                <span className="truncate">{user.employeeNumber}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(user)}
-                              className="h-8 px-2"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeactivate(user)}
-                              className="h-8 px-2"
-                            >
-                              {user.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              className="h-8 px-2 text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                /* Desktop Table View */
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Employee #</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-900">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {user.username}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {user.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getRoleBadgeVariant(user.role)} className="flex items-center gap-1 w-fit">
+                              {getRoleIcon(user.role)}
+                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            {user.position || "—"}
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            {user.employeeNumber ? (
+                              <div className="flex items-center gap-1">
+                                <Hash className="w-3 h-3" />
+                                {user.employeeNumber}
+                              </div>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.isActive ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                              {user.isActive ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : (
+                                <XCircle className="w-3 h-3" />
+                              )}
+                              {user.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(user)}
+                                className="h-8 px-2 touch-manipulation"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeactivate(user)}
+                                className="h-8 px-2 touch-manipulation"
+                              >
+                                {user.isActive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                className="h-8 px-2 text-red-600 hover:text-red-700 touch-manipulation"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Edit User Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[calc(100%-2rem)] sm:w-full sm:max-w-md mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl break-words">Edit User</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base break-words">
                 Update user information and role permissions
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="editFirstName">First Name</Label>
+                  <Label htmlFor="editFirstName" className="text-sm sm:text-base">First Name</Label>
                   <Input
                     id="editFirstName"
                     {...editForm.register("firstName")}
-                    className="h-9"
+                    className="h-11 sm:h-10 text-sm sm:text-base"
+                    inputMode="text"
+                    autoCapitalize="words"
                   />
                   {editForm.formState.errors.firstName && (
                     <p className="text-xs text-red-600">
@@ -605,11 +737,13 @@ export default function AccountManagement() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editLastName">Last Name</Label>
+                  <Label htmlFor="editLastName" className="text-sm sm:text-base">Last Name</Label>
                   <Input
                     id="editLastName"
                     {...editForm.register("lastName")}
-                    className="h-9"
+                    className="h-11 sm:h-10 text-sm sm:text-base"
+                    inputMode="text"
+                    autoCapitalize="words"
                   />
                   {editForm.formState.errors.lastName && (
                     <p className="text-xs text-red-600">
@@ -620,11 +754,14 @@ export default function AccountManagement() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="editUsername">Username</Label>
+                <Label htmlFor="editUsername" className="text-sm sm:text-base">Username</Label>
                 <Input
                   id="editUsername"
                   {...editForm.register("username")}
-                  className="h-9"
+                  className="h-11 sm:h-10 text-sm sm:text-base"
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                 />
                 {editForm.formState.errors.username && (
                   <p className="text-xs text-red-600">
@@ -634,12 +771,15 @@ export default function AccountManagement() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="editEmail">Email</Label>
+                <Label htmlFor="editEmail" className="text-sm sm:text-base">Email</Label>
                 <Input
                   id="editEmail"
                   type="email"
                   {...editForm.register("email")}
-                  className="h-9"
+                  className="h-11 sm:h-10 text-sm sm:text-base"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
                 />
                 {editForm.formState.errors.email && (
                   <p className="text-xs text-red-600">
@@ -649,12 +789,12 @@ export default function AccountManagement() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="editRole">Role</Label>
+                <Label htmlFor="editRole" className="text-sm sm:text-base">Role</Label>
                 <Select
                   value={editForm.watch("role")}
                   onValueChange={(value) => editForm.setValue("role", value as any)}
                 >
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-11 sm:h-10 text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -672,28 +812,31 @@ export default function AccountManagement() {
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="editPosition">Position</Label>
+                  <Label htmlFor="editPosition" className="text-sm sm:text-base">Position</Label>
                   <Input
                     id="editPosition"
                     {...editForm.register("position")}
-                    className="h-9"
+                    className="h-11 sm:h-10 text-sm sm:text-base"
                     placeholder="Optional"
+                    inputMode="text"
+                    autoCapitalize="words"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editEmployeeNumber">Employee #</Label>
+                  <Label htmlFor="editEmployeeNumber" className="text-sm sm:text-base">Employee #</Label>
                   <Input
                     id="editEmployeeNumber"
                     {...editForm.register("employeeNumber")}
-                    className="h-9"
+                    className="h-11 sm:h-10 text-sm sm:text-base"
                     placeholder="Optional"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -701,17 +844,22 @@ export default function AccountManagement() {
                     setIsEditDialogOpen(false);
                     setSelectedUser(null);
                   }}
+                  className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
+                >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Updating...
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin flex-shrink-0" />
+                      <span className="min-w-0 truncate">Updating...</span>
                     </>
                   ) : (
-                    "Update User"
+                    <span className="min-w-0 truncate">Update User</span>
                   )}
                 </Button>
               </DialogFooter>
@@ -721,10 +869,10 @@ export default function AccountManagement() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[calc(100%-2rem)] sm:w-full sm:max-w-md mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Delete User</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl break-words">Delete User</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base break-words">
                 Are you sure you want to delete{" "}
                 <span className="font-medium">
                   {selectedUser?.firstName} {selectedUser?.lastName}
@@ -732,13 +880,14 @@ export default function AccountManagement() {
                 ? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setIsDeleteDialogOpen(false);
                   setSelectedUser(null);
                 }}
+                className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
               >
                 Cancel
               </Button>
@@ -746,14 +895,15 @@ export default function AccountManagement() {
                 variant="destructive"
                 onClick={handleDelete}
                 disabled={isLoading}
+                className="w-full sm:w-auto h-11 sm:h-10 text-sm sm:text-base touch-manipulation"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deleting...
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin flex-shrink-0" />
+                    <span className="min-w-0 truncate">Deleting...</span>
                   </>
                 ) : (
-                  "Delete User"
+                  <span className="min-w-0 truncate">Delete User</span>
                 )}
               </Button>
             </DialogFooter>
