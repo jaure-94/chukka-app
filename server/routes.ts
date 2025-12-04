@@ -1716,7 +1716,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!r.eodFilePath) return false;
           // Check if filename matches (handle both blob URLs and filesystem paths)
           const eodBasename = path.basename(r.eodFilePath.split('?')[0]); // Remove query params from blob URL
-          const matches = eodBasename === existingEodFilename || r.eodFilePath.includes(existingEodFilename);
+          // Try multiple matching strategies:
+          // 1. Exact basename match
+          // 2. Filename is contained in the path/URL
+          // 3. Filename without extension matches
+          const filenameWithoutExt = existingEodFilename.replace(/\.xlsx?$/i, '');
+          const basenameWithoutExt = eodBasename.replace(/\.xlsx?$/i, '');
+          const matches = 
+            eodBasename === existingEodFilename || 
+            r.eodFilePath.includes(existingEodFilename) ||
+            basenameWithoutExt === filenameWithoutExt ||
+            r.eodFilePath.includes(filenameWithoutExt);
           if (matches) {
             console.log(`→ Matched EOD file: ${eodBasename} (from ${r.eodFilePath})`);
           }
@@ -1727,9 +1737,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           existingEodPath = eodReport.eodFilePath;
           console.log(`→ Found existing EOD file in database: ${existingEodPath}`);
         } else {
-          console.log(`→ EOD file not found. Available EOD files:`, recentReports
+          const availableEodFiles = recentReports
             .filter(r => r.eodFilePath)
-            .map(r => path.basename(r.eodFilePath!.split('?')[0])));
+            .map(r => ({
+              basename: path.basename(r.eodFilePath!.split('?')[0]),
+              fullPath: r.eodFilePath
+            }));
+          console.log(`→ EOD file not found. Looking for: ${existingEodFilename}`);
+          console.log(`→ Available EOD files in database:`, availableEodFiles.map(f => f.basename));
+          
+          // Try to find the latest EOD file if exact match fails (fallback)
+          if (availableEodFiles.length > 0) {
+            const latestEod = availableEodFiles[0]; // Already sorted by createdAt DESC
+            console.log(`→ Attempting fallback to latest EOD file: ${latestEod.basename}`);
+            // Only use fallback if the requested filename pattern matches (eod_*.xlsx)
+            if (existingEodFilename.startsWith('eod_') && latestEod.basename.startsWith('eod_')) {
+              existingEodPath = latestEod.fullPath;
+              console.log(`→ Using latest EOD file as fallback: ${existingEodPath}`);
+            }
+          }
         }
       } catch (error) {
         console.error(`→ Database lookup for EOD file failed:`, error);
@@ -1741,14 +1767,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
         if (isVercel) {
           // On Vercel, if not found in database, we can't access filesystem
-          return res.status(404).json({ message: `Existing EOD file not found in database for ${shipId}: ${existingEodFilename}. Please generate a new EOD report first.` });
+          // Check if we have any EOD files at all
+          const recentReports = await storage.getRecentGeneratedReports(10, shipId);
+          const hasAnyEod = recentReports.some(r => r.eodFilePath);
+          
+          if (!hasAnyEod) {
+            return res.status(404).json({ 
+              message: `No EOD reports found in database for ${shipId}. Please generate a new EOD report first.` 
+            });
+          } else {
+            return res.status(404).json({ 
+              message: `EOD file "${existingEodFilename}" not found in database for ${shipId}. Available files may have different names. Please generate a new EOD report first.` 
+            });
+          }
         } else {
           // Local development - try filesystem
-        const shipOutputDir = path.join(process.cwd(), "output", shipId);
-        existingEodPath = path.join(shipOutputDir, existingEodFilename);
-        
+          const shipOutputDir = path.join(process.cwd(), "output", shipId);
+          existingEodPath = path.join(shipOutputDir, existingEodFilename);
+          
           if (!fs.existsSync(existingEodPath)) {
-          return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
+            return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
           }
         }
       }
