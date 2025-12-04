@@ -486,20 +486,20 @@ export default function CreateDispatch() {
     
     // Helper function to update cell error state in UI
     const updateCellErrorState = (row: number, col: number, hasError: boolean, errorMessage?: string) => {
-      if (hotInstance) {
+        if (hotInstance) {
         try {
           const td = hotInstance.getCell(row, col);
           if (td) {
             if (hasError && errorMessage) {
-              td.classList.add('htInvalid');
-              td.setAttribute('data-validation-type', 'error');
-              td.setAttribute('title', errorMessage);
-            } else {
-              td.classList.remove('htInvalid');
-              td.removeAttribute('data-validation-type');
-              td.removeAttribute('title');
-            }
+            td.classList.add('htInvalid');
+            td.setAttribute('data-validation-type', 'error');
+            td.setAttribute('title', errorMessage);
+      } else {
+            td.classList.remove('htInvalid');
+            td.removeAttribute('data-validation-type');
+            td.removeAttribute('title');
           }
+        }
         } catch (error) {
           // Instance may be destroyed or unavailable - this is safe to ignore
           // during cleanup or when component is unmounting
@@ -629,7 +629,7 @@ export default function CreateDispatch() {
     // Re-render to show validation errors
     if (hotInstance) {
       try {
-        hotInstance.render();
+      hotInstance.render();
       } catch (error) {
         // Instance may be destroyed or unavailable - this is safe to ignore
         // during cleanup or when component is unmounting
@@ -1659,24 +1659,24 @@ export default function CreateDispatch() {
                             
                             if (hotInstance) {
                               try {
-                                const td = hotInstance.getCell(row, col);
-                                if (td) {
-                                  if (!isValid) {
-                                    const errorMessage = getErrorMessageForCell(row, col);
-                                    td.classList.add('htInvalid');
-                                    td.setAttribute('data-validation-type', 'error');
-                                    td.setAttribute('title', errorMessage);
-                                    const newErrors = new Map(validationErrors);
-                                    newErrors.set(cellKey, errorMessage);
-                                    setValidationErrors(newErrors);
-                                  } else {
-                                    td.classList.remove('htInvalid');
-                                    td.removeAttribute('data-validation-type');
-                                    td.removeAttribute('title');
-                                    const newErrors = new Map(validationErrors);
-                                    newErrors.delete(cellKey);
-                                    setValidationErrors(newErrors);
-                                  }
+                              const td = hotInstance.getCell(row, col);
+                              if (td) {
+                                if (!isValid) {
+                                  const errorMessage = getErrorMessageForCell(row, col);
+                                  td.classList.add('htInvalid');
+                                  td.setAttribute('data-validation-type', 'error');
+                                  td.setAttribute('title', errorMessage);
+                                  const newErrors = new Map(validationErrors);
+                                  newErrors.set(cellKey, errorMessage);
+                                  setValidationErrors(newErrors);
+                                } else {
+                                  td.classList.remove('htInvalid');
+                                  td.removeAttribute('data-validation-type');
+                                  td.removeAttribute('title');
+                                  const newErrors = new Map(validationErrors);
+                                  newErrors.delete(cellKey);
+                                  setValidationErrors(newErrors);
+                                }
                                 }
                               } catch (error) {
                                 // Instance may be destroyed or unavailable - this is safe to ignore
@@ -1953,7 +1953,7 @@ export default function CreateDispatch() {
           <div className="py-3 sm:py-4">
             <div className="bg-red-50 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 max-h-60 overflow-y-auto overflow-x-hidden">
               {validationErrorsRef.current.size > 0 ? (
-                <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-red-700">
+              <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-red-700">
                   {Array.from(validationErrorsRef.current.entries()).map(([cellKey, error]) => {
                     // Convert cell key (e.g., "4,1") to Excel notation (e.g., "B5")
                     const [row, col] = cellKey.split(',').map(Number);
@@ -1965,7 +1965,7 @@ export default function CreateDispatch() {
                       </li>
                     );
                   })}
-                </ul>
+              </ul>
               ) : (
                 <p className="text-xs sm:text-sm text-red-700">No validation errors found. Please try saving again.</p>
               )}
@@ -1995,13 +1995,13 @@ export default function CreateDispatch() {
                   Go to First Error
                 </Button>
               )}
-              <Button 
-                onClick={() => setShowValidationErrorModal(false)}
+            <Button 
+              onClick={() => setShowValidationErrorModal(false)}
                 variant="outline"
                 className={`${validationErrorsRef.current.size > 0 ? 'flex-1' : 'w-full'} h-11 sm:h-12 text-xs sm:text-sm md:text-base touch-manipulation`}
-              >
+            >
                 Close
-              </Button>
+            </Button>
             </div>
           </div>
         </DialogContent>

@@ -109,6 +109,7 @@ export const generatedReports = pgTable("generated_reports", {
   id: serial("id").primaryKey(),
   dispatchFilePath: text("dispatch_file_path").notNull(),
   eodFilePath: text("eod_file_path"),
+  paxFilePath: text("pax_file_path"), // PAX report file path (blob URL or filesystem path)
   shipId: text("ship_id").notNull().default("ship-a"),
   recordCount: integer("record_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),

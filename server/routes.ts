@@ -1528,9 +1528,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eodOutputPath = `output/${shipId}/eod_${timestamp}.xlsx`;
       } else {
         // Local development - use filesystem
-        const shipOutputDir = path.join(process.cwd(), "output", shipId);
-        if (!fs.existsSync(shipOutputDir)) {
-          fs.mkdirSync(shipOutputDir, { recursive: true });
+      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      if (!fs.existsSync(shipOutputDir)) {
+        fs.mkdirSync(shipOutputDir, { recursive: true });
         }
         eodOutputPath = path.join(shipOutputDir, `eod_${timestamp}.xlsx`);
       }
@@ -1585,14 +1585,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Local development - use filesystem
         const shipOutputDir = path.join(process.cwd(), "output", shipId);
         dispatchOutputPath = path.join(shipOutputDir, `dispatch_${timestamp}.xlsx`);
-        
-        // Handle dispatch file copy - check if it's a blob URL
-        if (blobStorage.isBlobUrl(dispatchFilePath)) {
-          // Download from blob and save to local output directory
-          const dispatchBuffer = await blobStorage.downloadFile(dispatchFilePath);
-          fs.writeFileSync(dispatchOutputPath, dispatchBuffer);
-        } else {
-          fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+      
+      // Handle dispatch file copy - check if it's a blob URL
+      if (blobStorage.isBlobUrl(dispatchFilePath)) {
+        // Download from blob and save to local output directory
+        const dispatchBuffer = await blobStorage.downloadFile(dispatchFilePath);
+        fs.writeFileSync(dispatchOutputPath, dispatchBuffer);
+      } else {
+        fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
         }
       }
 
@@ -1608,6 +1608,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eodFilename = blobStorage.isBlobUrl(eodResult)
         ? path.basename(eodResult.split('?')[0])
         : path.basename(eodResult);
+
+      // Save generated report to database
+      try {
+        await storage.createGeneratedReport({
+          dispatchFilePath: dispatchOutputPath,
+          eodFilePath: eodResult, // Full blob URL or filesystem path
+          paxFilePath: null,
+          shipId: shipId,
+          recordCount: 0 // Will be updated if we track records
+        });
+        console.log(`→ Saved EOD report to database: ${eodResult}`);
+      } catch (dbError) {
+        console.error('→ Failed to save EOD report to database:', dbError);
+        // Don't fail the request if database save fails
+      }
 
       // Return success with ship-specific information
       res.json({
@@ -1695,9 +1710,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check generated reports for EOD file
       try {
         const recentReports = await storage.getRecentGeneratedReports(50, shipId);
-        const eodReport = recentReports.find(r => 
-          r.eodFilePath && (r.eodFilePath.includes(existingEodFilename) || path.basename(r.eodFilePath) === existingEodFilename)
-        );
+        const eodReport = recentReports.find(r => {
+          if (!r.eodFilePath) return false;
+          // Check if filename matches (handle both blob URLs and filesystem paths)
+          const eodBasename = path.basename(r.eodFilePath.split('?')[0]); // Remove query params from blob URL
+          return eodBasename === existingEodFilename || r.eodFilePath.includes(existingEodFilename);
+        });
         if (eodReport?.eodFilePath) {
           existingEodPath = eodReport.eodFilePath;
           console.log(`→ Found existing EOD file in database: ${existingEodPath}`);
@@ -1714,11 +1732,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: `Existing EOD file not found in database for ${shipId}: ${existingEodFilename}. Please generate a new EOD report first.` });
         } else {
           // Local development - try filesystem
-          const shipOutputDir = path.join(process.cwd(), "output", shipId);
-          existingEodPath = path.join(shipOutputDir, existingEodFilename);
-          
+        const shipOutputDir = path.join(process.cwd(), "output", shipId);
+        existingEodPath = path.join(shipOutputDir, existingEodFilename);
+        
           if (!fs.existsSync(existingEodPath)) {
-            return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
+          return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
           }
         }
       }
@@ -1735,6 +1753,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eodFilename = blobStorage.isBlobUrl(updatedEodPath)
         ? path.basename(updatedEodPath.split('?')[0])
         : path.basename(updatedEodPath);
+
+      // Update database record with new blob URL (since update creates new blob URL)
+      try {
+        const recentReports = await storage.getRecentGeneratedReports(10, shipId);
+        const existingReport = recentReports.find(r => 
+          r.eodFilePath && (path.basename(r.eodFilePath.split('?')[0]) === existingEodFilename || r.eodFilePath.includes(existingEodFilename))
+        );
+        if (existingReport) {
+          // Create new record with updated blob URL (since we can't easily update)
+          await storage.createGeneratedReport({
+            dispatchFilePath: dispatchFilePath,
+            eodFilePath: updatedEodPath,
+            paxFilePath: null,
+            shipId: shipId,
+            recordCount: existingReport.recordCount || 0
+          });
+          console.log(`→ Updated EOD report in database with new blob URL: ${updatedEodPath}`);
+        }
+      } catch (dbError) {
+        console.error('→ Failed to update EOD report in database:', dbError);
+        // Don't fail the request if database update fails
+      }
 
       res.json({
         success: true,
@@ -1903,6 +1943,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate new PAX report using PaxProcessor with ship ID
       const paxOutputFilename = await paxProcessor.processDispatchToPax(dispatchFilePath, paxTemplatePath, shipId);
+      
+      // paxOutputFilename is either a blob URL (on Vercel) or just filename (local)
+      const isVercelEnv = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+      const paxFilePath = blobStorage.isBlobUrl(paxOutputFilename) 
+        ? paxOutputFilename 
+        : (isVercelEnv ? null : `output/${shipId}/${paxOutputFilename}`); // Only construct path locally
+      
+      // Save generated PAX report to database
+      try {
+        await storage.createGeneratedReport({
+          dispatchFilePath: dispatchFilePath,
+          eodFilePath: null,
+          paxFilePath: paxFilePath || paxOutputFilename, // Use blob URL or constructed path
+          shipId: shipId,
+          recordCount: 0 // Will be updated if we track records
+        });
+        console.log(`→ Saved PAX report to database: ${paxFilePath || paxOutputFilename}`);
+      } catch (dbError) {
+        console.error('→ Failed to save PAX report to database:', dbError);
+        // Don't fail the request if database save fails
+      }
 
       // Auto-generate consolidated PAX report
       try {
@@ -2037,26 +2098,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         // Local development - use filesystem
-        const shipOutputDir = path.join(process.cwd(), "output", shipId);
-        
-        if (!fs.existsSync(shipOutputDir)) {
-          return res.status(400).json({ message: `No PAX reports found for ${shipId}. Generate a new PAX report first.` });
-        }
-        
-        const outputFiles = fs.readdirSync(shipOutputDir).filter(file => 
-          file.startsWith('pax_') && file.endsWith('.xlsx')
-        );
-        
-        if (outputFiles.length === 0) {
-          return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
-        }
+      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      
+      if (!fs.existsSync(shipOutputDir)) {
+        return res.status(400).json({ message: `No PAX reports found for ${shipId}. Generate a new PAX report first.` });
+      }
+      
+      const outputFiles = fs.readdirSync(shipOutputDir).filter(file => 
+        file.startsWith('pax_') && file.endsWith('.xlsx')
+      );
+      
+      if (outputFiles.length === 0) {
+        return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
+      }
 
-        // Sort by filename (timestamp) to get the latest
-        outputFiles.sort((a, b) => {
-          const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
-          const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
-          return timestampB - timestampA; // Newest first
-        });
+      // Sort by filename (timestamp) to get the latest
+      outputFiles.sort((a, b) => {
+        const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
+        const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
+        return timestampB - timestampA; // Newest first
+      });
 
         latestPaxFile = outputFiles[0];
         latestPaxPath = path.join(shipOutputDir, latestPaxFile);
@@ -2067,6 +2128,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add successive entry to the existing PAX report (ship-aware)
       const updatedPaxFilename = await paxProcessor.addSuccessiveEntryToPax(dispatchFilePath, latestPaxPath, shipId, selectedShipName);
+      
+      // updatedPaxFilename is either a blob URL (on Vercel) or just filename (local)
+      const isVercelEnv = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+      const updatedPaxFilePath = blobStorage.isBlobUrl(updatedPaxFilename) 
+        ? updatedPaxFilename 
+        : (isVercelEnv ? null : `output/${shipId}/${updatedPaxFilename}`);
+      
+      // Update database record with new blob URL (since update creates new blob URL)
+      try {
+        const recentReports = await storage.getRecentGeneratedReports(10, shipId);
+        const existingReport = recentReports.find(r => 
+          r.paxFilePath && (r.paxFilePath === latestPaxPath || path.basename(r.paxFilePath.split('?')[0]) === latestPaxFile)
+        );
+        if (existingReport && updatedPaxFilePath) {
+          // Create new record with updated blob URL
+          await storage.createGeneratedReport({
+            dispatchFilePath: dispatchFilePath,
+            eodFilePath: null,
+            paxFilePath: updatedPaxFilePath,
+            shipId: shipId,
+            recordCount: existingReport.recordCount || 0
+          });
+          console.log(`→ Updated PAX report in database with new blob URL: ${updatedPaxFilePath}`);
+        }
+      } catch (dbError) {
+        console.error('→ Failed to update PAX report in database:', dbError);
+        // Don't fail the request if database update fails
+      }
       
       // Auto-generate consolidated PAX report after updating individual ship report
       console.log(`→ Auto-generating consolidated PAX after ${shipId} update (SINGLE SHIP ONLY)`);
