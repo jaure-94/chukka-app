@@ -34,7 +34,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'handsontable': ['handsontable', '@handsontable/react'],
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'react-vendor': ['react', 'react-dom'],
         },
       },
     },
