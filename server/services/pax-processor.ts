@@ -508,16 +508,18 @@ export class PaxProcessor {
     // Add new records to the existing PAX report
     await this.addRecordsToExistingPax(worksheet, dispatchData, validatedRecords, nextRow);
 
-    // Save the updated report back - use blob storage if it was a blob URL
-    const useBlob = blobStorage.isBlobUrl(existingPaxPath) || process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
+    // Save the updated report back - use blob storage on Vercel or if it was a blob URL
+    const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+    const useBlob = blobStorage.isBlobUrl(existingPaxPath) || isVercel || process.env.USE_BLOB === 'true';
     
-    if (useBlob && blobStorage.isBlobUrl(existingPaxPath)) {
-      // Extract blob key from URL or generate new one
+    if (useBlob) {
+      // On Vercel or if existing path is blob URL, use blob storage
       const blobKey = `output/${shipId}/pax_${Date.now()}.xlsx`;
       const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey, false); // Don't add random suffix for overwrite
       console.log(`→ PaxProcessor: Updated existing PAX report in blob storage: ${blobUrl}`);
       return blobUrl;
     } else {
+      // Local development - use filesystem
       await workbook.xlsx.writeFile(existingPaxPath);
       console.log(`→ PaxProcessor: Updated existing PAX report: ${existingPaxPath}`);
       return path.basename(existingPaxPath);

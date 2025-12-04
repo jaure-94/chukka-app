@@ -1518,12 +1518,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timestamp = Date.now();
       
       // Process EOD template with multiple dispatch records (ship-aware)
-      const shipOutputDir = path.join(process.cwd(), "output", shipId);
-      if (!fs.existsSync(shipOutputDir)) {
-        fs.mkdirSync(shipOutputDir, { recursive: true });
-      }
+      // On Vercel, use blob storage; locally use filesystem
+      const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+      let eodOutputPath: string;
       
-      const eodOutputPath = path.join(shipOutputDir, `eod_${timestamp}.xlsx`);
+      if (isVercel) {
+        // On Vercel, use blob storage - the service will handle saving
+        // Pass a blob key instead of filesystem path
+        eodOutputPath = `output/${shipId}/eod_${timestamp}.xlsx`;
+      } else {
+        // Local development - use filesystem
+        const shipOutputDir = path.join(process.cwd(), "output", shipId);
+        if (!fs.existsSync(shipOutputDir)) {
+          fs.mkdirSync(shipOutputDir, { recursive: true });
+        }
+        eodOutputPath = path.join(shipOutputDir, `eod_${timestamp}.xlsx`);
+      }
       
       // Use filePath as-is if it's a blob URL, otherwise make it absolute
       let eodTemplatePath = eodTemplate.filePath;
@@ -1557,15 +1567,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Generate dispatch report as well - for now, just copy the original file to ship-specific directory
-      const dispatchOutputPath = path.join(shipOutputDir, `dispatch_${timestamp}.xlsx`);
-      
-      // Handle dispatch file copy - check if it's a blob URL
-      if (blobStorage.isBlobUrl(dispatchFilePath)) {
-        // Download from blob and save to local output directory
-        const dispatchBuffer = await blobStorage.downloadFile(dispatchFilePath);
-        fs.writeFileSync(dispatchOutputPath, dispatchBuffer);
+      // On Vercel, use blob storage; locally use filesystem
+      let dispatchOutputPath: string;
+      if (isVercel) {
+        // On Vercel, copy to blob storage
+        if (blobStorage.isBlobUrl(dispatchFilePath)) {
+          // Already in blob storage, just use the same path
+          dispatchOutputPath = dispatchFilePath;
+        } else {
+          // Download and upload to blob storage
+          const dispatchBuffer = fs.readFileSync(dispatchFilePath);
+          const blobKey = `output/${shipId}/dispatch_${timestamp}.xlsx`;
+          const blobUrl = await blobStorage.uploadFile(dispatchBuffer, blobKey, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', false);
+          dispatchOutputPath = blobUrl;
+        }
       } else {
-        fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+        // Local development - use filesystem
+        const shipOutputDir = path.join(process.cwd(), "output", shipId);
+        dispatchOutputPath = path.join(shipOutputDir, `dispatch_${timestamp}.xlsx`);
+        
+        // Handle dispatch file copy - check if it's a blob URL
+        if (blobStorage.isBlobUrl(dispatchFilePath)) {
+          // Download from blob and save to local output directory
+          const dispatchBuffer = await blobStorage.downloadFile(dispatchFilePath);
+          fs.writeFileSync(dispatchOutputPath, dispatchBuffer);
+        } else {
+          fs.copyFileSync(dispatchFilePath, dispatchOutputPath);
+        }
       }
 
       // Create a new dispatch version record with ship ID
@@ -1678,13 +1706,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`→ Database lookup for EOD file failed: ${error}`);
       }
       
-      // Fallback to filesystem if not found in database
+      // Fallback to filesystem if not found in database (only for local development)
       if (!existingEodPath) {
-        const shipOutputDir = path.join(process.cwd(), "output", shipId);
-        existingEodPath = path.join(shipOutputDir, existingEodFilename);
-        
-        if (!blobStorage.isBlobUrl(existingEodPath) && !fs.existsSync(existingEodPath)) {
-          return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
+        const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+        if (isVercel) {
+          // On Vercel, if not found in database, we can't access filesystem
+          return res.status(404).json({ message: `Existing EOD file not found in database for ${shipId}: ${existingEodFilename}. Please generate a new EOD report first.` });
+        } else {
+          // Local development - try filesystem
+          const shipOutputDir = path.join(process.cwd(), "output", shipId);
+          existingEodPath = path.join(shipOutputDir, existingEodFilename);
+          
+          if (!fs.existsSync(existingEodPath)) {
+            return res.status(404).json({ message: `Existing EOD file not found for ${shipId}: ${existingEodFilename}` });
+          }
         }
       }
 
@@ -1970,29 +2005,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Find the latest existing PAX report for this specific ship
-      const shipOutputDir = path.join(process.cwd(), "output", shipId);
+      // On Vercel, query database/blob storage; locally use filesystem
+      const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+      let latestPaxPath: string;
+      let latestPaxFile: string;
       
-      if (!fs.existsSync(shipOutputDir)) {
-        return res.status(400).json({ message: `No PAX reports found for ${shipId}. Generate a new PAX report first.` });
-      }
-      
-      const outputFiles = fs.readdirSync(shipOutputDir).filter(file => 
-        file.startsWith('pax_') && file.endsWith('.xlsx')
-      );
-      
-      if (outputFiles.length === 0) {
-        return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
-      }
+      if (isVercel) {
+        // On Vercel, find PAX files from database or blob storage
+        // Check generated reports for PAX files
+        try {
+          const recentReports = await storage.getRecentGeneratedReports(50, shipId);
+          const paxReports = recentReports
+            .filter(r => r.paxFilePath && (r.paxFilePath.includes('pax_') || path.basename(r.paxFilePath).startsWith('pax_')))
+            .sort((a, b) => {
+              // Sort by creation date, newest first
+              const dateA = new Date(a.createdAt || 0).getTime();
+              const dateB = new Date(b.createdAt || 0).getTime();
+              return dateB - dateA;
+            });
+          
+          if (paxReports.length === 0) {
+            return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
+          }
+          
+          latestPaxPath = paxReports[0].paxFilePath!;
+          latestPaxFile = path.basename(latestPaxPath.split('?')[0]); // Remove query params from blob URL
+          console.log(`Found latest PAX file from database: ${latestPaxFile} (${latestPaxPath})`);
+        } catch (error) {
+          console.error('Error finding PAX files from database:', error);
+          return res.status(500).json({ message: `Failed to find existing PAX reports for ${shipId}` });
+        }
+      } else {
+        // Local development - use filesystem
+        const shipOutputDir = path.join(process.cwd(), "output", shipId);
+        
+        if (!fs.existsSync(shipOutputDir)) {
+          return res.status(400).json({ message: `No PAX reports found for ${shipId}. Generate a new PAX report first.` });
+        }
+        
+        const outputFiles = fs.readdirSync(shipOutputDir).filter(file => 
+          file.startsWith('pax_') && file.endsWith('.xlsx')
+        );
+        
+        if (outputFiles.length === 0) {
+          return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
+        }
 
-      // Sort by filename (timestamp) to get the latest
-      outputFiles.sort((a, b) => {
-        const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
-        const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
-        return timestampB - timestampA; // Newest first
-      });
+        // Sort by filename (timestamp) to get the latest
+        outputFiles.sort((a, b) => {
+          const timestampA = parseInt(a.replace('pax_', '').replace('.xlsx', ''));
+          const timestampB = parseInt(b.replace('pax_', '').replace('.xlsx', ''));
+          return timestampB - timestampA; // Newest first
+        });
 
-      const latestPaxFile = outputFiles[0];
-      const latestPaxPath = path.join(shipOutputDir, latestPaxFile);
+        latestPaxFile = outputFiles[0];
+        latestPaxPath = path.join(shipOutputDir, latestPaxFile);
+      }
 
       console.log(`Adding successive PAX entry to: ${latestPaxFile} (for ${shipId})`);
       console.log('Using dispatch data from:', path.basename(dispatchFilePath));

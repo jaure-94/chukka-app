@@ -118,14 +118,18 @@ export class SimpleEODProcessor {
       const newTotalsStart = currentTotalsStart + totalNewRows;
       this.updateTotalsSection(worksheet, newTotalsStart, multipleData.records);
       
-      // Save the updated file
-      const useBlob = blobStorage.isBlobUrl(existingEodPath) || process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
-      if (useBlob && blobStorage.isBlobUrl(existingEodPath)) {
+      // Save the updated file - use blob storage on Vercel or if existing path is blob URL
+      const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+      const useBlob = blobStorage.isBlobUrl(existingEodPath) || isVercel || process.env.USE_BLOB === 'true';
+      
+      if (useBlob) {
+        // On Vercel or if existing path is blob URL, use blob storage
         const blobKey = `output/${shipId}/eod_${Date.now()}.xlsx`;
         const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey, false);
         console.log(`→ SimpleEOD: Successfully added ${newRecordsCount} tour sections to existing EOD report in blob: ${blobUrl}`);
         return blobUrl;
       } else {
+        // Local development - use filesystem
         await workbook.xlsx.writeFile(outputPath);
         console.log(`→ SimpleEOD: Successfully added ${newRecordsCount} tour sections to existing EOD report: ${outputPath}`);
         return outputPath;
