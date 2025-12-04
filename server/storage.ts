@@ -36,8 +36,9 @@ import {
   type InsertConsolidatedPaxReport,
   type InsertDispatchSession
 } from "../shared/schema.js";
-import { db, withRetry } from "./db.js";
+import { db, withRetry, pool } from "./db.js";
 import { eq, desc, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export interface IStorage {
   // File operations
@@ -296,24 +297,71 @@ export class DatabaseStorage implements IStorage {
 
   // Generated report operations
   async createGeneratedReport(report: InsertGeneratedReport): Promise<GeneratedReport> {
-    const [newReport] = await db
-      .insert(generatedReports)
-      .values(report)
-      .returning();
-    return newReport;
+    try {
+      const [newReport] = await db
+        .insert(generatedReports)
+        .values(report)
+        .returning();
+      return newReport;
+    } catch (error) {
+      // Handle case where pax_file_path column doesn't exist yet
+      if (error instanceof Error && (error.message.includes('pax_file_path') || (error.message.includes('column') && error.message.includes('does not exist')))) {
+        console.warn('→ pax_file_path column does not exist yet, inserting without it');
+        // Remove paxFilePath from the report if column doesn't exist
+        const { paxFilePath, ...reportWithoutPax } = report as any;
+        const [newReport] = await db
+          .insert(generatedReports)
+          .values(reportWithoutPax)
+          .returning();
+        return { ...newReport, paxFilePath: null } as GeneratedReport;
+      }
+      throw error;
+    }
   }
 
   async getRecentGeneratedReports(limit: number = 10, shipId?: string): Promise<GeneratedReport[]> {
-    const query = db
-      .select()
-      .from(generatedReports)
-      .orderBy(desc(generatedReports.createdAt))
-      .limit(limit);
-    
-    if (shipId) {
-      return await query.where(eq(generatedReports.shipId, shipId));
+    try {
+      const query = db
+        .select()
+        .from(generatedReports)
+        .orderBy(desc(generatedReports.createdAt))
+        .limit(limit);
+      
+      if (shipId) {
+        return await query.where(eq(generatedReports.shipId, shipId));
+      }
+      return await query;
+    } catch (error) {
+      // Handle case where pax_file_path column doesn't exist yet (migration not run)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorString = JSON.stringify(error);
+      
+      // Check if error is about missing pax_file_path column (check both message and stringified error)
+      if (errorMessage.includes('pax_file_path') || 
+          errorString.includes('pax_file_path') ||
+          (errorMessage.includes('column') && errorMessage.includes('does not exist')) ||
+          (errorString.includes('column') && errorString.includes('does not exist'))) {
+        console.warn('→ pax_file_path column does not exist yet, querying without it');
+        // Use raw SQL to select only existing columns
+        const columns = ['id', 'dispatch_file_path', 'eod_file_path', 'ship_id', 'record_count', 'created_at'];
+        const sqlQuery = shipId
+          ? `SELECT ${columns.join(', ')} FROM generated_reports WHERE ship_id = $1 ORDER BY created_at DESC LIMIT $2`
+          : `SELECT ${columns.join(', ')} FROM generated_reports ORDER BY created_at DESC LIMIT $1`;
+        const params = shipId ? [shipId, limit] : [limit];
+        
+        const result = await pool.query(sqlQuery, params);
+        return result.rows.map((row: any) => ({
+          id: row.id,
+          dispatchFilePath: row.dispatch_file_path,
+          eodFilePath: row.eod_file_path,
+          paxFilePath: null, // Column doesn't exist yet
+          shipId: row.ship_id,
+          recordCount: row.record_count,
+          createdAt: row.created_at
+        })) as GeneratedReport[];
+      }
+      throw error;
     }
-    return await query;
   }
 
   async getGeneratedReport(id: number): Promise<GeneratedReport | undefined> {
