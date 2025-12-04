@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 
 // UI
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { History, File, Eye, Download, Plus, FileText, ChevronLeft, ChevronRight, Users, CheckCircle, Edit, Save, X, AlertTriangle, Maximize2, Minimize2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +85,10 @@ export default function CreateDispatch() {
   // const [sessionInitialized, setSessionInitialized] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Map<string, string>>(new Map());
   const [showValidationErrorModal, setShowValidationErrorModal] = useState(false);
+  // Use a ref to store current validation errors for immediate access (avoids async state update issues)
+  const validationErrorsRef = useRef<Map<string, string>>(new Map());
+  // Use a ref to store savedFileId for immediate access (avoids async state update issues on mobile)
+  const savedFileIdRef = useRef<string | null>(null);
   const [spreadsheetViewMode, setSpreadsheetViewMode] = useState<'mobile' | 'landscape'>('mobile');
   const lostPaxMergeConfig = useMemo(() => ([
     { row: 8, col: 19, rowspan: 1, colspan: 2 }
@@ -206,6 +210,22 @@ export default function CreateDispatch() {
 
     // initializeSession();
   }, [shipToUse]);
+
+  // Cleanup Handsontable instance when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup function: destroy Handsontable instance on unmount
+      const hotInstance = hotTableRef.current?.hotInstance;
+      if (hotInstance) {
+        try {
+          hotInstance.destroy();
+        } catch (error) {
+          // Silently handle errors during cleanup (instance may already be destroyed)
+          // This is expected and safe to ignore
+        }
+      }
+    };
+  }, []); // Only run on unmount
 
   // Fetch dispatch template for current ship
   const { data: dispatchTemplate, isLoading: isLoadingDispatch } = useQuery({
@@ -418,59 +438,209 @@ export default function CreateDispatch() {
     return 'Invalid value';
   };
 
-  // Validate all cells before saving, especially B5
+  // Validate all cells before saving
   const validateAllCells = async (): Promise<boolean> => {
-    // Start with existing errors to preserve validation state for other cells
-    const newErrors = new Map(validationErrors);
+    // Clear all existing errors first - start fresh
+    const newErrors = new Map<string, string>();
     const hotInstance = hotTableRef.current?.hotInstance;
     
-    // Validate B5 (row 4, col 1) - Date cell
-    if (editedData.length > 4 && editedData[4]) {
-      const b5Value = editedData[4][1];
+    // Helper function to get cell value - prefer Handsontable instance if available (more accurate on mobile)
+    // Also syncs with editedData to ensure we have the latest value
+    const getCellValue = (row: number, col: number): any => {
+      let value: any = '';
+      
+      // First, try to get from editedData (source of truth)
+      if (editedData[row] && editedData[row][col] !== undefined) {
+        value = editedData[row][col];
+      }
+      
+      // Then, try to get from Handsontable instance (may have more recent edits)
+      if (hotInstance) {
+        try {
+          const hotValue = hotInstance.getDataAtCell(row, col);
+          // If Handsontable has a value and it's different, prefer it (more recent)
+          if (hotValue !== null && hotValue !== undefined && hotValue !== '') {
+            value = hotValue;
+          }
+        } catch (error) {
+          // Instance may be destroyed or unavailable - use editedData value
+        }
+      }
+      
+      return value;
+    };
+    
+    // Helper function to validate a cell
+    const validateCell = async (
+      row: number,
+      col: number,
+      validator: (value: any, callback: (valid: boolean) => void) => void
+    ): Promise<boolean> => {
+      const cellValue = getCellValue(row, col);
+      return new Promise<boolean>((resolve) => {
+        validator(cellValue, (isValid) => {
+          resolve(isValid);
+        });
+      });
+    };
+    
+    // Helper function to update cell error state in UI
+    const updateCellErrorState = (row: number, col: number, hasError: boolean, errorMessage?: string) => {
+      if (hotInstance) {
+        try {
+          const td = hotInstance.getCell(row, col);
+          if (td) {
+            if (hasError && errorMessage) {
+              td.classList.add('htInvalid');
+              td.setAttribute('data-validation-type', 'error');
+              td.setAttribute('title', errorMessage);
+            } else {
+              td.classList.remove('htInvalid');
+              td.removeAttribute('data-validation-type');
+              td.removeAttribute('title');
+            }
+          }
+        } catch (error) {
+          // Instance may be destroyed or unavailable - this is safe to ignore
+          // during cleanup or when component is unmounting
+        }
+      }
+    };
+    
+    // Validate all cells with validators
+    const validationTasks: Promise<void>[] = [];
+    
+    // Validate B5 (row 4, col 1) - Date cell with strict format
+    if (editedData.length > 4) {
       const b5Row = 4;
       const b5Col = 1;
       const cellKey = `${b5Row},${b5Col}`;
       
-      // Use Promise to handle async validator
-      const b5IsValid = await new Promise<boolean>((resolve) => {
-        b5DateValidator(b5Value, (isValid) => {
-          resolve(isValid);
-        });
-      });
-      
-      if (!b5IsValid) {
-        const errorMessage = getErrorMessageForCell(b5Row, b5Col);
-        newErrors.set(cellKey, errorMessage);
-        
-        // Update UI to show error
-        if (hotInstance) {
-          const td = hotInstance.getCell(b5Row, b5Col);
-          if (td) {
-            td.classList.add('htInvalid');
-            td.setAttribute('data-validation-type', 'error');
-            td.setAttribute('title', errorMessage);
+      validationTasks.push(
+        validateCell(b5Row, b5Col, b5DateValidator).then((isValid) => {
+          if (!isValid) {
+            const errorMessage = getErrorMessageForCell(b5Row, b5Col);
+            newErrors.set(cellKey, errorMessage);
+            updateCellErrorState(b5Row, b5Col, true, errorMessage);
+          } else {
+            updateCellErrorState(b5Row, b5Col, false);
           }
-        }
-      } else {
-        // Clear error if valid
-        newErrors.delete(cellKey);
-        if (hotInstance) {
-          const td = hotInstance.getCell(b5Row, b5Col);
-          if (td) {
-            td.classList.remove('htInvalid');
-            td.removeAttribute('data-validation-type');
-            td.removeAttribute('title');
-          }
-        }
-      }
+        })
+      );
     }
     
-    // Update validation errors state
+    // Validate numeric cells: H11, H13, H15, J11, J13, J15, K11, K13, K15, L11, L13, L15, M11, M13, M15, Q11, Q13, Q15, R11, R13, R15
+    const numericCells = [
+      {r: 10, c: 7}, {r: 12, c: 7}, {r: 14, c: 7},  // H11, H13, H15
+      {r: 10, c: 9}, {r: 12, c: 9}, {r: 14, c: 9},  // J11, J13, J15
+      {r: 10, c: 10}, {r: 12, c: 10}, {r: 14, c: 10}, // K11, K13, K15
+      {r: 10, c: 11}, {r: 12, c: 11}, {r: 14, c: 11}, // L11, L13, L15
+      {r: 10, c: 12}, {r: 12, c: 12}, {r: 14, c: 12}, // M11, M13, M15
+      {r: 10, c: 16}, {r: 12, c: 16}, {r: 14, c: 16}, // Q11, Q13, Q15
+      {r: 10, c: 17}, {r: 12, c: 17}, {r: 14, c: 17}  // R11, R13, R15
+    ];
+    
+    numericCells.forEach(({r, c}) => {
+      if (editedData.length > r) {
+        const cellKey = `${r},${c}`;
+        validationTasks.push(
+          validateCell(r, c, numericValidator).then((isValid) => {
+            if (!isValid) {
+              const errorMessage = getErrorMessageForCell(r, c);
+              newErrors.set(cellKey, errorMessage);
+              updateCellErrorState(r, c, true, errorMessage);
+            } else {
+              updateCellErrorState(r, c, false);
+            }
+          })
+        );
+      }
+    });
+    
+    // Validate text-only cells: N11, N13, N15
+    [10, 12, 14].forEach((row) => {
+      const col = 13;
+      if (editedData.length > row) {
+        const cellKey = `${row},${col}`;
+        validationTasks.push(
+          validateCell(row, col, textOnlyValidator).then((isValid) => {
+            if (!isValid) {
+              const errorMessage = getErrorMessageForCell(row, col);
+              newErrors.set(cellKey, errorMessage);
+              updateCellErrorState(row, col, true, errorMessage);
+            } else {
+              updateCellErrorState(row, col, false);
+            }
+          })
+        );
+      }
+    });
+    
+    // Validate Date/Time cells: B11, B13, B15
+    [10, 12, 14].forEach((row) => {
+      const col = 1;
+      if (editedData.length > row) {
+        const cellKey = `${row},${col}`;
+        validationTasks.push(
+          validateCell(row, col, dateTimeValidator).then((isValid) => {
+            if (!isValid) {
+              const errorMessage = getErrorMessageForCell(row, col);
+              newErrors.set(cellKey, errorMessage);
+              updateCellErrorState(row, col, true, errorMessage);
+            } else {
+              updateCellErrorState(row, col, false);
+            }
+          })
+        );
+      }
+    });
+    
+    // Validate strict tour name cells: A11, A13, A15
+    const tourNameCells = [
+      {r: 10, c: 0, name: 'Catamaran Sail & Snorkel'},
+      {r: 12, c: 0, name: 'Champagne Adults Only'},
+      {r: 14, c: 0, name: 'Invisible Boat Family'}
+    ];
+    
+    tourNameCells.forEach(({r, c, name}) => {
+      if (editedData.length > r) {
+        const cellKey = `${r},${c}`;
+        validationTasks.push(
+          validateCell(r, c, strictTourNameValidator(name)).then((isValid) => {
+            if (!isValid) {
+              const errorMessage = getErrorMessageForCell(r, c);
+              newErrors.set(cellKey, errorMessage);
+              updateCellErrorState(r, c, true, errorMessage);
+            } else {
+              updateCellErrorState(r, c, false);
+            }
+          })
+        );
+      }
+    });
+    
+    // Wait for all validations to complete
+    await Promise.all(validationTasks);
+    
+    // Update both ref (for immediate access) and state (for React reactivity)
+    validationErrorsRef.current = newErrors;
     setValidationErrors(newErrors);
     
     // Re-render to show validation errors
     if (hotInstance) {
-      hotInstance.render();
+      try {
+        hotInstance.render();
+      } catch (error) {
+        // Instance may be destroyed or unavailable - this is safe to ignore
+        // during cleanup or when component is unmounting
+      }
+    }
+    
+    // Log validation results for debugging (especially useful on mobile)
+    if (newErrors.size > 0) {
+      console.log(`Validation found ${newErrors.size} error(s):`, Array.from(newErrors.entries()));
+    } else {
+      console.log('All cells validated successfully');
     }
     
     return newErrors.size === 0;
@@ -479,11 +649,44 @@ export default function CreateDispatch() {
   const handleSave = async () => {
     if (!editedData.length) return;
     
+    // Ensure Handsontable instance is ready (especially important on mobile)
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) {
+      console.warn('Handsontable instance not ready, waiting...');
+      // Wait a bit for Handsontable to initialize (common on mobile)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try again after wait
+      if (!hotTableRef.current?.hotInstance) {
+        toast({
+          title: "Error",
+          description: "Spreadsheet not ready. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Force Handsontable to update its internal data from the DOM
+    // This ensures we get the latest cell values, especially important on mobile
+    if (hotInstance) {
+      try {
+        // Force Handsontable to sync its data
+        hotInstance.render();
+        // Small delay to ensure DOM is updated
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        console.warn('Error forcing Handsontable render before validation:', error);
+      }
+    }
+    
     // Validate all cells before saving
     const isValid = await validateAllCells();
     
     // Check for validation errors before saving
     if (!isValid) {
+      // Use a small delay to ensure state is updated before showing modal
+      await new Promise(resolve => setTimeout(resolve, 50));
       setShowValidationErrorModal(true);
       return;
     }
@@ -524,10 +727,33 @@ export default function CreateDispatch() {
       });
       
       setHasUnsavedChanges(false);
+      // Update both ref (for immediate access) and state (for React reactivity)
+      // This is especially important on mobile where state updates can be delayed
+      savedFileIdRef.current = result.file.id;
       setSavedFileId(result.file.id);
+      
+      console.log('Dispatch sheet saved successfully. File ID:', result.file.id);
       
       // Dispatch session functionality temporarily disabled
       // Will be re-implemented later
+      
+      // Wait a bit for any pending scroll events to complete (especially important on mobile)
+      // This prevents "instance has been destroyed" errors from momentum scrolling
+      // Mobile devices have momentum scrolling that can fire events after user interaction
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Properly destroy Handsontable instance before unmounting
+      // This prevents errors from momentum scroll events on mobile
+      const hotInstance = hotTableRef.current?.hotInstance;
+      if (hotInstance) {
+        try {
+          // Remove all event listeners and clean up
+          hotInstance.destroy();
+        } catch (error) {
+          // Instance may already be destroyed, which is fine
+          console.warn('Error destroying Handsontable instance (may already be destroyed):', error);
+        }
+      }
       
       // Close the editing view and show Update EOD button
       setIsEditing(false);
@@ -559,20 +785,35 @@ export default function CreateDispatch() {
     setIsEditing(false);
     setEditedData([]);
     setHasUnsavedChanges(false);
-    setValidationErrors(new Map());
+    const emptyErrors = new Map();
+    validationErrorsRef.current = emptyErrors;
+    setValidationErrors(emptyErrors);
+    // Clear saved file ID ref when canceling
+    savedFileIdRef.current = null;
   };
 
   // Update EOD Report mutation
   const updateEODMutation = useMutation({
     mutationFn: async () => {
-      if (!savedFileId) {
-        throw new Error('No saved file ID available');
+      // Use ref for immediate access (important on mobile)
+      const fileId = savedFileIdRef.current || savedFileId;
+      
+      if (!fileId) {
+        console.error('No saved file ID available for EOD generation');
+        throw new Error('No saved file ID available. Please save the dispatch sheet first.');
       }
 
+      console.log('Generating new EOD report with file ID:', fileId, 'for ship:', shipToUse);
+
       const response = await apiRequest("POST", "/api/process-eod-from-dispatch", {
-        dispatchFileId: savedFileId,
+        dispatchFileId: fileId,
         shipId: shipToUse
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to generate EOD report`);
+      }
 
       return response.json();
     },
@@ -588,13 +829,13 @@ export default function CreateDispatch() {
       queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", currentShip] });
       queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Error updating EOD report:", error);
       toast({
         title: "Error",
-        description: "Failed to update EOD report",
+        description: error.message || "Failed to generate EOD report. Please try again.",
         variant: "destructive",
       });
-      console.error("Error updating EOD report:", error);
     },
   });
 
@@ -605,15 +846,31 @@ export default function CreateDispatch() {
   // Successive dispatch entry mutation
   const successiveDispatchMutation = useMutation({
     mutationFn: async (existingEodFilename: string) => {
-      if (!savedFileId) {
-        throw new Error('No saved file ID available');
+      // Use ref for immediate access (important on mobile)
+      const fileId = savedFileIdRef.current || savedFileId;
+      
+      if (!fileId) {
+        console.error('No saved file ID available for successive dispatch');
+        throw new Error('No saved file ID available. Please save the dispatch sheet first.');
       }
 
+      if (!existingEodFilename) {
+        console.error('No existing EOD filename provided');
+        throw new Error('No existing EOD file found. Please generate a new EOD report first.');
+      }
+
+      console.log('Updating existing EOD report:', existingEodFilename, 'with file ID:', fileId, 'for ship:', shipToUse);
+
       const response = await apiRequest("POST", "/api/add-successive-dispatch", {
-        dispatchFileId: savedFileId,
+        dispatchFileId: fileId,
         existingEodFilename: existingEodFilename,
-        shipId: currentShip
+        shipId: shipToUse
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to update EOD report`);
+      }
 
       return response.json();
     },
@@ -622,21 +879,23 @@ export default function CreateDispatch() {
       setShowEodSuccessModal(true);
       
       // Invalidate all related caches for current ship
-      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", currentShip] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", currentShip] });
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-reports", shipToUse] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dispatch-versions", shipToUse] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", shipToUse] });
       
       // Also refresh consolidated PAX reports since successive dispatch triggers consolidated PAX
       queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
+      
+      console.log('EOD report updated successfully:', result.eodFile);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Error adding successive dispatch entry:", error);
       toast({
         title: "Error",
-        description: "Failed to add successive dispatch entry",
+        description: error.message || "Failed to update existing EOD report. Please try again.",
         variant: "destructive",
       });
-      console.error("Error adding successive dispatch entry:", error);
     },
   });
 
@@ -677,14 +936,25 @@ export default function CreateDispatch() {
   // PAX update mutation
   const updatePaxMutation = useMutation({
     mutationFn: async () => {
-      if (!savedFileId) {
-        throw new Error('No saved file ID available');
+      // Use ref for immediate access (important on mobile)
+      const fileId = savedFileIdRef.current || savedFileId;
+      
+      if (!fileId) {
+        console.error('No saved file ID available for PAX generation');
+        throw new Error('No saved file ID available. Please save the dispatch sheet first.');
       }
 
+      console.log('Generating new PAX report with file ID:', fileId, 'for ship:', shipToUse);
+
       const response = await apiRequest("POST", "/api/generate-pax-report", {
-        dispatchFileId: savedFileId,
-        shipId: currentShip
+        dispatchFileId: fileId,
+        shipId: shipToUse
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to generate PAX report`);
+      }
 
       return response.json();
     },
@@ -696,18 +966,22 @@ export default function CreateDispatch() {
       // Dispatch session functionality temporarily disabled
       
       // Refresh output files to show the new PAX report for current ship
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", shipToUse] });
       
       // Refresh consolidated PAX reports to show the new consolidated report
       if (result.consolidatedPaxGenerated) {
         queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
         console.log(`Updated consolidated PAX report: ${result.consolidatedFilename}`);
       }
+      
+      console.log('PAX report generated successfully:', result.paxFile);
     },
     onError: (error: any) => {
+      console.error("Error generating PAX report:", error);
       toast({
         title: "Failed to generate PAX report",
-        description: error.message || "An error occurred while generating the PAX report.",
+        description: error.message || "An error occurred while generating the PAX report. Please try again.",
         variant: "destructive",
       });
     },
@@ -720,15 +994,26 @@ export default function CreateDispatch() {
   // Update existing PAX report mutation
   const updateExistingPaxMutation = useMutation({
     mutationFn: async () => {
-      if (!savedFileId) {
-        throw new Error('No saved file ID available');
+      // Use ref for immediate access (important on mobile)
+      const fileId = savedFileIdRef.current || savedFileId;
+      
+      if (!fileId) {
+        console.error('No saved file ID available for successive PAX entry');
+        throw new Error('No saved file ID available. Please save the dispatch sheet first.');
       }
 
+      console.log('Updating existing PAX report with file ID:', fileId, 'for ship:', shipToUse);
+
       const response = await apiRequest("POST", "/api/add-successive-pax-entry", {
-        dispatchFileId: savedFileId,
-        shipId: currentShip!,
-        selectedShipName: getSelectedShipName(currentShip!)
+        dispatchFileId: fileId,
+        shipId: shipToUse,
+        selectedShipName: getSelectedShipName(shipToUse)
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to update PAX report`);
+      }
 
       return response.json();
     },
@@ -737,18 +1022,22 @@ export default function CreateDispatch() {
       setShowUpdatePaxSuccessModal(true);
       
       // Refresh output files to show the updated PAX report for current ship
-      queryClient.invalidateQueries({ queryKey: ["/api/output-files", currentShip] });
+      queryClient.invalidateQueries({ queryKey: ["/api/output-files", shipToUse] });
       
       // Refresh consolidated PAX reports to show the updated consolidated report
       if (result.consolidatedPaxGenerated) {
         queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/consolidated-pax-reports/latest"] });
         console.log(`Updated consolidated PAX report: ${result.consolidatedFilename}`);
       }
+      
+      console.log('PAX report updated successfully:', result.paxFile);
     },
     onError: (error: any) => {
+      console.error("Error updating PAX report:", error);
       toast({
         title: "Failed to update PAX report",
-        description: error.message || "An error occurred while updating the existing PAX report.",
+        description: error.message || "An error occurred while updating the existing PAX report. Please try again.",
         variant: "destructive",
       });
     },
@@ -1369,24 +1658,29 @@ export default function CreateDispatch() {
                             const hotInstance = hotTableRef.current?.hotInstance;
                             
                             if (hotInstance) {
-                              const td = hotInstance.getCell(row, col);
-                              if (td) {
-                                if (!isValid) {
-                                  const errorMessage = getErrorMessageForCell(row, col);
-                                  td.classList.add('htInvalid');
-                                  td.setAttribute('data-validation-type', 'error');
-                                  td.setAttribute('title', errorMessage);
-                                  const newErrors = new Map(validationErrors);
-                                  newErrors.set(cellKey, errorMessage);
-                                  setValidationErrors(newErrors);
-                                } else {
-                                  td.classList.remove('htInvalid');
-                                  td.removeAttribute('data-validation-type');
-                                  td.removeAttribute('title');
-                                  const newErrors = new Map(validationErrors);
-                                  newErrors.delete(cellKey);
-                                  setValidationErrors(newErrors);
+                              try {
+                                const td = hotInstance.getCell(row, col);
+                                if (td) {
+                                  if (!isValid) {
+                                    const errorMessage = getErrorMessageForCell(row, col);
+                                    td.classList.add('htInvalid');
+                                    td.setAttribute('data-validation-type', 'error');
+                                    td.setAttribute('title', errorMessage);
+                                    const newErrors = new Map(validationErrors);
+                                    newErrors.set(cellKey, errorMessage);
+                                    setValidationErrors(newErrors);
+                                  } else {
+                                    td.classList.remove('htInvalid');
+                                    td.removeAttribute('data-validation-type');
+                                    td.removeAttribute('title');
+                                    const newErrors = new Map(validationErrors);
+                                    newErrors.delete(cellKey);
+                                    setValidationErrors(newErrors);
+                                  }
                                 }
+                              } catch (error) {
+                                // Instance may be destroyed or unavailable - this is safe to ignore
+                                // during cleanup or when component is unmounting
                               }
                             }
                             return isValid;
@@ -1652,24 +1946,63 @@ export default function CreateDispatch() {
               <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
               <span className="break-words">Validation Errors</span>
             </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-2">
+              Please fix the following validation errors before saving:
+            </DialogDescription>
           </DialogHeader>
           <div className="py-3 sm:py-4">
-            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-              Please fix the following validation errors before saving:
-            </p>
             <div className="bg-red-50 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 max-h-60 overflow-y-auto overflow-x-hidden">
-              <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-red-700">
-                {Array.from(validationErrors.entries()).map(([cellKey, error]) => (
-                  <li key={cellKey} className="break-words break-all">{cellKey}: {error}</li>
-                ))}
-              </ul>
+              {validationErrorsRef.current.size > 0 ? (
+                <ul className="list-disc list-inside space-y-1 sm:space-y-1.5 text-xs sm:text-sm text-red-700">
+                  {Array.from(validationErrorsRef.current.entries()).map(([cellKey, error]) => {
+                    // Convert cell key (e.g., "4,1") to Excel notation (e.g., "B5")
+                    const [row, col] = cellKey.split(',').map(Number);
+                    const colLetter = String.fromCharCode(65 + col);
+                    const excelNotation = `${colLetter}${row + 1}`;
+                    return (
+                      <li key={cellKey} className="break-words break-all">
+                        <span className="font-semibold">{excelNotation}</span>: {error}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-xs sm:text-sm text-red-700">No validation errors found. Please try saving again.</p>
+              )}
             </div>
-            <Button 
-              onClick={() => setShowValidationErrorModal(false)}
-              className="w-full h-11 sm:h-12 text-xs sm:text-sm md:text-base touch-manipulation"
-            >
-              Fix Errors
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {validationErrorsRef.current.size > 0 && (
+                <Button
+                  onClick={() => {
+                    setShowValidationErrorModal(false);
+                    // Scroll to first error cell if possible
+                    const firstError = Array.from(validationErrorsRef.current.keys())[0];
+                    if (firstError) {
+                      const [row, col] = firstError.split(',').map(Number);
+                      const hotInstance = hotTableRef.current?.hotInstance;
+                      if (hotInstance) {
+                        try {
+                          hotInstance.selectCell(row, col);
+                          hotInstance.scrollViewportTo(row, col);
+                        } catch (error) {
+                          console.warn('Error scrolling to error cell:', error);
+                        }
+                      }
+                    }
+                  }}
+                  className="flex-1 h-11 sm:h-12 text-xs sm:text-sm md:text-base touch-manipulation bg-red-600 hover:bg-red-700 active:bg-red-800"
+                >
+                  Go to First Error
+                </Button>
+              )}
+              <Button 
+                onClick={() => setShowValidationErrorModal(false)}
+                variant="outline"
+                className={`${validationErrorsRef.current.size > 0 ? 'flex-1' : 'w-full'} h-11 sm:h-12 text-xs sm:text-sm md:text-base touch-manipulation`}
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
