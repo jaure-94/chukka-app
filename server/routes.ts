@@ -1710,18 +1710,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check generated reports for EOD file
       try {
         const recentReports = await storage.getRecentGeneratedReports(50, shipId);
+        console.log(`→ Checking ${recentReports.length} generated reports for EOD file: ${existingEodFilename}`);
+        
         const eodReport = recentReports.find(r => {
           if (!r.eodFilePath) return false;
           // Check if filename matches (handle both blob URLs and filesystem paths)
           const eodBasename = path.basename(r.eodFilePath.split('?')[0]); // Remove query params from blob URL
-          return eodBasename === existingEodFilename || r.eodFilePath.includes(existingEodFilename);
+          const matches = eodBasename === existingEodFilename || r.eodFilePath.includes(existingEodFilename);
+          if (matches) {
+            console.log(`→ Matched EOD file: ${eodBasename} (from ${r.eodFilePath})`);
+          }
+          return matches;
         });
+        
         if (eodReport?.eodFilePath) {
           existingEodPath = eodReport.eodFilePath;
           console.log(`→ Found existing EOD file in database: ${existingEodPath}`);
+        } else {
+          console.log(`→ EOD file not found. Available EOD files:`, recentReports
+            .filter(r => r.eodFilePath)
+            .map(r => path.basename(r.eodFilePath!.split('?')[0])));
         }
       } catch (error) {
-        console.log(`→ Database lookup for EOD file failed: ${error}`);
+        console.error(`→ Database lookup for EOD file failed:`, error);
+        console.error('→ Error details:', error instanceof Error ? error.stack : error);
       }
       
       // Fallback to filesystem if not found in database (only for local development)
@@ -2076,8 +2088,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check generated reports for PAX files
         try {
           const recentReports = await storage.getRecentGeneratedReports(50, shipId);
+          console.log(`→ Found ${recentReports.length} generated reports for ${shipId}`);
+          
+          // Defensively check for paxFilePath (column might not exist in DB yet)
           const paxReports = recentReports
-            .filter(r => r.paxFilePath && (r.paxFilePath.includes('pax_') || path.basename(r.paxFilePath).startsWith('pax_')))
+            .filter(r => {
+              try {
+                // Safely access paxFilePath - it might not exist if schema migration hasn't run
+                const paxPath = (r as any).paxFilePath;
+                if (!paxPath) return false;
+                const basename = path.basename(paxPath.split('?')[0]);
+                return basename.startsWith('pax_') || paxPath.includes('pax_');
+              } catch (err) {
+                console.warn('→ Error accessing paxFilePath:', err);
+                return false;
+              }
+            })
             .sort((a, b) => {
               // Sort by creation date, newest first
               const dateA = new Date(a.createdAt || 0).getTime();
@@ -2085,16 +2111,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return dateB - dateA;
             });
           
+          console.log(`→ Filtered to ${paxReports.length} PAX reports`);
+          
           if (paxReports.length === 0) {
+            console.log(`→ No PAX reports found in database. Available reports:`, recentReports.map(r => ({
+              id: r.id,
+              hasEod: !!r.eodFilePath,
+              hasPax: !!(r as any).paxFilePath,
+              shipId: r.shipId,
+              createdAt: r.createdAt
+            })));
             return res.status(400).json({ message: `No existing PAX reports found for ${shipId}. Generate a new PAX report first.` });
           }
           
-          latestPaxPath = paxReports[0].paxFilePath!;
+          latestPaxPath = (paxReports[0] as any).paxFilePath;
           latestPaxFile = path.basename(latestPaxPath.split('?')[0]); // Remove query params from blob URL
-          console.log(`Found latest PAX file from database: ${latestPaxFile} (${latestPaxPath})`);
+          console.log(`→ Found latest PAX file from database: ${latestPaxFile} (${latestPaxPath})`);
         } catch (error) {
-          console.error('Error finding PAX files from database:', error);
-          return res.status(500).json({ message: `Failed to find existing PAX reports for ${shipId}` });
+          console.error('→ Error finding PAX files from database:', error);
+          console.error('→ Error details:', error instanceof Error ? error.stack : error);
+          return res.status(500).json({ 
+            message: `Failed to find existing PAX reports for ${shipId}`,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       } else {
         // Local development - use filesystem
