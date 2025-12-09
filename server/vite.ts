@@ -28,7 +28,10 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: ["localhost", "127.0.0.1"],
+    // Allow access from local network (for mobile device testing)
+    // In production, this is not used as Vite is only for development
+    // Using 'all' allows connections from any host on the local network
+    allowedHosts: "all",
   };
 
   const vite = await createViteServer({

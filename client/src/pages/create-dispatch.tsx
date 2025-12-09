@@ -27,11 +27,18 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { HotTable } from "@handsontable/react";
 import type { HotTableClass } from "@handsontable/react";
 import { registerAllModules } from "handsontable/registry";
+import Handsontable from "handsontable";
 import "handsontable/dist/handsontable.full.min.css";
+import "react-day-picker/dist/style.css";
+import { B5DateEditor, tryFormatToB5 } from "@/components/handsontable/b5-date-editor";
 import * as XLSX from "xlsx";
 
 // Register Handsontable modules
 registerAllModules();
+
+// Register custom B5 date picker editor at module level (standard for Handsontable editors)
+// This is safe - editors are stateless and don't interfere with component lifecycle
+Handsontable.editors.registerEditor('b5DateEditor', B5DateEditor);
 
 type SpreadsheetData = (string | number)[][];
 
@@ -332,6 +339,21 @@ export default function CreateDispatch() {
     if (changes) {
       setHasUnsavedChanges(true);
     }
+  };
+
+  // Normalize B5 pasted/typed values to dd-MMM-yyyy where possible
+  const normalizeB5Changes = (changes: any[]) => {
+    if (!changes) return;
+    changes.forEach((change) => {
+      const [row, prop, , newValue] = change;
+      const col = typeof prop === 'number' ? prop : Number(prop);
+      if (row === 4 && col === 1) {
+        const formatted = tryFormatToB5(newValue);
+        if (formatted) {
+          change[3] = formatted;
+        }
+      }
+    });
   };
 
   // Validation functions with specific error messages
@@ -1507,7 +1529,50 @@ export default function CreateDispatch() {
                           width="100%"
                           height={isMobile ? (spreadsheetViewMode === 'landscape' ? 500 : 400) : 600}
                           licenseKey="non-commercial-and-evaluation"
+                          beforeChange={(changes) => {
+                            normalizeB5Changes(changes || []);
+                          }}
                           afterChange={handleDataChange}
+                          afterBeginEditing={(row, col) => {
+                            // iOS Keyboard Fix: Ensure keyboard appears when editing begins on mobile
+                            if (!isMobile) return;
+                            
+                            // Small delay to ensure Handsontable has created the editor
+                            setTimeout(() => {
+                              try {
+                                const hotInstance = hotTableRef.current?.hotInstance;
+                                if (!hotInstance) return;
+                                
+                                // Get the active editor
+                                const activeEditor = hotInstance.getActiveEditor();
+                                if (!activeEditor) return;
+                                
+                                // Handsontable uses TEXTAREA property for text editor
+                                const textarea = (activeEditor as any).TEXTAREA as HTMLTextAreaElement | undefined;
+                                
+                                if (textarea) {
+                                  // Force focus on the textarea
+                                  textarea.focus();
+                                  
+                                  // iOS-specific: Dispatch click event to ensure keyboard appears
+                                  // iOS Safari requires a user gesture to show keyboard
+                                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                                  if (isIOS) {
+                                    // Create and dispatch a click event to trigger keyboard
+                                    const clickEvent = new MouseEvent('click', {
+                                      bubbles: true,
+                                      cancelable: true,
+                                      view: window
+                                    });
+                                    textarea.dispatchEvent(clickEvent);
+                                  }
+                                }
+                              } catch (error) {
+                                // Fail silently - not critical if keyboard trigger fails
+                                console.warn('iOS keyboard trigger failed:', error);
+                              }
+                            }, 50); // 50ms delay to ensure editor is fully initialized
+                          }}
                           className="htCenter"
                           colWidths={function(index) {
                             if (index === 0) return isMobile ? 200 : 360;
@@ -1616,24 +1681,42 @@ export default function CreateDispatch() {
                             if (numericCells.some(cell => cell.r === row && cell.c === col)) {
                               cellProperties.validator = numericValidator;
                               cellProperties.allowInvalid = true;
+                              // iOS Keyboard Fix: Set inputMode for numeric cells
+                              if (isMobile) {
+                                cellProperties.inputMode = 'numeric';
+                              }
                             }
                             
                             // Text-only cells: N11, N13, N15
                             if ((row === 10 || row === 12 || row === 14) && col === 13) {
                               cellProperties.validator = textOnlyValidator;
                               cellProperties.allowInvalid = true;
+                              // iOS Keyboard Fix: Set inputMode for text cells
+                              if (isMobile) {
+                                cellProperties.inputMode = 'text';
+                              }
                             }
                             
                             // Date/Time cells: B11, B13, B15 use relaxed time/date validator
                             if (((row === 10 || row === 12 || row === 14) && col === 1)) {
                               cellProperties.validator = dateTimeValidator;
                               cellProperties.allowInvalid = true;
+                              // iOS Keyboard Fix: Set inputMode for date/time cells
+                              if (isMobile) {
+                                cellProperties.inputMode = 'text';
+                              }
                             }
-                            // B5 uses strict "dd-mmm-yyyy" validator (e.g., 22-oct-2025, month can be upper or lower case)
-                            if (row === 4 && col === 1) {
-                              cellProperties.validator = b5DateValidator;
-                              cellProperties.allowInvalid = true;
+                          // B5 uses strict "dd-mmm-yyyy" validator and custom date picker editor
+                          if (row === 4 && col === 1) {
+                            cellProperties.validator = b5DateValidator;
+                            cellProperties.allowInvalid = false;
+                            cellProperties.editor = 'b5DateEditor';
+                            classNames.push('b5-date-cell');
+                            // iOS Keyboard Fix: Set inputMode for date cells
+                            if (isMobile) {
+                              cellProperties.inputMode = 'text';
                             }
+                          }
                             
                             // Strict tour name cells
                             if (row === 10 && col === 0) { // A11
@@ -1647,6 +1730,11 @@ export default function CreateDispatch() {
                             if (row === 14 && col === 0) { // A15
                               cellProperties.validator = strictTourNameValidator('Invisible Boat Family');
                               cellProperties.allowInvalid = true;
+                            }
+                            
+                            // iOS Keyboard Fix: Set default inputMode for all editable cells on mobile
+                            if (isMobile && !cellProperties.readOnly && !cellProperties.inputMode) {
+                              cellProperties.inputMode = 'text';
                             }
                             
                             cellProperties.className = classNames.join(' ');
@@ -2015,13 +2103,14 @@ export default function CreateDispatch() {
 
         @media (max-width: 768px) {
           .landscape-mode .handsontable {
-            font-size: 12px;
+            font-size: 16px;
           }
           
           .landscape-mode .handsontable th,
           .landscape-mode .handsontable td {
             padding: 4px 6px;
             min-height: 32px;
+            font-size: 16px !important;
           }
         }
 
@@ -2123,8 +2212,9 @@ export default function CreateDispatch() {
 
         /* Mobile Spreadsheet Optimizations */
         @media (max-width: 768px) {
+          /* iOS Keyboard Fix: Minimum 16px font size to prevent zoom and ensure keyboard appears */
           .handsontable {
-            font-size: 11px;
+            font-size: 16px;
           }
           
           .handsontable th,
@@ -2132,11 +2222,19 @@ export default function CreateDispatch() {
             padding: 6px 8px;
             min-height: 44px;
             touch-action: manipulation;
+            font-size: 16px !important;
           }
           
           .handsontable th {
             font-weight: 600;
-            font-size: 10px;
+            font-size: 16px !important;
+          }
+          
+          /* Ensure editor input has 16px font size for iOS */
+          .handsontable .handsontableInput {
+            font-size: 16px !important;
+            -webkit-appearance: none;
+            -webkit-user-select: text;
           }
           
           /* Improve touch targets */

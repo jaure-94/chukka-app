@@ -87,3 +87,111 @@
 .thin-bottom-border {
   border-bottom: 1px solid black !important;
 }
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* B5 date picker editor */
+.b5-date-editor-overlay {
+  display: none;
+  z-index: 10000;
+}
+
+.b5-date-editor-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px 12px 12px;
+  color: #111827;
+}
+
+.b5-date-editor-panel .rdp {
+  --rdp-cell-size: 34px;
+  --rdp-accent-color: #2563eb;
+  --rdp-background-color: #eff6ff;
+  font-size: 14px;
+}
+
+.b5-date-editor-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.b5-date-editor-input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.b5-date-editor-input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.b5-date-editor-apply {
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.b5-date-editor-apply:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.b5-date-editor-error {
+  color: #b91c1c;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.b5-date-editor-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.b5-date-editor-footer button {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.b5-date-editor-footer button:hover {
+  background: #f3f4f6;
+}
+
+.b5-date-editor-clear {
+  color: #111827;
+}
+
+.b5-date-editor-close {
+  color: #374151;
+}
+
+.b5-date-cell {
+  cursor: pointer !important;
+}
