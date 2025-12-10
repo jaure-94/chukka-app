@@ -103,7 +103,7 @@ export class B5DateEditor extends BaseEditor {
       const viewportH = window.innerHeight || 640;
       const padding = 12;
       const estimatedHeight = 360; // approximate DayPicker height
-      const containerWidth = Math.min(Math.max(rect.width, 260), 360, viewportW - padding * 2);
+      const containerWidth = Math.min(Math.max(rect.width, 280), 380, viewportW - padding * 2);
       
       // Prefer placing below; if not enough space, place above.
       let top = rect.bottom + scrollY + 8;

@@ -12,6 +12,7 @@ import { EmailService } from "./email-service.js";
 import { DropboxService } from "./dropbox-service.js";
 import { blobStorage } from "./blob-storage.js";
 import fs from "fs";
+import os from "os";
 import path from "path";
 
 export class SharingController {
@@ -70,36 +71,82 @@ export class SharingController {
       // Handle Dropbox sharing
       if (params.shareMethod === 'dropbox' || params.shareMethod === 'both') {
         console.log(`Starting Dropbox upload for ${params.reportFiles.length} files`);
-        
-        const dropboxFiles = params.reportFiles.map(file => ({
-          localPath: file.path,
-          reportType: file.type,
-          filename: file.filename,
-        }));
 
-        dropboxResult = await this.dropboxService.batchUploadReports(dropboxFiles, params.shipId, true);
-        
-        if (dropboxResult.success) {
-          await db.update(sharingActivities)
-            .set({
-              dropboxStatus: 'uploaded',
-              dropboxLinks: dropboxResult.uploadedFiles.map((f: any) => f.sharedLink).filter(Boolean),
-              metadata: {
-                ...activity.metadata,
-                dropboxFolderPath: dropboxResult.sharedFolderLink,
-              },
+        // Create a temp workspace only if we need to materialize blob files
+        let tempDir: string | null = null;
+        const tempArtifacts: string[] = [];
+
+        try {
+          const dropboxFiles = await Promise.all(
+            params.reportFiles.map(async (file) => {
+              // If path is a blob URL, download to a temp file first
+              if (blobStorage.isBlobUrl(file.path)) {
+                if (!tempDir) {
+                  tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "chukka-dropbox-"));
+                }
+
+                console.log(`→ SharingController: Downloading blob for Dropbox: ${file.path}`);
+                const buffer = await blobStorage.downloadFile(file.path);
+                const safeName = file.filename || path.basename(file.path.split("?")[0]) || "report.xlsx";
+                const ext = path.extname(safeName) || ".xlsx";
+                const base = path.basename(safeName, ext) || "report";
+                const tempPath = path.join(tempDir, `${base}${ext}`);
+
+                await fs.promises.writeFile(tempPath, buffer);
+                tempArtifacts.push(tempPath);
+
+                console.log(`→ SharingController: Saved blob to temp file (${buffer.length} bytes): ${tempPath}`);
+
+                return {
+                  localPath: tempPath,
+                  reportType: file.type,
+                  filename: safeName,
+                };
+              }
+
+              // Ensure filesystem paths are absolute for Dropbox uploads
+              const localPath = path.isAbsolute(file.path) ? file.path : path.join(process.cwd(), file.path);
+
+              return {
+                localPath,
+                reportType: file.type,
+                filename: file.filename,
+              };
             })
-            .where(eq(sharingActivities.id, activity.id));
-            
-          console.log(`Dropbox upload completed for activity ${activity.id}`);
-        } else {
-          await db.update(sharingActivities)
-            .set({ dropboxStatus: 'failed' })
-            .where(eq(sharingActivities.id, activity.id));
-            
-          overallStatus = 'partial';
-          errorMessage += `Dropbox upload failed: ${dropboxResult.failedFiles.map((f: any) => f.error).join(', ')}; `;
-          console.error(`Dropbox upload failed for activity ${activity.id}:`, dropboxResult.failedFiles);
+          );
+
+          dropboxResult = await this.dropboxService.batchUploadReports(dropboxFiles, params.shipId, true);
+          
+          if (dropboxResult.success) {
+            await db.update(sharingActivities)
+              .set({
+                dropboxStatus: 'uploaded',
+                dropboxLinks: dropboxResult.uploadedFiles.map((f: any) => f.sharedLink).filter(Boolean),
+                metadata: {
+                  ...activity.metadata,
+                  dropboxFolderPath: dropboxResult.sharedFolderLink,
+                },
+              })
+              .where(eq(sharingActivities.id, activity.id));
+              
+            console.log(`Dropbox upload completed for activity ${activity.id}`);
+          } else {
+            await db.update(sharingActivities)
+              .set({ dropboxStatus: 'failed' })
+              .where(eq(sharingActivities.id, activity.id));
+              
+            overallStatus = 'partial';
+            errorMessage += `Dropbox upload failed: ${dropboxResult.failedFiles.map((f: any) => f.error).join(', ')}; `;
+            console.error(`Dropbox upload failed for activity ${activity.id}:`, dropboxResult.failedFiles);
+          }
+        } finally {
+          // Clean up any temp files/directories created for blob downloads
+          await Promise.all(
+            tempArtifacts.map((artifact) => fs.promises.rm(artifact, { force: true }).catch(() => {}))
+          );
+          if (tempDir) {
+            await fs.promises.rm(tempDir, { force: true, recursive: true }).catch(() => {});
+          }
         }
       }
 

@@ -1893,6 +1893,9 @@ export default function CreateDispatch() {
               <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
               <span className="break-words">PAX Report Generated!</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              PAX report has been successfully generated
+            </DialogDescription>
           </DialogHeader>
           <div className="py-3 sm:py-4">
             <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
@@ -1995,6 +1998,9 @@ export default function CreateDispatch() {
               <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
               <span className="break-words">EOD Report Updated!</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              EOD report has been successfully updated
+            </DialogDescription>
           </DialogHeader>
           <div className="py-3 sm:py-4">
             <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">

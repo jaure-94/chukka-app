@@ -106,15 +106,15 @@ export function TourDatePicker({ label, selectedDate, onDateChange, error }: Dat
       </Label>
       
       {/* Date Selection Dropdowns */}
-      <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 space-y-3">
-        <div className="grid grid-cols-3 gap-3">
+      <div className="bg-gray-50 p-4 pr-6 rounded-xl border-2 border-gray-200 space-y-3">
+        <div className="grid grid-cols-3 gap-3 pr-2">
           <div>
             <Label className="text-xs text-gray-500 mb-1 block">Year</Label>
             <Select value={selectedYear} onValueChange={(value) => handleDateChange('year', value)}>
               <SelectTrigger className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="pr-4">
                 {years.map((year) => (
                   <SelectItem key={year} value={String(year)}>
                     {year}
@@ -130,7 +130,7 @@ export function TourDatePicker({ label, selectedDate, onDateChange, error }: Dat
               <SelectTrigger className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="pr-4 min-w-[140px]">
                 {months.map((month) => (
                   <SelectItem key={month.value} value={month.value}>
                     {month.label}
@@ -146,7 +146,7 @@ export function TourDatePicker({ label, selectedDate, onDateChange, error }: Dat
               <SelectTrigger className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder="Day" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="pr-4">
                 {days.map((day) => (
                   <SelectItem key={day} value={day}>
                     {day}

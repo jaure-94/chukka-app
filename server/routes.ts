@@ -1289,89 +1289,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const shipId = req.query.ship as string || 'ship-a';
       const outputDir = path.join(process.cwd(), "output");
       
-      if (!fs.existsSync(outputDir)) {
-        return res.json([]);
-      }
-
       let fileList: any[] = [];
+      const fileMap = new Map<string, any>(); // Map by "ship:filename" to avoid duplicates
 
-      if (shipId === 'all') {
-        // Return files from all ships
-        const shipDirs = ['ship-a', 'ship-b', 'ship-c'];
-        for (const ship of shipDirs) {
-          const shipOutputDir = path.join(outputDir, ship);
-          if (fs.existsSync(shipOutputDir)) {
-            const shipFiles = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
-            const shipFileList = shipFiles.map(filename => {
-              const filePath = path.join(shipOutputDir, filename);
-              const stats = fs.statSync(filePath);
-              
-              // Parse filename to determine type
-              const isEOD = filename.startsWith('eod_');
-              const isDispatch = filename.startsWith('dispatch_');
-              const isPAX = filename.startsWith('pax_');
-              
-              return {
-                filename,
-                ship: ship,
-                type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
-                size: stats.size,
-                createdAt: stats.birthtime,
-                downloadUrl: `/api/output/${ship}/${filename}`
-              };
-            });
-            fileList.push(...shipFileList);
+      // First, get files from database (blob storage) - these are the source of truth for generated reports
+      try {
+        console.log(`→ /api/output-files: Querying database for ship: ${shipId}`);
+        // Increase limit to ensure we get all recent reports
+        const generatedReports = await storage.getRecentGeneratedReports(100, shipId === 'all' ? undefined : shipId);
+        console.log(`→ /api/output-files: Retrieved ${generatedReports.length} reports from database`);
+        
+        // Filter to only the requested ship if not 'all'
+        const filteredReports = shipId === 'all' 
+          ? generatedReports 
+          : generatedReports.filter(r => r.shipId === shipId);
+        console.log(`→ /api/output-files: Filtered to ${filteredReports.length} reports for ship ${shipId}`);
+        
+        // Log each report for debugging
+        filteredReports.forEach((report, idx) => {
+          const eodFilename = report.eodFilePath 
+            ? (blobStorage.isBlobUrl(report.eodFilePath) ? path.basename(report.eodFilePath.split('?')[0]) : path.basename(report.eodFilePath))
+            : 'NONE';
+          console.log(`→ /api/output-files: Report ${idx + 1} - ID: ${report.id}, Ship: ${report.shipId}, CreatedAt: ${report.createdAt}, EOD File: ${eodFilename}`);
+        });
+        
+        // Create a map of database files by "ship:filename" for efficient lookup
+        // If multiple reports have same filename, keep the most recent one
+        const dbFilesByFilename = new Map<string, typeof filteredReports[0]>();
+        
+        for (const report of filteredReports) {
+          // Add EOD file if it exists
+          if (report.eodFilePath) {
+            const eodFilename = blobStorage.isBlobUrl(report.eodFilePath)
+              ? path.basename(report.eodFilePath.split('?')[0])
+              : path.basename(report.eodFilePath);
+            
+            // Use "ship:filename" as key to handle same filename across different ships
+            const fileKey = `${report.shipId}:${eodFilename}`;
+            const existing = dbFilesByFilename.get(fileKey);
+            if (!existing || new Date(report.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+              console.log(`→ /api/output-files: Adding EOD file to map: ${fileKey} (createdAt: ${report.createdAt})`);
+              dbFilesByFilename.set(fileKey, report);
+            } else {
+              console.log(`→ /api/output-files: Skipping older EOD file: ${fileKey} (existing createdAt: ${existing.createdAt}, new: ${report.createdAt})`);
+            }
+          }
+          
+          // Add PAX file if it exists
+          if (report.paxFilePath) {
+            const paxFilename = blobStorage.isBlobUrl(report.paxFilePath)
+              ? path.basename(report.paxFilePath.split('?')[0])
+              : path.basename(report.paxFilePath);
+            
+            const fileKey = `${report.shipId}:${paxFilename}`;
+            const existing = dbFilesByFilename.get(fileKey);
+            if (!existing || new Date(report.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+              dbFilesByFilename.set(fileKey, report);
+            }
           }
         }
         
-        // Also include consolidated PAX files when showing all files
-        const consolidatedPaxDir = path.join(outputDir, "consolidated", "pax");
-        if (fs.existsSync(consolidatedPaxDir)) {
-          const consolidatedFiles = fs.readdirSync(consolidatedPaxDir).filter(file => file.endsWith('.xlsx'));
-          const consolidatedFileList = consolidatedFiles.map(filename => {
-            const filePath = path.join(consolidatedPaxDir, filename);
-            const stats = fs.statSync(filePath);
-            
-            return {
-              filename,
-              ship: 'consolidated',
-              type: 'Consolidated PAX Report',
-              size: stats.size,
-              createdAt: stats.birthtime,
-              downloadUrl: `/api/output/consolidated/pax?file=${filename}`
-            };
-          });
-          fileList.push(...consolidatedFileList);
-        }
-      } else {
-        // Return files for specific ship
-        const shipOutputDir = path.join(outputDir, shipId);
-        if (fs.existsSync(shipOutputDir)) {
-          const files = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
+        // Process database files - these take priority (database is source of truth)
+        console.log(`→ /api/output-files: Found ${dbFilesByFilename.size} unique files in database for ship ${shipId}`);
+        
+        for (const [fileKey, report] of dbFilesByFilename.entries()) {
+          // Extract filename from fileKey (format: "ship:filename")
+          const parts = fileKey.split(':');
+          const filename = parts.slice(1).join(':'); // Handle filenames with colons
+          const shipFromKey = parts[0];
+          const isEOD = filename.startsWith('eod_');
+          const filePath = isEOD ? report.eodFilePath : report.paxFilePath;
           
-          fileList = files.map((filename: string) => {
-            const filePath = path.join(shipOutputDir, filename);
-            const stats = fs.statSync(filePath);
-            
-            // Parse filename to determine type
-            const isEOD = filename.startsWith('eod_');
-            const isDispatch = filename.startsWith('dispatch_');
-            const isPAX = filename.startsWith('pax_');
-            
-            return {
-              filename,
-              ship: shipId,
-              type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
-              size: stats.size,
-              createdAt: stats.birthtime,
-              downloadUrl: `/api/output/${shipId}/${filename}`
-            };
+          if (!filePath) {
+            console.log(`→ /api/output-files: Skipping ${fileKey} - no file path`);
+            continue;
+          }
+          
+          // Convert createdAt to ISO string for consistent handling
+          const createdAt = report.createdAt instanceof Date 
+            ? report.createdAt.toISOString() 
+            : typeof report.createdAt === 'string' 
+              ? report.createdAt 
+              : new Date(report.createdAt).toISOString();
+          
+          console.log(`→ /api/output-files: Adding DB file ${filename} (ship: ${shipFromKey}, createdAt: ${createdAt}, fileKey: ${fileKey})`);
+          
+          // Add/update with database entry (database takes priority)
+          // Use the existing fileKey which is already in "ship:filename" format
+          fileMap.set(fileKey, {
+            filename: filename,
+            ship: shipFromKey,
+            type: isEOD ? 'EOD Report' : 'PAX Report',
+            size: 0,
+            createdAt: createdAt,
+            downloadUrl: `/api/output/${shipFromKey}/${filename}`,
+            fromDatabase: true,
+            ...(isEOD ? { eodFilePath: report.eodFilePath } : { paxFilePath: report.paxFilePath })
           });
+        }
+      } catch (dbError) {
+        console.warn('Failed to fetch files from database (blob storage):', dbError);
+        // Continue with filesystem files only
+      }
+
+      // Then, get files from filesystem (local development) - only add if not in database
+      if (fs.existsSync(outputDir)) {
+        if (shipId === 'all') {
+          // Return files from all ships
+          const shipDirs = ['ship-a', 'ship-b', 'ship-c'];
+          for (const ship of shipDirs) {
+            const shipOutputDir = path.join(outputDir, ship);
+            if (fs.existsSync(shipOutputDir)) {
+              const shipFiles = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
+              for (const filename of shipFiles) {
+                const fileKey = `${ship}:${filename}`;
+                
+                // Only add filesystem file if not already in database
+                if (!fileMap.has(fileKey)) {
+                  const filePath = path.join(shipOutputDir, filename);
+                  const stats = fs.statSync(filePath);
+                  
+                  // Parse filename to determine type
+                  const isEOD = filename.startsWith('eod_');
+                  const isDispatch = filename.startsWith('dispatch_');
+                  const isPAX = filename.startsWith('pax_');
+                  
+                  fileMap.set(fileKey, {
+                    filename,
+                    ship: ship,
+                    type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
+                    size: stats.size,
+                    createdAt: stats.birthtime.toISOString(),
+                    downloadUrl: `/api/output/${ship}/${filename}`
+                  });
+                }
+              }
+            }
+          }
+          
+          // Also include consolidated PAX files when showing all files
+          const consolidatedPaxDir = path.join(outputDir, "consolidated", "pax");
+          if (fs.existsSync(consolidatedPaxDir)) {
+            const consolidatedFiles = fs.readdirSync(consolidatedPaxDir).filter(file => file.endsWith('.xlsx'));
+            for (const filename of consolidatedFiles) {
+              const fileKey = `consolidated:${filename}`;
+              if (!fileMap.has(fileKey)) {
+                const filePath = path.join(consolidatedPaxDir, filename);
+                const stats = fs.statSync(filePath);
+                
+                fileMap.set(fileKey, {
+                  filename,
+                  ship: 'consolidated',
+                  type: 'Consolidated PAX Report',
+                  size: stats.size,
+                  createdAt: stats.birthtime.toISOString(),
+                  downloadUrl: `/api/output/consolidated/pax?file=${filename}`
+                });
+              }
+            }
+          }
+        } else {
+          // Return files for specific ship
+          const shipOutputDir = path.join(outputDir, shipId);
+          if (fs.existsSync(shipOutputDir)) {
+            const files = fs.readdirSync(shipOutputDir).filter(file => file.endsWith('.xlsx'));
+            
+            for (const filename of files) {
+              const fileKey = `${shipId}:${filename}`;
+              
+              // Only add filesystem file if not already in database
+              if (!fileMap.has(fileKey)) {
+                const filePath = path.join(shipOutputDir, filename);
+                const stats = fs.statSync(filePath);
+                
+                // Parse filename to determine type
+                const isEOD = filename.startsWith('eod_');
+                const isDispatch = filename.startsWith('dispatch_');
+                const isPAX = filename.startsWith('pax_');
+                
+                const fsCreatedAt = stats.birthtime.toISOString();
+                console.log(`→ /api/output-files: Adding filesystem file ${filename} (ship: ${shipId}, createdAt: ${fsCreatedAt})`);
+                
+                fileMap.set(fileKey, {
+                  filename,
+                  ship: shipId,
+                  type: isEOD ? 'EOD Report' : isDispatch ? 'Dispatch Report' : isPAX ? 'PAX Report' : 'Other',
+                  size: stats.size,
+                  createdAt: fsCreatedAt,
+                  downloadUrl: `/api/output/${shipId}/${filename}`
+                });
+              } else {
+                console.log(`→ /api/output-files: Skipping filesystem file ${filename} - already in database`);
+              }
+            }
+          }
         }
       }
 
+      // Convert map to array
+      fileList = Array.from(fileMap.values());
+      
+      console.log(`→ /api/output-files: Total files after merging: ${fileList.length}`);
+      console.log(`→ /api/output-files: EOD files: ${fileList.filter(f => f.type === 'EOD Report').length}`);
+      
       // Sort by creation date, newest first
-      fileList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      fileList.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        console.log(`→ /api/output-files: Sorting - ${a.filename}: ${a.createdAt} (${dateA}) vs ${b.filename}: ${b.createdAt} (${dateB})`);
+        return dateB - dateA;
+      });
+      
+      // Log top 3 EOD files after sorting
+      const eodFiles = fileList.filter(f => f.type === 'EOD Report');
+      console.log(`→ /api/output-files: Top 3 EOD files after sorting:`);
+      eodFiles.slice(0, 3).forEach((file, idx) => {
+        console.log(`→ /api/output-files:   ${idx + 1}. ${file.filename} - createdAt: ${file.createdAt} (${new Date(file.createdAt).toLocaleString()})`);
+      });
 
       res.json(fileList);
     } catch (error) {
@@ -1609,16 +1743,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? path.basename(eodResult.split('?')[0])
         : path.basename(eodResult);
 
-      // Save generated report to database
+      // Save generated report to database with explicit timestamp
       try {
-        await storage.createGeneratedReport({
+        const now = new Date();
+        console.log(`→ Saving EOD report to database - filename: ${eodFilename}, shipId: ${shipId}, timestamp: ${now.toISOString()}`);
+        
+        const savedReport = await storage.createGeneratedReport({
           dispatchFilePath: dispatchOutputPath,
           eodFilePath: eodResult, // Full blob URL or filesystem path
           paxFilePath: null,
           shipId: shipId,
           recordCount: 0 // Will be updated if we track records
         });
-        console.log(`→ Saved EOD report to database: ${eodResult}`);
+        
+        console.log(`→ Saved EOD report to database - ID: ${savedReport.id}, createdAt: ${savedReport.createdAt}, eodFilePath: ${savedReport.eodFilePath}`);
       } catch (dbError) {
         console.error('→ Failed to save EOD report to database:', dbError);
         // Don't fail the request if database save fails
@@ -2553,7 +2691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate report for a single dispatch record
   app.post("/api/generate-single-record-report", async (req, res) => {
     try {
-      const { recordId, tourName, adults, children, departure, returnTime, comp, totalGuests, notes, tourDate } = req.body;
+      const { recordId, tourName, adults, children, departure, returnTime, comp, totalGuests, notes, tourDate, shipId = 'ship-a' } = req.body;
 
       // Get active dispatch template
       const dispatchTemplate = await storage.getActiveDispatchTemplate();
@@ -2588,7 +2726,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await dispatchGenerator.generateDispatchFile(
         dispatchTemplate.filePath,
         [singleRecord],
-        outputPath
+        outputPath,
+        shipId
       );
 
       // Store the generated report record
@@ -2637,7 +2776,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await dispatchGenerator.generateDispatchFile(
         dispatchTemplate.filePath,
         records,
-        dispatchOutputPath
+        dispatchOutputPath,
+        dispatchTemplate?.shipId || 'ship-a'
       );
 
       // Generate EOD file from the dispatch file (not from records directly)

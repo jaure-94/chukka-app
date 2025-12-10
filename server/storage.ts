@@ -321,16 +321,28 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentGeneratedReports(limit: number = 10, shipId?: string): Promise<GeneratedReport[]> {
     try {
-      const query = db
+      // Build query with proper where clause BEFORE orderBy and limit
+      let baseQuery = db
         .select()
-        .from(generatedReports)
+        .from(generatedReports);
+      
+      if (shipId) {
+        baseQuery = baseQuery.where(eq(generatedReports.shipId, shipId)) as any;
+      }
+      
+      const results = await baseQuery
         .orderBy(desc(generatedReports.createdAt))
         .limit(limit);
       
-      if (shipId) {
-        return await query.where(eq(generatedReports.shipId, shipId));
+      console.log(`→ Storage: getRecentGeneratedReports - shipId: ${shipId || 'all'}, limit: ${limit}, returned: ${results.length} reports`);
+      if (results.length > 0) {
+        results.forEach((r, idx) => {
+          const eodFile = r.eodFilePath ? (r.eodFilePath.includes('/') ? r.eodFilePath.split('/').pop() : r.eodFilePath) : 'NONE';
+          console.log(`→ Storage: Report ${idx + 1} - ID: ${r.id}, Ship: ${r.shipId}, CreatedAt: ${r.createdAt}, EOD File: ${eodFile}`);
+        });
       }
-      return await query;
+      
+      return results;
     } catch (error) {
       // Handle case where pax_file_path column doesn't exist yet (migration not run)
       const errorMessage = error instanceof Error ? error.message : String(error);

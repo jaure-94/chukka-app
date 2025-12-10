@@ -624,8 +624,9 @@ export class SimpleEODProcessor {
 
   /**
    * Process template header delimiters in EOD report
-   * Updated for new template structure with cruise line field
+   * Updated for new template structure with cruise line field and date
    * C3 -> {{cruise_line}} (NEW), C4 -> {{ship_name}}, C5 -> {{tour_operator}}, C8 -> {{shorex_manager}}, C9 -> {{shorex_asst_manager}}
+   * Also searches for {{date}} delimiter anywhere in the template
    */
   private processTemplateHeaderDelimiters(worksheet: ExcelJS.Worksheet, templateHeaders: TemplateHeaderData): void {
     console.log(`→ SimpleEOD: Processing template header delimiters`);
@@ -648,6 +649,26 @@ export class SimpleEODProcessor {
         console.log(`→ SimpleEOD: WARNING - ${delimiter} not found at ${cell}, current value: "${targetCell.value}"`);
       }
     });
+    
+    // Search for {{date}} delimiter globally (date location may vary)
+    if (templateHeaders.date) {
+      let dateFound = false;
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          if (cell.value && String(cell.value).includes('{{date}}')) {
+            cell.value = templateHeaders.date;
+            console.log(`→ SimpleEOD: Found and replaced {{date}} at ${cell.address} = "${templateHeaders.date}"`);
+            dateFound = true;
+          }
+        });
+      });
+      
+      if (!dateFound) {
+        console.log(`→ SimpleEOD: WARNING - {{date}} delimiter not found anywhere in the template`);
+      }
+    } else {
+      console.log(`→ SimpleEOD: WARNING - No date extracted from dispatch file`);
+    }
   }
 
   /**

@@ -378,12 +378,22 @@ export default function Reports() {
                   
                   {(() => {
                     const eodFiles = (outputFiles as any[]).filter((file: any) => file.filename.startsWith('eod_'));
-                    const latestEOD = eodFiles
-                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                     
-                    // Debug logging
-                    console.log('EOD files found:', eodFiles.length);
-                    console.log('Latest EOD:', latestEOD?.filename);
+                    // Debug logging - show all EOD files with dates
+                    console.log('→ Reports Page: EOD files found:', eodFiles.length);
+                    eodFiles.forEach((file, idx) => {
+                      console.log(`→ Reports Page: EOD ${idx + 1} - ${file.filename}, createdAt: ${file.createdAt}, date: ${new Date(file.createdAt).toLocaleString()}`);
+                    });
+                    
+                    const latestEOD = eodFiles
+                      .sort((a: any, b: any) => {
+                        const dateA = new Date(a.createdAt).getTime();
+                        const dateB = new Date(b.createdAt).getTime();
+                        console.log(`→ Reports Page: Sorting - ${a.filename} (${dateA}) vs ${b.filename} (${dateB})`);
+                        return dateB - dateA;
+                      })[0];
+                    
+                    console.log('→ Reports Page: Latest EOD after sort:', latestEOD?.filename, 'createdAt:', latestEOD?.createdAt, 'date:', latestEOD ? new Date(latestEOD.createdAt).toLocaleString() : 'N/A');
                     
                     return latestEOD ? (
                       <div>

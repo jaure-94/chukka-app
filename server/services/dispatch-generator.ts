@@ -19,7 +19,8 @@ export class DispatchGenerator {
   async generateDispatchFile(
     templatePath: string,
     records: DispatchRecord[],
-    outputPath: string
+    outputPath: string,
+    shipId: string = 'ship-a'
   ): Promise<string> {
     try {
       console.log(`Loading dispatch template from: ${templatePath}`);
@@ -124,7 +125,8 @@ export class DispatchGenerator {
       const useBlob = process.env.VERCEL === '1' || process.env.USE_BLOB === 'true';
       
       if (useBlob) {
-        const blobKey = `output/dispatch_${Date.now()}.xlsx`;
+        // Scope dispatch outputs by ship to avoid cross-ship collisions
+        const blobKey = `output/${shipId}/dispatch_${Date.now()}.xlsx`;
         const blobUrl = await blobStorage.saveWorkbookToBlob(workbook, blobKey);
         console.log('Dispatch file generation completed successfully, saved to blob:', blobUrl);
         return blobUrl;
